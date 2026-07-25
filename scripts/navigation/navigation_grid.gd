@@ -8,6 +8,10 @@ const NEIGHBORS: Array[Vector2i] = [
 	Vector2i.RIGHT,
 	Vector2i.UP,
 	Vector2i.DOWN,
+	Vector2i(-1, -1),
+	Vector2i(1, -1),
+	Vector2i(-1, 1),
+	Vector2i(1, 1),
 ]
 
 var _grid := AStarGrid2D.new()
