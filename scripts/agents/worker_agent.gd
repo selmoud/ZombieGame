@@ -304,10 +304,7 @@ func _update_pickup(delta: float) -> void:
 func _start_next_delivery() -> void:
 	_prune_cancelled_batch_cells()
 	if _pending_delivery.is_empty():
-		if _carried_quantity > 0:
-			_start_return_material()
-		else:
-			_start_next_build()
+		_start_next_build()
 		return
 
 	var current_cell := _navigation.world_to_cell(position)
@@ -402,6 +399,9 @@ func _start_next_build() -> void:
 	_pending_build = valid_build_cells
 
 	if _pending_build.is_empty():
+		if _carried_quantity > 0:
+			_start_return_material()
+			return
 		_release_construction_claims(_batch_cells)
 		_finish_job()
 		return
@@ -410,11 +410,27 @@ func _start_next_build() -> void:
 	var next_cell := _find_nearest_reachable(_pending_build, current_cell)
 	if next_cell == JobBoard.INVALID_CELL:
 		_release_construction_claims(_pending_build)
-		_finish_job()
+		for cell in _pending_build:
+			_batch_cells.erase(cell)
+		_pending_build.clear()
+		if _carried_quantity > 0:
+			_start_return_material()
+		else:
+			_finish_job()
 		return
 
+	var build_path := _navigation.find_path_to_adjacent(current_cell, next_cell)
+	if _carried_quantity > 0:
+		var return_path := _navigation.find_path_to_adjacent(
+			current_cell,
+			_supply_cell
+		)
+		if not return_path.is_empty() and return_path.size() <= build_path.size():
+			_start_return_material()
+			return
+
 	_target_cell = next_cell
-	_path = _navigation.find_path_to_adjacent(current_cell, next_cell)
+	_path = build_path
 	_path_index = 1 if _path.size() > 1 else _path.size()
 	state = State.MOVING_TO_JOB
 	queue_redraw()
