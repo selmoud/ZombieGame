@@ -1,15 +1,20 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_grid.gd" id="2_world"]
 [ext_resource type="Script" path="res://scripts/camera_controller.gd" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/game_clock.gd" id="4_clock"]
+[ext_resource type="Script" path="res://scripts/zones/zone_manager.gd" id="5_zones"]
+[ext_resource type="Script" path="res://scripts/ui/build_menu.gd" id="6_menu"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="WorldGrid" type="Node2D" parent="."]
 script = ExtResource("2_world")
+
+[node name="ZoneLayer" type="Node2D" parent="."]
+script = ExtResource("5_zones")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(1024, 1024)
@@ -19,3 +24,15 @@ script = ExtResource("3_camera")
 
 [node name="GameClock" type="Node" parent="."]
 script = ExtResource("4_clock")
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="BuildMenu" type="Control" parent="Interface"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_menu")

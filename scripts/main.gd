@@ -1,15 +1,21 @@
 extends Node2D
 
 @onready var game_clock: GameClock = $GameClock
+@onready var zone_manager: ZoneManager = $ZoneLayer
+@onready var build_menu: BuildMenu = $Interface/BuildMenu
 
 
 func _ready() -> void:
 	_create_hud()
+	build_menu.zone_tool_selected.connect(zone_manager.set_active_tool)
+	build_menu.cancel_tool_selected.connect(zone_manager.clear_active_tool)
+	zone_manager.active_tool_changed.connect(build_menu.sync_active_tool)
 
 
 func _create_hud() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.name = "HUD"
+	canvas.layer = 2
 	add_child(canvas)
 
 	var panel := PanelContainer.new()
@@ -48,7 +54,7 @@ func _create_hud() -> void:
 
 	var help := Label.new()
 	help.text = "WASD/стрелки — камера  •  колёсико — масштаб  •  Space — пауза"
-	help.position = Vector2(16, 690)
+	help.position = Vector2(16, 112)
 	help.add_theme_color_override("font_color", Color(0.9, 0.92, 0.86, 0.9))
 	canvas.add_child(help)
 
