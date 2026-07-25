@@ -16,6 +16,23 @@ var _dragging := false
 var _drag_start := Vector2i.ZERO
 var _drag_current := Vector2i.ZERO
 var _drag_tool: StringName = &""
+var _hover_cell := Vector2i.ZERO
+var _hover_visible := false
+
+
+func _process(_delta: float) -> void:
+	var next_hover_visible := (
+		not active_tool.is_empty()
+		and get_viewport().gui_get_hovered_control() == null
+	)
+	var next_hover_cell := _world_to_cell(get_global_mouse_position())
+	if (
+		next_hover_visible != _hover_visible
+		or next_hover_cell != _hover_cell
+	):
+		_hover_visible = next_hover_visible
+		_hover_cell = next_hover_cell
+		queue_redraw()
 
 
 func set_active_tool(tool_id: StringName) -> void:
@@ -35,11 +52,7 @@ func clear_active_tool() -> void:
 
 
 func place_blueprint(cell: Vector2i, object_id: StringName) -> void:
-	if (
-		not _is_cell_inside_map(cell)
-		or not ConstructionCatalog.has_tool(object_id)
-		or _completed_objects.has(cell)
-	):
+	if not can_place_blueprint(cell, object_id):
 		return
 	_blueprints[cell] = object_id
 	blueprints_changed.emit()
@@ -50,7 +63,7 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 	if not ConstructionCatalog.has_tool(object_id):
 		return
 	for cell in _get_orthogonal_line(from, to):
-		if _is_cell_inside_map(cell) and not _completed_objects.has(cell):
+		if can_place_blueprint(cell, object_id):
 			_blueprints[cell] = object_id
 	blueprints_changed.emit()
 	queue_redraw()
@@ -65,6 +78,14 @@ func erase_line(from: Vector2i, to: Vector2i) -> void:
 
 func get_blueprint_at(cell: Vector2i) -> StringName:
 	return _blueprints.get(cell, &"")
+
+
+func can_place_blueprint(cell: Vector2i, object_id: StringName) -> bool:
+	return (
+		_is_cell_inside_map(cell)
+		and ConstructionCatalog.has_tool(object_id)
+		and not _completed_objects.has(cell)
+	)
 
 
 func get_blueprint_cells() -> Array[Vector2i]:
@@ -152,6 +173,13 @@ func _draw() -> void:
 		_draw_blueprint(cell, object_id, false)
 
 	if not _dragging:
+		if _hover_visible and _is_cell_inside_map(_hover_cell):
+			if active_tool == ERASE_TOOL:
+				_draw_blueprint(_hover_cell, active_tool, true)
+			elif can_place_blueprint(_hover_cell, active_tool):
+				_draw_blueprint(_hover_cell, active_tool, true)
+			else:
+				_draw_invalid_placement(_hover_cell)
 		return
 
 	var preview_cells: Array[Vector2i]
@@ -162,7 +190,13 @@ func _draw() -> void:
 
 	for cell in preview_cells:
 		if _is_cell_inside_map(cell):
-			_draw_blueprint(cell, _drag_tool, true)
+			if (
+				_drag_tool == ERASE_TOOL
+				or can_place_blueprint(cell, _drag_tool)
+			):
+				_draw_blueprint(cell, _drag_tool, true)
+			else:
+				_draw_invalid_placement(cell)
 
 
 func _draw_completed_object(cell: Vector2i, object_id: StringName) -> void:
@@ -207,6 +241,22 @@ func _draw_blueprint(cell: Vector2i, object_id: StringName, is_preview: bool) ->
 			outline,
 			3.0
 		)
+
+
+func _draw_invalid_placement(cell: Vector2i) -> void:
+	var rect := Rect2(Vector2(cell * TILE_SIZE), Vector2.ONE * TILE_SIZE).grow(-5.0)
+	var color := Color("e34f47")
+	var fill := color
+	fill.a = 0.2
+	draw_rect(rect, fill, true)
+	draw_rect(rect, color, false, 2.0)
+	draw_line(rect.position + Vector2(3, 3), rect.end - Vector2(3, 3), color, 4.0)
+	draw_line(
+		Vector2(rect.end.x - 3, rect.position.y + 3),
+		Vector2(rect.position.x + 3, rect.end.y - 3),
+		color,
+		4.0
+	)
 
 
 func _get_orthogonal_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
