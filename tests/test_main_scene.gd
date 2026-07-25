@@ -29,17 +29,28 @@ func _run() -> void:
 
 	var worker: WorkerAgent = main.get_node("Agents/Worker")
 	var clock: GameClock = main.get_node("GameClock")
+	var supplies: SupplyDepot = main.get_node("SupplyDepot")
+	worker.movement_speed = 1000.0
+	worker.pickup_duration = 0.01
 	worker.construction_duration = 0.01
 	clock.set_speed(4.0)
+	assert(not construction.can_place_blueprint(Vector2i(29, 31), &"wall"))
+	var initial_wall_sections := supplies.get_total_quantity(&"wall_section")
 	construction.place_blueprint(Vector2i(34, 32), &"wall")
 	await create_timer(0.4).timeout
 	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"wall")
+	assert(
+		supplies.get_total_quantity(&"wall_section")
+		== initial_wall_sections - 1
+	)
 
 	var navigation: NavigationGrid = main.get_node("NavigationGrid")
+	var initial_doors := supplies.get_total_quantity(&"door_module")
 	construction.place_blueprint(Vector2i(34, 32), &"door")
 	await create_timer(0.4).timeout
 	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"door")
 	assert(navigation.is_cell_walkable(Vector2i(34, 32)))
+	assert(supplies.get_total_quantity(&"door_module") == initial_doors - 1)
 
 	construction.mark_deconstruction_line(Vector2i(34, 32), Vector2i(34, 32))
 	await create_timer(0.4).timeout

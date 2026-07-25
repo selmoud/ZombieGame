@@ -4,6 +4,10 @@ extends SceneTree
 func _init() -> void:
 	var construction := ConstructionManager.new()
 
+	assert(ConstructionCatalog.get_required_item(&"wall") == &"wall_section")
+	assert(ConstructionCatalog.get_required_item(&"door") == &"door_module")
+	assert(ConstructionCatalog.get_required_item(&"barricade") == &"debris")
+
 	construction.place_line(Vector2i(2, 4), Vector2i(5, 5), &"wall")
 	assert(construction.get_blueprint_count(&"wall") == 4)
 	assert(construction.get_blueprint_at(Vector2i(5, 4)) == &"wall")

@@ -17,16 +17,19 @@ const TOOLS := {
 		"label": "Стена",
 		"color": Color("c5c1b3"),
 		"placement": "line",
+		"required_item": "wall_section",
 	},
 	"door": {
 		"label": "Дверь",
 		"color": Color("b88752"),
 		"placement": "single",
+		"required_item": "door_module",
 	},
 	"barricade": {
 		"label": "Баррикада",
 		"color": Color("8f7558"),
 		"placement": "line",
+		"required_item": "debris",
 	},
 }
 
@@ -51,3 +54,9 @@ static func get_placement(tool_id: StringName) -> String:
 	if not has_tool(tool_id):
 		return ""
 	return TOOLS[String(tool_id)]["placement"]
+
+
+static func get_required_item(tool_id: StringName) -> StringName:
+	if not has_tool(tool_id):
+		return &""
+	return StringName(TOOLS[String(tool_id)]["required_item"])

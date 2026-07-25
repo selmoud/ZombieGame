@@ -3,6 +3,7 @@ extends Node2D
 @onready var game_clock: GameClock = $GameClock
 @onready var zone_manager: ZoneManager = $ZoneLayer
 @onready var construction_manager: ConstructionManager = $ConstructionLayer
+@onready var supplies: SupplyDepot = $SupplyDepot
 @onready var navigation_grid: NavigationGrid = $NavigationGrid
 @onready var job_board: JobBoard = $JobBoard
 @onready var worker: WorkerAgent = $Agents/Worker
@@ -26,7 +27,13 @@ func _ready() -> void:
 	construction_manager.construction_removed.connect(
 		navigation_grid.remove_construction
 	)
-	worker.setup(game_clock, navigation_grid, job_board, construction_manager)
+	worker.setup(
+		game_clock,
+		navigation_grid,
+		job_board,
+		construction_manager,
+		supplies
+	)
 	construction_manager.set_placement_validator(
 		_can_worker_reach_construction_cell
 	)
@@ -60,6 +67,8 @@ func _sync_deconstruction_jobs() -> void:
 
 
 func _can_worker_reach_construction_cell(cell: Vector2i) -> bool:
+	if supplies.has_box_at(cell):
+		return false
 	var worker_cell := navigation_grid.world_to_cell(worker.position)
 	return not navigation_grid.find_path_to_adjacent(worker_cell, cell).is_empty()
 
@@ -72,7 +81,7 @@ func _create_hud() -> void:
 
 	var panel := PanelContainer.new()
 	panel.position = Vector2(16, 16)
-	panel.custom_minimum_size = Vector2(360, 84)
+	panel.custom_minimum_size = Vector2(410, 106)
 	canvas.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -91,6 +100,14 @@ func _create_hud() -> void:
 	date_label.text = game_clock.get_date_text()
 	layout.add_child(date_label)
 
+	var supplies_label := Label.new()
+	supplies_label.text = supplies.get_summary_text()
+	supplies_label.add_theme_color_override(
+		"font_color",
+		Color(0.82, 0.8, 0.7)
+	)
+	layout.add_child(supplies_label)
+
 	var controls := HBoxContainer.new()
 	controls.add_theme_constant_override("separation", 6)
 	layout.add_child(controls)
@@ -106,7 +123,7 @@ func _create_hud() -> void:
 
 	var help := Label.new()
 	help.text = "WASD/стрелки — камера  •  колёсико — масштаб  •  Space — пауза"
-	help.position = Vector2(16, 112)
+	help.position = Vector2(16, 136)
 	help.add_theme_color_override("font_color", Color(0.9, 0.92, 0.86, 0.9))
 	canvas.add_child(help)
 
@@ -117,4 +134,8 @@ func _create_hud() -> void:
 	game_clock.speed_changed.connect(
 		func(_speed: float) -> void:
 			date_label.text = game_clock.get_date_text()
+	)
+	supplies.inventory_changed.connect(
+		func() -> void:
+			supplies_label.text = supplies.get_summary_text()
 	)
