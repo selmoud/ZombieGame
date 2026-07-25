@@ -20,7 +20,7 @@ var _grid := AStarGrid2D.new()
 func _ready() -> void:
 	_grid.region = Rect2i(Vector2i.ZERO, MAP_SIZE)
 	_grid.cell_size = Vector2.ONE * TILE_SIZE
-	_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
+	_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_grid.update()
 
 

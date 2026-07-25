@@ -34,8 +34,8 @@ func _run() -> void:
 	worker.pickup_duration = 0.01
 	worker.delivery_duration = 0.01
 	worker.construction_duration = 0.01
-	assert(worker.get_carry_capacity(&"wall_section") == 6)
-	assert(worker.get_carry_capacity(&"door_module") == 1)
+	assert(worker.get_carry_capacity(&"wall_section") == 4)
+	assert(worker.get_carry_capacity(&"door_module") == 4)
 	clock.set_speed(4.0)
 	assert(not construction.can_place_blueprint(Vector2i(29, 31), &"wall"))
 	var initial_wall_sections := supplies.get_total_quantity(&"wall_section")
@@ -74,8 +74,6 @@ func _run() -> void:
 		Vector2i(36, 35),
 		Vector2i(37, 35),
 		Vector2i(35, 36),
-		Vector2i(36, 36),
-		Vector2i(37, 36),
 	]
 	var wall_sections_before_batch := supplies.get_total_quantity(
 		&"wall_section"
@@ -92,7 +90,7 @@ func _run() -> void:
 		assert(construction.get_completed_object_at(cell) == &"wall")
 	assert(
 		supplies.get_total_quantity(&"wall_section")
-		== wall_sections_before_batch - 6
+		== wall_sections_before_batch - 4
 	)
 	assert(inventory_events[0] == 1)
 

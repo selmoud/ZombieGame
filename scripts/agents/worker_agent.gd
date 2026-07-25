@@ -15,6 +15,7 @@ enum State {
 const CONSTRUCTION_JOB := &"construction"
 const DECONSTRUCTION_JOB := &"deconstruction"
 const BATCH_RADIUS := 3
+const CARRY_CAPACITY := 4
 
 @export var movement_speed := 120.0
 @export var pickup_duration := 0.5
@@ -79,10 +80,8 @@ func _process(delta: float) -> void:
 			_update_work(simulation_delta)
 
 
-func get_carry_capacity(item_id: StringName) -> int:
-	if item_id == &"wall_section":
-		return 6
-	return 1
+func get_carry_capacity(_item_id: StringName) -> int:
+	return CARRY_CAPACITY
 
 
 func _try_claim_job() -> void:

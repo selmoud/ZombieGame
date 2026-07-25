@@ -11,6 +11,26 @@ func _run() -> void:
 	await process_frame
 
 	var target := Vector2i(10, 10)
+	var diagonal_path := navigation.get_cell_path(
+		Vector2i(1, 1),
+		Vector2i(4, 4)
+	)
+	assert(diagonal_path == [
+		Vector2i(1, 1),
+		Vector2i(2, 2),
+		Vector2i(3, 3),
+		Vector2i(4, 4),
+	])
+
+	navigation.register_construction(Vector2i(2, 1), &"wall")
+	navigation.register_construction(Vector2i(1, 2), &"wall")
+	var path_around_corner := navigation.get_cell_path(
+		Vector2i(1, 1),
+		Vector2i(2, 2)
+	)
+	assert(path_around_corner.size() > 2)
+	assert(path_around_corner[1] != Vector2i(2, 2))
+
 	navigation.register_construction(Vector2i(9, 10), &"wall")
 	navigation.register_construction(Vector2i(11, 10), &"wall")
 	navigation.register_construction(Vector2i(10, 9), &"wall")
