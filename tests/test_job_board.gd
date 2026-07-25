@@ -26,6 +26,17 @@ func _init() -> void:
 	assert(jobs.claim_construction(Vector2i(8, 8), 20))
 	assert(not jobs.claim_construction(Vector2i(8, 8), 21))
 
+	jobs.sync_deconstruction_jobs([Vector2i(5, 5), Vector2i(10, 10)])
+	assert(jobs.get_deconstruction_job_count() == 2)
+	assert(
+		jobs.get_available_deconstruction_jobs(Vector2i(4, 4)).front()
+		== Vector2i(5, 5)
+	)
+	assert(jobs.claim_deconstruction(Vector2i(5, 5), 30))
+	assert(not jobs.claim_deconstruction(Vector2i(5, 5), 31))
+	jobs.complete_deconstruction(Vector2i(5, 5), 30)
+	assert(not jobs.has_deconstruction_job(Vector2i(5, 5)))
+
 	print("JobBoard tests passed")
 	jobs.free()
 	quit()

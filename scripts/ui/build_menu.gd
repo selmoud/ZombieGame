@@ -60,9 +60,13 @@ func sync_construction_tool(tool_id: StringName) -> void:
 		_status_label.text = "Инструмент не выбран"
 		_cursor_indicator.hide()
 	elif tool_id == ConstructionManager.ERASE_TOOL:
-		_status_label.text = "Удаление чертежей  •  ЛКМ удалить  •  Esc отмена"
-		_cursor_label.text = "×  Удаление чертежей"
+		_status_label.text = "Отмена планов  •  ЛКМ удалить  •  Esc отмена"
+		_cursor_label.text = "×  Отмена планов"
 		_cursor_label.add_theme_color_override("font_color", Color("e36b63"))
+	elif tool_id == ConstructionManager.DECONSTRUCT_TOOL:
+		_status_label.text = "Разобрать  •  ЛКМ отметить  •  ПКМ отменить  •  Esc отмена"
+		_cursor_label.text = "×  Разобрать"
+		_cursor_label.add_theme_color_override("font_color", Color("e3a447"))
 	else:
 		_status_label.text = "%s  •  ЛКМ разместить  •  ПКМ удалить  •  Esc отмена" % ConstructionCatalog.get_label(tool_id)
 		_cursor_label.text = "◇  %s (чертёж)" % ConstructionCatalog.get_label(tool_id)
@@ -283,7 +287,14 @@ func _show_construction_tools(group_id: String) -> void:
 		_tools_row.add_child(button)
 		_tool_buttons[StringName(tool_id)] = button
 
-	var eraser := _make_toggle_button("Удалить чертёж", tool_group)
+	var deconstruct := _make_toggle_button("Разобрать", tool_group)
+	deconstruct.pressed.connect(
+		_select_construction_tool.bind(ConstructionManager.DECONSTRUCT_TOOL)
+	)
+	_tools_row.add_child(deconstruct)
+	_tool_buttons[ConstructionManager.DECONSTRUCT_TOOL] = deconstruct
+
+	var eraser := _make_toggle_button("Отменить план", tool_group)
 	eraser.pressed.connect(_select_construction_tool.bind(ConstructionManager.ERASE_TOOL))
 	_tools_row.add_child(eraser)
 	_tool_buttons[ConstructionManager.ERASE_TOOL] = eraser

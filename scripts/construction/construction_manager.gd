@@ -3,15 +3,19 @@ extends Node2D
 
 signal active_tool_changed(tool_id: StringName)
 signal blueprints_changed
+signal deconstruction_orders_changed
 signal construction_completed(cell: Vector2i, object_id: StringName)
+signal construction_removed(cell: Vector2i, object_id: StringName)
 
 const TILE_SIZE := 32
 const MAP_SIZE := Vector2i(64, 64)
 const ERASE_TOOL := &"erase_construction"
+const DECONSTRUCT_TOOL := &"deconstruct"
 
 var active_tool: StringName = &""
 var _blueprints: Dictionary[Vector2i, StringName] = {}
 var _completed_objects: Dictionary[Vector2i, StringName] = {}
+var _deconstruction_orders: Dictionary[Vector2i, bool] = {}
 var _dragging := false
 var _drag_start := Vector2i.ZERO
 var _drag_current := Vector2i.ZERO
@@ -34,12 +38,19 @@ func _process(_delta: float) -> void:
 		_hover_visible = next_hover_visible
 		_hover_cell = next_hover_cell
 		queue_redraw()
-	elif not _blueprints.is_empty() and _placement_validator.is_valid():
+	elif (
+		(not _blueprints.is_empty() or not _deconstruction_orders.is_empty())
+		and _placement_validator.is_valid()
+	):
 		queue_redraw()
 
 
 func set_active_tool(tool_id: StringName) -> void:
-	if tool_id != ERASE_TOOL and not ConstructionCatalog.has_tool(tool_id):
+	if (
+		tool_id != ERASE_TOOL
+		and tool_id != DECONSTRUCT_TOOL
+		and not ConstructionCatalog.has_tool(tool_id)
+	):
 		return
 	active_tool = tool_id
 	_cancel_drag()
@@ -62,6 +73,8 @@ func set_placement_validator(validator: Callable) -> void:
 func place_blueprint(cell: Vector2i, object_id: StringName) -> void:
 	if not can_place_blueprint(cell, object_id):
 		return
+	if _deconstruction_orders.erase(cell):
+		deconstruction_orders_changed.emit()
 	_blueprints[cell] = object_id
 	blueprints_changed.emit()
 	queue_redraw()
@@ -72,7 +85,9 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 		return
 	for cell in _get_orthogonal_line(from, to):
 		if can_place_blueprint(cell, object_id):
+			_deconstruction_orders.erase(cell)
 			_blueprints[cell] = object_id
+	deconstruction_orders_changed.emit()
 	blueprints_changed.emit()
 	queue_redraw()
 
@@ -80,7 +95,20 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 func erase_line(from: Vector2i, to: Vector2i) -> void:
 	for cell in _get_orthogonal_line(from, to):
 		_blueprints.erase(cell)
+		_deconstruction_orders.erase(cell)
 	blueprints_changed.emit()
+	deconstruction_orders_changed.emit()
+	queue_redraw()
+
+
+func mark_deconstruction_line(from: Vector2i, to: Vector2i) -> void:
+	for cell in _get_orthogonal_line(from, to):
+		if not can_mark_for_deconstruction(cell):
+			continue
+		_blueprints.erase(cell)
+		_deconstruction_orders[cell] = true
+	blueprints_changed.emit()
+	deconstruction_orders_changed.emit()
 	queue_redraw()
 
 
@@ -89,12 +117,28 @@ func get_blueprint_at(cell: Vector2i) -> StringName:
 
 
 func can_place_blueprint(cell: Vector2i, object_id: StringName) -> bool:
+	var completed_object := get_completed_object_at(cell)
+	var occupancy_allows_placement := (
+		completed_object.is_empty()
+		or (
+			object_id == &"door"
+			and completed_object == &"wall"
+		)
+	)
 	var base_requirements_met := (
 		_is_cell_inside_map(cell)
 		and ConstructionCatalog.has_tool(object_id)
-		and not _completed_objects.has(cell)
+		and occupancy_allows_placement
 	)
 	if not base_requirements_met:
+		return false
+	if _placement_validator.is_valid():
+		return bool(_placement_validator.call(cell))
+	return true
+
+
+func can_mark_for_deconstruction(cell: Vector2i) -> bool:
+	if not _is_cell_inside_map(cell) or not _completed_objects.has(cell):
 		return false
 	if _placement_validator.is_valid():
 		return bool(_placement_validator.call(cell))
@@ -115,6 +159,12 @@ func get_blueprint_count(object_id: StringName) -> int:
 	return count
 
 
+func get_deconstruction_cells() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	result.assign(_deconstruction_orders.keys())
+	return result
+
+
 func complete_blueprint(cell: Vector2i) -> bool:
 	if not _blueprints.has(cell):
 		return false
@@ -129,6 +179,18 @@ func complete_blueprint(cell: Vector2i) -> bool:
 
 func get_completed_object_at(cell: Vector2i) -> StringName:
 	return _completed_objects.get(cell, &"")
+
+
+func complete_deconstruction(cell: Vector2i) -> bool:
+	if not _deconstruction_orders.has(cell) or not _completed_objects.has(cell):
+		return false
+	var object_id: StringName = _completed_objects[cell]
+	_deconstruction_orders.erase(cell)
+	_completed_objects.erase(cell)
+	deconstruction_orders_changed.emit()
+	construction_removed.emit(cell, object_id)
+	queue_redraw()
+	return true
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -170,6 +232,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _apply_drag() -> void:
 	if _drag_tool == ERASE_TOOL:
 		erase_line(_drag_start, _drag_current)
+	elif _drag_tool == DECONSTRUCT_TOOL:
+		mark_deconstruction_line(_drag_start, _drag_current)
 	elif ConstructionCatalog.get_placement(_drag_tool) == "single":
 		place_blueprint(_drag_start, _drag_tool)
 	else:
@@ -180,6 +244,12 @@ func _draw() -> void:
 	for cell: Vector2i in _completed_objects:
 		var object_id: StringName = _completed_objects[cell]
 		_draw_completed_object(cell, object_id)
+
+	for cell: Vector2i in _deconstruction_orders:
+		if can_mark_for_deconstruction(cell):
+			_draw_deconstruction_marker(cell, false)
+		else:
+			_draw_invalid_placement(cell)
 
 	for cell: Vector2i in _blueprints:
 		var object_id: StringName = _blueprints[cell]
@@ -192,6 +262,11 @@ func _draw() -> void:
 		if _hover_visible and _is_cell_inside_map(_hover_cell):
 			if active_tool == ERASE_TOOL:
 				_draw_blueprint(_hover_cell, active_tool, true)
+			elif active_tool == DECONSTRUCT_TOOL:
+				if can_mark_for_deconstruction(_hover_cell):
+					_draw_deconstruction_marker(_hover_cell, true)
+				else:
+					_draw_invalid_placement(_hover_cell)
 			elif can_place_blueprint(_hover_cell, active_tool):
 				_draw_blueprint(_hover_cell, active_tool, true)
 			else:
@@ -199,7 +274,11 @@ func _draw() -> void:
 		return
 
 	var preview_cells: Array[Vector2i]
-	if _drag_tool != ERASE_TOOL and ConstructionCatalog.get_placement(_drag_tool) == "single":
+	if (
+		_drag_tool != ERASE_TOOL
+		and _drag_tool != DECONSTRUCT_TOOL
+		and ConstructionCatalog.get_placement(_drag_tool) == "single"
+	):
 		preview_cells = [_drag_start]
 	else:
 		preview_cells = _get_orthogonal_line(_drag_start, _drag_current)
@@ -208,9 +287,17 @@ func _draw() -> void:
 		if _is_cell_inside_map(cell):
 			if (
 				_drag_tool == ERASE_TOOL
-				or can_place_blueprint(cell, _drag_tool)
+				or (
+					_drag_tool != DECONSTRUCT_TOOL
+					and can_place_blueprint(cell, _drag_tool)
+				)
 			):
 				_draw_blueprint(cell, _drag_tool, true)
+			elif (
+				_drag_tool == DECONSTRUCT_TOOL
+				and can_mark_for_deconstruction(cell)
+			):
+				_draw_deconstruction_marker(cell, true)
 			else:
 				_draw_invalid_placement(cell)
 
@@ -257,6 +344,23 @@ func _draw_blueprint(cell: Vector2i, object_id: StringName, is_preview: bool) ->
 			outline,
 			3.0
 		)
+
+
+func _draw_deconstruction_marker(cell: Vector2i, is_preview: bool) -> void:
+	var rect := Rect2(Vector2(cell * TILE_SIZE), Vector2.ONE * TILE_SIZE).grow(-6.0)
+	var color := Color("e3a447")
+	if is_preview:
+		var fill := color
+		fill.a = 0.2
+		draw_rect(rect, fill, true)
+	draw_rect(rect, color, false, 2.0)
+	draw_line(rect.position + Vector2(2, 2), rect.end - Vector2(2, 2), color, 3.0)
+	draw_line(
+		Vector2(rect.end.x - 2, rect.position.y + 2),
+		Vector2(rect.position.x + 2, rect.end.y - 2),
+		color,
+		3.0
+	)
 
 
 func _draw_invalid_placement(cell: Vector2i) -> void:

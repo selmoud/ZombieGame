@@ -17,14 +17,21 @@ func _ready() -> void:
 	zone_manager.active_tool_changed.connect(build_menu.sync_active_tool)
 	construction_manager.active_tool_changed.connect(build_menu.sync_construction_tool)
 	construction_manager.blueprints_changed.connect(_sync_construction_jobs)
+	construction_manager.deconstruction_orders_changed.connect(
+		_sync_deconstruction_jobs
+	)
 	construction_manager.construction_completed.connect(
 		navigation_grid.register_construction
+	)
+	construction_manager.construction_removed.connect(
+		navigation_grid.remove_construction
 	)
 	worker.setup(game_clock, navigation_grid, job_board, construction_manager)
 	construction_manager.set_placement_validator(
 		_can_worker_reach_construction_cell
 	)
 	_sync_construction_jobs()
+	_sync_deconstruction_jobs()
 
 
 func _select_zone_tool(tool_id: StringName) -> void:
@@ -44,6 +51,12 @@ func _clear_planning_tools() -> void:
 
 func _sync_construction_jobs() -> void:
 	job_board.sync_construction_jobs(construction_manager.get_blueprint_cells())
+
+
+func _sync_deconstruction_jobs() -> void:
+	job_board.sync_deconstruction_jobs(
+		construction_manager.get_deconstruction_cells()
+	)
 
 
 func _can_worker_reach_construction_cell(cell: Vector2i) -> bool:

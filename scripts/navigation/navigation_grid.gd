@@ -52,6 +52,10 @@ func register_construction(cell: Vector2i, object_id: StringName) -> void:
 	_grid.set_point_solid(cell, blocks_movement)
 
 
+func remove_construction(cell: Vector2i, _object_id: StringName = &"") -> void:
+	_grid.set_point_solid(cell, false)
+
+
 func is_cell_walkable(cell: Vector2i) -> bool:
 	return (
 		cell.x >= 0

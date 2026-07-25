@@ -36,6 +36,15 @@ func _run() -> void:
 	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"wall")
 
 	var navigation: NavigationGrid = main.get_node("NavigationGrid")
+	construction.place_blueprint(Vector2i(34, 32), &"door")
+	await create_timer(0.4).timeout
+	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"door")
+	assert(navigation.is_cell_walkable(Vector2i(34, 32)))
+
+	construction.mark_deconstruction_line(Vector2i(34, 32), Vector2i(34, 32))
+	await create_timer(0.4).timeout
+	assert(construction.get_completed_object_at(Vector2i(34, 32)).is_empty())
+
 	var unreachable_target := Vector2i(40, 40)
 	construction.place_blueprint(unreachable_target, &"wall")
 	for offset in NavigationGrid.NEIGHBORS:

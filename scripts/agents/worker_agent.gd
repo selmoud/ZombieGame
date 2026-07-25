@@ -7,6 +7,9 @@ enum State {
 	WORKING,
 }
 
+const CONSTRUCTION_JOB := &"construction"
+const DECONSTRUCTION_JOB := &"deconstruction"
+
 @export var movement_speed := 120.0
 @export var construction_duration := 2.0
 
@@ -16,6 +19,7 @@ var _navigation: NavigationGrid
 var _job_board: JobBoard
 var _construction: ConstructionManager
 var _target_cell := JobBoard.INVALID_CELL
+var _job_type: StringName = &""
 var _path: Array[Vector2i] = []
 var _path_index := 0
 var _work_progress := 0.0
@@ -53,21 +57,48 @@ func _process(delta: float) -> void:
 
 func _try_claim_job() -> void:
 	var current_cell := _navigation.world_to_cell(position)
-	for cell in _job_board.get_available_construction_jobs(current_cell):
+	if _try_claim_from_list(
+		_job_board.get_available_construction_jobs(current_cell),
+		CONSTRUCTION_JOB,
+		current_cell
+	):
+		return
+	if _try_claim_from_list(
+		_job_board.get_available_deconstruction_jobs(current_cell),
+		DECONSTRUCTION_JOB,
+		current_cell
+	):
+		return
+
+	_idle_retry = 0.5
+
+
+func _try_claim_from_list(
+	cells: Array[Vector2i],
+	job_type: StringName,
+	current_cell: Vector2i
+) -> bool:
+	for cell in cells:
 		var path := _navigation.find_path_to_adjacent(current_cell, cell)
 		if path.is_empty():
 			continue
-		if not _job_board.claim_construction(cell, get_instance_id()):
+		var claimed := (
+			_job_board.claim_construction(cell, get_instance_id())
+			if job_type == CONSTRUCTION_JOB
+			else _job_board.claim_deconstruction(cell, get_instance_id())
+		)
+		if not claimed:
 			continue
 
 		_target_cell = cell
+		_job_type = job_type
 		_path = path
 		_path_index = 1 if path.size() > 1 else path.size()
 		state = State.MOVING
 		queue_redraw()
-		return
+		return true
 
-	_idle_retry = 0.5
+	return false
 
 
 func _update_movement(delta: float) -> void:
@@ -96,28 +127,43 @@ func _update_work(delta: float) -> void:
 		queue_redraw()
 		return
 
-	if _construction.complete_blueprint(_target_cell):
-		_job_board.complete_construction(_target_cell, get_instance_id())
+	if _job_type == CONSTRUCTION_JOB:
+		if _construction.complete_blueprint(_target_cell):
+			_job_board.complete_construction(_target_cell, get_instance_id())
+			_finish_job()
+	elif _construction.complete_deconstruction(_target_cell):
+		_job_board.complete_deconstruction(_target_cell, get_instance_id())
 		_finish_job()
 
 
 func _is_target_valid() -> bool:
+	if _target_cell == JobBoard.INVALID_CELL:
+		return false
+	if _job_type == CONSTRUCTION_JOB:
+		return (
+			not _construction.get_blueprint_at(_target_cell).is_empty()
+			and _job_board.has_construction_job(_target_cell)
+		)
 	return (
 		_target_cell != JobBoard.INVALID_CELL
-		and not _construction.get_blueprint_at(_target_cell).is_empty()
-		and _job_board.has_construction_job(_target_cell)
+		and not _construction.get_completed_object_at(_target_cell).is_empty()
+		and _job_board.has_deconstruction_job(_target_cell)
 	)
 
 
 func _cancel_job() -> void:
 	if _target_cell != JobBoard.INVALID_CELL:
-		_job_board.release_construction(_target_cell, get_instance_id())
+		if _job_type == CONSTRUCTION_JOB:
+			_job_board.release_construction(_target_cell, get_instance_id())
+		else:
+			_job_board.release_deconstruction(_target_cell, get_instance_id())
 	_finish_job()
 
 
 func _finish_job() -> void:
 	state = State.IDLE
 	_target_cell = JobBoard.INVALID_CELL
+	_job_type = &""
 	_path.clear()
 	_path_index = 0
 	_work_progress = 0.0
