@@ -35,6 +35,17 @@ func _run() -> void:
 	await create_timer(0.4).timeout
 	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"wall")
 
+	var navigation: NavigationGrid = main.get_node("NavigationGrid")
+	var unreachable_target := Vector2i(40, 40)
+	construction.place_blueprint(unreachable_target, &"wall")
+	for offset in NavigationGrid.NEIGHBORS:
+		navigation.register_construction(unreachable_target + offset, &"wall")
+	construction.place_blueprint(Vector2i(36, 32), &"door")
+	await create_timer(0.4).timeout
+	assert(construction.get_completed_object_at(Vector2i(36, 32)) == &"door")
+	assert(construction.get_blueprint_at(unreachable_target) == &"wall")
+	assert(not construction.can_place_blueprint(unreachable_target, &"wall"))
+
 	print("Main scene tests passed")
 	main.free()
 	quit()

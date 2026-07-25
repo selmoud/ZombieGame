@@ -18,6 +18,7 @@ var _drag_current := Vector2i.ZERO
 var _drag_tool: StringName = &""
 var _hover_cell := Vector2i.ZERO
 var _hover_visible := false
+var _placement_validator := Callable()
 
 
 func _process(_delta: float) -> void:
@@ -32,6 +33,8 @@ func _process(_delta: float) -> void:
 	):
 		_hover_visible = next_hover_visible
 		_hover_cell = next_hover_cell
+		queue_redraw()
+	elif not _blueprints.is_empty() and _placement_validator.is_valid():
 		queue_redraw()
 
 
@@ -48,6 +51,11 @@ func clear_active_tool() -> void:
 	active_tool = &""
 	_cancel_drag()
 	active_tool_changed.emit(active_tool)
+	queue_redraw()
+
+
+func set_placement_validator(validator: Callable) -> void:
+	_placement_validator = validator
 	queue_redraw()
 
 
@@ -81,11 +89,16 @@ func get_blueprint_at(cell: Vector2i) -> StringName:
 
 
 func can_place_blueprint(cell: Vector2i, object_id: StringName) -> bool:
-	return (
+	var base_requirements_met := (
 		_is_cell_inside_map(cell)
 		and ConstructionCatalog.has_tool(object_id)
 		and not _completed_objects.has(cell)
 	)
+	if not base_requirements_met:
+		return false
+	if _placement_validator.is_valid():
+		return bool(_placement_validator.call(cell))
+	return true
 
 
 func get_blueprint_cells() -> Array[Vector2i]:
@@ -170,7 +183,10 @@ func _draw() -> void:
 
 	for cell: Vector2i in _blueprints:
 		var object_id: StringName = _blueprints[cell]
-		_draw_blueprint(cell, object_id, false)
+		if can_place_blueprint(cell, object_id):
+			_draw_blueprint(cell, object_id, false)
+		else:
+			_draw_invalid_placement(cell)
 
 	if not _dragging:
 		if _hover_visible and _is_cell_inside_map(_hover_cell):

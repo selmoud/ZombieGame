@@ -31,6 +31,12 @@ func _init() -> void:
 	assert(not construction.can_place_blueprint(Vector2i(0, 0), &"door"))
 	assert(not construction.can_place_blueprint(Vector2i(-1, 0), &"wall"))
 	assert(construction.can_place_blueprint(Vector2i(1, 1), &"wall"))
+	construction.set_placement_validator(
+		func(cell: Vector2i) -> bool:
+			return cell != Vector2i(1, 1)
+	)
+	assert(not construction.can_place_blueprint(Vector2i(1, 1), &"wall"))
+	assert(construction.can_place_blueprint(Vector2i(2, 1), &"wall"))
 
 	print("ConstructionManager tests passed")
 	construction.free()

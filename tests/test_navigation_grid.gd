@@ -20,6 +20,14 @@ func _run() -> void:
 	assert(not path.is_empty())
 	assert(path.back() == Vector2i(9, 9))
 
+	navigation.register_construction(Vector2i(9, 9), &"wall")
+	navigation.register_construction(Vector2i(11, 9), &"wall")
+	navigation.register_construction(Vector2i(9, 11), &"wall")
+	navigation.register_construction(Vector2i(11, 11), &"wall")
+	assert(
+		navigation.find_path_to_adjacent(Vector2i(7, 7), target).is_empty()
+	)
+
 	print("NavigationGrid tests passed")
 	navigation.free()
 	quit()

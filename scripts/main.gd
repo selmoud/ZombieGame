@@ -21,6 +21,9 @@ func _ready() -> void:
 		navigation_grid.register_construction
 	)
 	worker.setup(game_clock, navigation_grid, job_board, construction_manager)
+	construction_manager.set_placement_validator(
+		_can_worker_reach_construction_cell
+	)
 	_sync_construction_jobs()
 
 
@@ -41,6 +44,11 @@ func _clear_planning_tools() -> void:
 
 func _sync_construction_jobs() -> void:
 	job_board.sync_construction_jobs(construction_manager.get_blueprint_cells())
+
+
+func _can_worker_reach_construction_cell(cell: Vector2i) -> bool:
+	var worker_cell := navigation_grid.world_to_cell(worker.position)
+	return not navigation_grid.find_path_to_adjacent(worker_cell, cell).is_empty()
 
 
 func _create_hud() -> void:

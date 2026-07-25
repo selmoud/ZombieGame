@@ -37,6 +37,28 @@ func claim_nearest_construction(agent_id: int, origin: Vector2i) -> Vector2i:
 	return best_cell
 
 
+func get_available_construction_jobs(origin: Vector2i) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for cell: Vector2i in _construction_jobs:
+		if _construction_jobs[cell] == 0:
+			result.append(cell)
+	result.sort_custom(
+		func(first: Vector2i, second: Vector2i) -> bool:
+			return (
+				origin.distance_squared_to(first)
+				< origin.distance_squared_to(second)
+			)
+	)
+	return result
+
+
+func claim_construction(cell: Vector2i, agent_id: int) -> bool:
+	if _construction_jobs.get(cell, -1) != 0:
+		return false
+	_construction_jobs[cell] = agent_id
+	return true
+
+
 func release_construction(cell: Vector2i, agent_id: int) -> void:
 	if _construction_jobs.get(cell, 0) == agent_id:
 		_construction_jobs[cell] = 0

@@ -21,6 +21,10 @@ func _init() -> void:
 
 	jobs.sync_construction_jobs([Vector2i(8, 8)])
 	assert(jobs.get_construction_job_count() == 1)
+	var available := jobs.get_available_construction_jobs(Vector2i.ZERO)
+	assert(available == [Vector2i(8, 8)])
+	assert(jobs.claim_construction(Vector2i(8, 8), 20))
+	assert(not jobs.claim_construction(Vector2i(8, 8), 21))
 
 	print("JobBoard tests passed")
 	jobs.free()

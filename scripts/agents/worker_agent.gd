@@ -53,25 +53,21 @@ func _process(delta: float) -> void:
 
 func _try_claim_job() -> void:
 	var current_cell := _navigation.world_to_cell(position)
-	var claimed_cell := _job_board.claim_nearest_construction(
-		get_instance_id(),
-		current_cell
-	)
-	if claimed_cell == JobBoard.INVALID_CELL:
-		_idle_retry = 0.5
+	for cell in _job_board.get_available_construction_jobs(current_cell):
+		var path := _navigation.find_path_to_adjacent(current_cell, cell)
+		if path.is_empty():
+			continue
+		if not _job_board.claim_construction(cell, get_instance_id()):
+			continue
+
+		_target_cell = cell
+		_path = path
+		_path_index = 1 if path.size() > 1 else path.size()
+		state = State.MOVING
+		queue_redraw()
 		return
 
-	var path := _navigation.find_path_to_adjacent(current_cell, claimed_cell)
-	if path.is_empty():
-		_job_board.release_construction(claimed_cell, get_instance_id())
-		_idle_retry = 1.0
-		return
-
-	_target_cell = claimed_cell
-	_path = path
-	_path_index = 1 if path.size() > 1 else path.size()
-	state = State.MOVING
-	queue_redraw()
+	_idle_retry = 0.5
 
 
 func _update_movement(delta: float) -> void:
