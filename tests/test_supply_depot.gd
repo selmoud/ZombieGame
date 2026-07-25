@@ -38,6 +38,33 @@ func _init() -> void:
 	supplies.drop_loose_items(Vector2i(7, 7), &"wall_section", 2)
 	assert(supplies.get_loose_quantity(Vector2i(7, 7), &"wall_section") == 2)
 	assert(supplies.get_total_loose_quantity() == 2)
+	assert(
+		supplies.reserve_quantity_from_source(
+			Vector2i(7, 7),
+			SupplyDepot.SOURCE_LOOSE,
+			&"wall_section",
+			2,
+			14
+		)
+	)
+	assert(not supplies.reserve_quantity_from_source(
+		Vector2i(7, 7),
+		SupplyDepot.SOURCE_LOOSE,
+		&"wall_section",
+		1,
+		15
+	))
+	var loose_taken := supplies.take_reserved_quantity(14)
+	assert(loose_taken["source_type"] == SupplyDepot.SOURCE_LOOSE)
+	assert(loose_taken["quantity"] == 2)
+	assert(supplies.get_loose_quantity(Vector2i(7, 7), &"wall_section") == 0)
+	supplies.return_items_to_source(
+		Vector2i(7, 7),
+		SupplyDepot.SOURCE_LOOSE,
+		&"wall_section",
+		1
+	)
+	assert(supplies.get_loose_quantity(Vector2i(7, 7), &"wall_section") == 1)
 
 	print("SupplyDepot tests passed")
 	supplies.free()

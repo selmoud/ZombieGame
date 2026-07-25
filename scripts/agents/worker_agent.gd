@@ -32,6 +32,7 @@ var _supplies: SupplyDepot
 var _job_type: StringName = &""
 var _target_cell := JobBoard.INVALID_CELL
 var _supply_cell := JobBoard.INVALID_CELL
+var _supply_source_type := SupplyDepot.SOURCE_BOX
 var _batch_item: StringName = &""
 var _batch_cells: Array[Vector2i] = []
 var _pending_delivery: Array[Vector2i] = []
@@ -132,10 +133,13 @@ func _try_claim_construction_batch(current_cell: Vector2i) -> bool:
 		if candidates.is_empty():
 			continue
 
-		for box_cell in _supplies.get_available_boxes(item_id):
+		var best_option: Dictionary = {}
+		var best_score := INF
+		for source in _supplies.get_available_sources(item_id):
+			var source_cell: Vector2i = source["cell"]
 			var path_to_supply := _navigation.find_path_to_adjacent(
 				current_cell,
-				box_cell
+				source_cell
 			)
 			if path_to_supply.is_empty():
 				continue
@@ -150,42 +154,56 @@ func _try_claim_construction_batch(current_cell: Vector2i) -> bool:
 
 			var batch_size := mini(
 				reachable_candidates.size(),
-				_supplies.get_available_quantity_in_box(box_cell)
+				int(source["quantity"])
 			)
 			if batch_size <= 0:
 				continue
 			reachable_candidates.resize(batch_size)
 
-			var claimed_cells: Array[Vector2i] = []
-			for candidate in reachable_candidates:
-				if _job_board.claim_construction(
-					candidate,
-					get_instance_id()
-				):
-					claimed_cells.append(candidate)
-			if claimed_cells.is_empty():
-				continue
-			if not _supplies.reserve_quantity_from_box(
-				box_cell,
-				item_id,
-				claimed_cells.size(),
+			var score := path_to_supply.size()
+			if score < best_score:
+				best_score = score
+				best_option = {
+					"cell": source_cell,
+					"source_type": source["source_type"],
+					"path": path_to_supply,
+					"candidates": reachable_candidates,
+				}
+		if best_option.is_empty():
+			continue
+
+		var claimed_cells: Array[Vector2i] = []
+		for candidate: Vector2i in best_option["candidates"]:
+			if _job_board.claim_construction(
+				candidate,
 				get_instance_id()
 			):
-				_release_construction_claims(claimed_cells)
-				continue
+				claimed_cells.append(candidate)
+		if claimed_cells.is_empty():
+			continue
+		if not _supplies.reserve_quantity_from_source(
+			best_option["cell"],
+			best_option["source_type"],
+			item_id,
+			claimed_cells.size(),
+			get_instance_id()
+		):
+			_release_construction_claims(claimed_cells)
+			continue
 
-			_job_type = CONSTRUCTION_JOB
-			_batch_item = item_id
-			_batch_cells = claimed_cells.duplicate()
-			_pending_delivery = claimed_cells.duplicate()
-			_pending_build.clear()
-			_supply_cell = box_cell
-			_target_cell = box_cell
-			_path = path_to_supply
-			_path_index = 1 if _path.size() > 1 else _path.size()
-			state = State.MOVING_TO_SUPPLY
-			queue_redraw()
-			return true
+		_job_type = CONSTRUCTION_JOB
+		_batch_item = item_id
+		_batch_cells = claimed_cells.duplicate()
+		_pending_delivery = claimed_cells.duplicate()
+		_pending_build.clear()
+		_supply_cell = best_option["cell"]
+		_supply_source_type = best_option["source_type"]
+		_target_cell = _supply_cell
+		_path = best_option["path"]
+		_path_index = 1 if _path.size() > 1 else _path.size()
+		state = State.MOVING_TO_SUPPLY
+		queue_redraw()
+		return true
 	return false
 
 
@@ -367,8 +385,9 @@ func _start_return_material() -> void:
 func _store_carried_material() -> void:
 	if _carried_quantity <= 0:
 		return
-	_supplies.return_items_to_box(
+	_supplies.return_items_to_source(
 		_supply_cell,
+		_supply_source_type,
 		_batch_item,
 		_carried_quantity
 	)
@@ -536,6 +555,7 @@ func _finish_job() -> void:
 	_job_type = &""
 	_target_cell = JobBoard.INVALID_CELL
 	_supply_cell = JobBoard.INVALID_CELL
+	_supply_source_type = SupplyDepot.SOURCE_BOX
 	_batch_item = &""
 	_batch_cells.clear()
 	_pending_delivery.clear()

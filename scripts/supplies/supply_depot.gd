@@ -4,6 +4,8 @@ extends Node2D
 signal inventory_changed
 
 const TILE_SIZE := 32
+const SOURCE_BOX := &"box"
+const SOURCE_LOOSE := &"loose"
 
 const ITEM_LABELS := {
 	"wall_section": "Секции стен",
@@ -52,6 +54,24 @@ func get_available_boxes(item_id: StringName) -> Array[Vector2i]:
 	return result
 
 
+func get_available_sources(item_id: StringName) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for cell: Vector2i in _loose_piles:
+		if _get_available_loose(cell, item_id) > 0:
+			result.append({
+				"cell": cell,
+				"source_type": SOURCE_LOOSE,
+				"quantity": _get_available_loose(cell, item_id),
+			})
+	for cell in get_available_boxes(item_id):
+		result.append({
+			"cell": cell,
+			"source_type": SOURCE_BOX,
+			"quantity": _get_available_in_box(cell),
+		})
+	return result
+
+
 func reserve_from_box(
 	cell: Vector2i,
 	item_id: StringName,
@@ -66,17 +86,40 @@ func reserve_quantity_from_box(
 	quantity: int,
 	agent_id: int
 ) -> bool:
+	return reserve_quantity_from_source(
+		cell,
+		SOURCE_BOX,
+		item_id,
+		quantity,
+		agent_id
+	)
+
+
+func reserve_quantity_from_source(
+	cell: Vector2i,
+	source_type: StringName,
+	item_id: StringName,
+	quantity: int,
+	agent_id: int
+) -> bool:
 	if _reservations.has(agent_id):
 		return false
-	if (
-		quantity <= 0
-		or not _boxes.has(cell)
-		or _boxes[cell]["item_id"] != item_id
-		or _get_available_in_box(cell) < quantity
-	):
+	if quantity <= 0:
+		return false
+	var available := 0
+	if source_type == SOURCE_BOX:
+		if not _boxes.has(cell) or _boxes[cell]["item_id"] != item_id:
+			return false
+		available = _get_available_in_box(cell)
+	elif source_type == SOURCE_LOOSE:
+		available = _get_available_loose(cell, item_id)
+	else:
+		return false
+	if available < quantity:
 		return false
 	_reservations[agent_id] = {
 		"cell": cell,
+		"source_type": source_type,
 		"item_id": item_id,
 		"quantity": quantity,
 	}
@@ -99,16 +142,30 @@ func take_reserved_quantity(agent_id: int) -> Dictionary:
 		return {}
 	var reservation: Dictionary = _reservations[agent_id]
 	var cell: Vector2i = reservation["cell"]
+	var source_type: StringName = reservation["source_type"]
 	var item_id: StringName = reservation["item_id"]
 	var quantity: int = reservation["quantity"]
 	_reservations.erase(agent_id)
-	if not _boxes.has(cell) or int(_boxes[cell]["quantity"]) < quantity:
+	if source_type == SOURCE_BOX:
+		if not _boxes.has(cell) or int(_boxes[cell]["quantity"]) < quantity:
+			return {}
+		_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) - quantity
+	elif source_type == SOURCE_LOOSE:
+		if get_loose_quantity(cell, item_id) < quantity:
+			return {}
+		var pile: Dictionary = _loose_piles[cell]
+		pile[item_id] = int(pile[item_id]) - quantity
+		if int(pile[item_id]) <= 0:
+			pile.erase(item_id)
+		if pile.is_empty():
+			_loose_piles.erase(cell)
+	else:
 		return {}
-	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) - quantity
 	inventory_changed.emit()
 	queue_redraw()
 	return {
 		"cell": cell,
+		"source_type": source_type,
 		"item_id": item_id,
 		"quantity": quantity,
 	}
@@ -132,6 +189,18 @@ func return_items_to_box(
 	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) + maxi(quantity, 0)
 	inventory_changed.emit()
 	queue_redraw()
+
+
+func return_items_to_source(
+	cell: Vector2i,
+	source_type: StringName,
+	item_id: StringName,
+	quantity: int
+) -> void:
+	if source_type == SOURCE_BOX:
+		return_items_to_box(cell, item_id, quantity)
+	else:
+		drop_loose_items(cell, item_id, quantity)
 
 
 func drop_loose_items(
@@ -199,9 +268,24 @@ func _get_available_in_box(cell: Vector2i) -> int:
 		return 0
 	var reserved := 0
 	for reservation: Dictionary in _reservations.values():
-		if reservation["cell"] == cell:
+		if (
+			reservation["source_type"] == SOURCE_BOX
+			and reservation["cell"] == cell
+		):
 			reserved += int(reservation["quantity"])
 	return int(_boxes[cell]["quantity"]) - reserved
+
+
+func _get_available_loose(cell: Vector2i, item_id: StringName) -> int:
+	var reserved := 0
+	for reservation: Dictionary in _reservations.values():
+		if (
+			reservation["source_type"] == SOURCE_LOOSE
+			and reservation["cell"] == cell
+			and reservation["item_id"] == item_id
+		):
+			reserved += int(reservation["quantity"])
+	return get_loose_quantity(cell, item_id) - reserved
 
 
 func _draw() -> void:

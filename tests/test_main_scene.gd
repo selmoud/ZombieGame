@@ -39,13 +39,13 @@ func _run() -> void:
 	clock.set_speed(4.0)
 	assert(not construction.can_place_blueprint(Vector2i(29, 31), &"wall"))
 	var initial_wall_sections := supplies.get_total_quantity(&"wall_section")
+	var nearby_loose_cell := Vector2i(33, 32)
+	supplies.drop_loose_items(nearby_loose_cell, &"wall_section", 1)
 	construction.place_blueprint(Vector2i(34, 32), &"wall")
 	await create_timer(0.4).timeout
 	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"wall")
-	assert(
-		supplies.get_total_quantity(&"wall_section")
-		== initial_wall_sections - 1
-	)
+	assert(supplies.get_total_quantity(&"wall_section") == initial_wall_sections)
+	assert(supplies.get_loose_quantity(nearby_loose_cell, &"wall_section") == 0)
 
 	var navigation: NavigationGrid = main.get_node("NavigationGrid")
 	var initial_doors := supplies.get_total_quantity(&"door_module")
