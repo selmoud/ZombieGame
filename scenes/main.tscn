@@ -1,3 +1,21 @@
-[gd_scene format=3]
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world_grid.gd" id="2_world"]
+[ext_resource type="Script" path="res://scripts/camera_controller.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/game_clock.gd" id="4_clock"]
 
 [node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="WorldGrid" type="Node2D" parent="."]
+script = ExtResource("2_world")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(1024, 1024)
+position_smoothing_enabled = true
+position_smoothing_speed = 12.0
+script = ExtResource("3_camera")
+
+[node name="GameClock" type="Node" parent="."]
+script = ExtResource("4_clock")
