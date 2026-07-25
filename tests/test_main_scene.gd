@@ -27,6 +27,14 @@ func _run() -> void:
 	assert(zones.active_tool.is_empty())
 	assert(construction.active_tool.is_empty())
 
+	var worker: WorkerAgent = main.get_node("Agents/Worker")
+	var clock: GameClock = main.get_node("GameClock")
+	worker.construction_duration = 0.01
+	clock.set_speed(4.0)
+	construction.place_blueprint(Vector2i(34, 32), &"wall")
+	await create_timer(0.4).timeout
+	assert(construction.get_completed_object_at(Vector2i(34, 32)) == &"wall")
+
 	print("Main scene tests passed")
 	main.free()
 	quit()

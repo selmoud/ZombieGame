@@ -24,6 +24,11 @@ func _init() -> void:
 	assert(construction.get_blueprint_at(Vector2i(-1, 0)).is_empty())
 	assert(construction.get_blueprint_at(Vector2i(0, 0)) == &"wall")
 
+	assert(construction.complete_blueprint(Vector2i(0, 0)))
+	assert(construction.get_blueprint_at(Vector2i(0, 0)).is_empty())
+	assert(construction.get_completed_object_at(Vector2i(0, 0)) == &"wall")
+	assert(not construction.complete_blueprint(Vector2i(0, 0)))
+
 	print("ConstructionManager tests passed")
 	construction.free()
 	quit()

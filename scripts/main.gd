@@ -3,6 +3,9 @@ extends Node2D
 @onready var game_clock: GameClock = $GameClock
 @onready var zone_manager: ZoneManager = $ZoneLayer
 @onready var construction_manager: ConstructionManager = $ConstructionLayer
+@onready var navigation_grid: NavigationGrid = $NavigationGrid
+@onready var job_board: JobBoard = $JobBoard
+@onready var worker: WorkerAgent = $Agents/Worker
 @onready var build_menu: BuildMenu = $Interface/BuildMenu
 
 
@@ -13,6 +16,12 @@ func _ready() -> void:
 	build_menu.cancel_tool_selected.connect(_clear_planning_tools)
 	zone_manager.active_tool_changed.connect(build_menu.sync_active_tool)
 	construction_manager.active_tool_changed.connect(build_menu.sync_construction_tool)
+	construction_manager.blueprints_changed.connect(_sync_construction_jobs)
+	construction_manager.construction_completed.connect(
+		navigation_grid.register_construction
+	)
+	worker.setup(game_clock, navigation_grid, job_board, construction_manager)
+	_sync_construction_jobs()
 
 
 func _select_zone_tool(tool_id: StringName) -> void:
@@ -28,6 +37,10 @@ func _select_construction_tool(tool_id: StringName) -> void:
 func _clear_planning_tools() -> void:
 	zone_manager.clear_active_tool()
 	construction_manager.clear_active_tool()
+
+
+func _sync_construction_jobs() -> void:
+	job_board.sync_construction_jobs(construction_manager.get_blueprint_cells())
 
 
 func _create_hud() -> void:

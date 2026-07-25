@@ -3,6 +3,7 @@ extends Node2D
 
 signal active_tool_changed(tool_id: StringName)
 signal blueprints_changed
+signal construction_completed(cell: Vector2i, object_id: StringName)
 
 const TILE_SIZE := 32
 const MAP_SIZE := Vector2i(64, 64)
@@ -10,6 +11,7 @@ const ERASE_TOOL := &"erase_construction"
 
 var active_tool: StringName = &""
 var _blueprints: Dictionary[Vector2i, StringName] = {}
+var _completed_objects: Dictionary[Vector2i, StringName] = {}
 var _dragging := false
 var _drag_start := Vector2i.ZERO
 var _drag_current := Vector2i.ZERO
@@ -33,7 +35,11 @@ func clear_active_tool() -> void:
 
 
 func place_blueprint(cell: Vector2i, object_id: StringName) -> void:
-	if not _is_cell_inside_map(cell) or not ConstructionCatalog.has_tool(object_id):
+	if (
+		not _is_cell_inside_map(cell)
+		or not ConstructionCatalog.has_tool(object_id)
+		or _completed_objects.has(cell)
+	):
 		return
 	_blueprints[cell] = object_id
 	blueprints_changed.emit()
@@ -44,7 +50,7 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 	if not ConstructionCatalog.has_tool(object_id):
 		return
 	for cell in _get_orthogonal_line(from, to):
-		if _is_cell_inside_map(cell):
+		if _is_cell_inside_map(cell) and not _completed_objects.has(cell):
 			_blueprints[cell] = object_id
 	blueprints_changed.emit()
 	queue_redraw()
@@ -61,12 +67,34 @@ func get_blueprint_at(cell: Vector2i) -> StringName:
 	return _blueprints.get(cell, &"")
 
 
+func get_blueprint_cells() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	result.assign(_blueprints.keys())
+	return result
+
+
 func get_blueprint_count(object_id: StringName) -> int:
 	var count := 0
 	for blueprint_id: StringName in _blueprints.values():
 		if blueprint_id == object_id:
 			count += 1
 	return count
+
+
+func complete_blueprint(cell: Vector2i) -> bool:
+	if not _blueprints.has(cell):
+		return false
+	var object_id: StringName = _blueprints[cell]
+	_blueprints.erase(cell)
+	_completed_objects[cell] = object_id
+	blueprints_changed.emit()
+	construction_completed.emit(cell, object_id)
+	queue_redraw()
+	return true
+
+
+func get_completed_object_at(cell: Vector2i) -> StringName:
+	return _completed_objects.get(cell, &"")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -115,6 +143,10 @@ func _apply_drag() -> void:
 
 
 func _draw() -> void:
+	for cell: Vector2i in _completed_objects:
+		var object_id: StringName = _completed_objects[cell]
+		_draw_completed_object(cell, object_id)
+
 	for cell: Vector2i in _blueprints:
 		var object_id: StringName = _blueprints[cell]
 		_draw_blueprint(cell, object_id, false)
@@ -131,6 +163,30 @@ func _draw() -> void:
 	for cell in preview_cells:
 		if _is_cell_inside_map(cell):
 			_draw_blueprint(cell, _drag_tool, true)
+
+
+func _draw_completed_object(cell: Vector2i, object_id: StringName) -> void:
+	var color := ConstructionCatalog.get_color(object_id).darkened(0.22)
+	var rect := Rect2(Vector2(cell * TILE_SIZE), Vector2.ONE * TILE_SIZE)
+	if object_id == &"door":
+		draw_rect(rect.grow(-5.0), color, true)
+		draw_line(
+			rect.position + Vector2(8, 8),
+			rect.end - Vector2(8, 8),
+			color.lightened(0.3),
+			3.0
+		)
+	elif object_id == &"barricade":
+		draw_rect(rect.grow(-7.0), color, true)
+		draw_line(
+			Vector2(rect.position.x + 5, rect.get_center().y),
+			Vector2(rect.end.x - 5, rect.get_center().y),
+			color.lightened(0.25),
+			3.0
+		)
+	else:
+		draw_rect(rect.grow(-2.0), color, true)
+		draw_rect(rect.grow(-2.0), color.lightened(0.18), false, 2.0)
 
 
 func _draw_blueprint(cell: Vector2i, object_id: StringName, is_preview: bool) -> void:

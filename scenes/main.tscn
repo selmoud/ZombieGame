@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_grid.gd" id="2_world"]
@@ -7,6 +7,9 @@
 [ext_resource type="Script" path="res://scripts/zones/zone_manager.gd" id="5_zones"]
 [ext_resource type="Script" path="res://scripts/ui/build_menu.gd" id="6_menu"]
 [ext_resource type="Script" path="res://scripts/construction/construction_manager.gd" id="7_construction"]
+[ext_resource type="Script" path="res://scripts/navigation/navigation_grid.gd" id="8_navigation"]
+[ext_resource type="Script" path="res://scripts/tasks/job_board.gd" id="9_jobs"]
+[ext_resource type="Script" path="res://scripts/agents/worker_agent.gd" id="10_worker"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -28,6 +31,18 @@ script = ExtResource("3_camera")
 
 [node name="GameClock" type="Node" parent="."]
 script = ExtResource("4_clock")
+
+[node name="NavigationGrid" type="Node" parent="."]
+script = ExtResource("8_navigation")
+
+[node name="JobBoard" type="Node" parent="."]
+script = ExtResource("9_jobs")
+
+[node name="Agents" type="Node2D" parent="."]
+
+[node name="Worker" type="Node2D" parent="Agents"]
+position = Vector2(1040, 1040)
+script = ExtResource("10_worker")
 
 [node name="Interface" type="CanvasLayer" parent="."]
 
