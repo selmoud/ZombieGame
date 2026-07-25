@@ -6,6 +6,7 @@ signal blueprints_changed
 signal deconstruction_orders_changed
 signal construction_completed(cell: Vector2i, object_id: StringName)
 signal construction_removed(cell: Vector2i, object_id: StringName)
+signal material_released(cell: Vector2i, item_id: StringName, quantity: int)
 
 const TILE_SIZE := 32
 const MAP_SIZE := Vector2i(64, 64)
@@ -16,6 +17,7 @@ var active_tool: StringName = &""
 var _blueprints: Dictionary[Vector2i, StringName] = {}
 var _completed_objects: Dictionary[Vector2i, StringName] = {}
 var _deconstruction_orders: Dictionary[Vector2i, bool] = {}
+var _staged_materials: Dictionary[Vector2i, StringName] = {}
 var _dragging := false
 var _drag_start := Vector2i.ZERO
 var _drag_current := Vector2i.ZERO
@@ -73,6 +75,12 @@ func set_placement_validator(validator: Callable) -> void:
 func place_blueprint(cell: Vector2i, object_id: StringName) -> void:
 	if not can_place_blueprint(cell, object_id):
 		return
+	if (
+		_staged_materials.has(cell)
+		and _staged_materials[cell]
+		!= ConstructionCatalog.get_required_item(object_id)
+	):
+		_release_staged_material(cell)
 	if _deconstruction_orders.erase(cell):
 		deconstruction_orders_changed.emit()
 	_blueprints[cell] = object_id
@@ -85,6 +93,12 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 		return
 	for cell in _get_orthogonal_line(from, to):
 		if can_place_blueprint(cell, object_id):
+			if (
+				_staged_materials.has(cell)
+				and _staged_materials[cell]
+				!= ConstructionCatalog.get_required_item(object_id)
+			):
+				_release_staged_material(cell)
 			_deconstruction_orders.erase(cell)
 			_blueprints[cell] = object_id
 	deconstruction_orders_changed.emit()
@@ -94,6 +108,7 @@ func place_line(from: Vector2i, to: Vector2i, object_id: StringName) -> void:
 
 func erase_line(from: Vector2i, to: Vector2i) -> void:
 	for cell in _get_orthogonal_line(from, to):
+		_release_staged_material(cell)
 		_blueprints.erase(cell)
 		_deconstruction_orders.erase(cell)
 	blueprints_changed.emit()
@@ -105,6 +120,7 @@ func mark_deconstruction_line(from: Vector2i, to: Vector2i) -> void:
 	for cell in _get_orthogonal_line(from, to):
 		if not can_mark_for_deconstruction(cell):
 			continue
+		_release_staged_material(cell)
 		_blueprints.erase(cell)
 		_deconstruction_orders[cell] = true
 	blueprints_changed.emit()
@@ -114,6 +130,25 @@ func mark_deconstruction_line(from: Vector2i, to: Vector2i) -> void:
 
 func get_blueprint_at(cell: Vector2i) -> StringName:
 	return _blueprints.get(cell, &"")
+
+
+func stage_material(cell: Vector2i, item_id: StringName) -> bool:
+	if not _blueprints.has(cell) or _staged_materials.has(cell):
+		return false
+	var required_item := ConstructionCatalog.get_required_item(_blueprints[cell])
+	if required_item != item_id:
+		return false
+	_staged_materials[cell] = item_id
+	queue_redraw()
+	return true
+
+
+func has_staged_material(cell: Vector2i) -> bool:
+	return _staged_materials.has(cell)
+
+
+func get_staged_material(cell: Vector2i) -> StringName:
+	return _staged_materials.get(cell, &"")
 
 
 func can_place_blueprint(cell: Vector2i, object_id: StringName) -> bool:
@@ -166,10 +201,14 @@ func get_deconstruction_cells() -> Array[Vector2i]:
 
 
 func complete_blueprint(cell: Vector2i) -> bool:
-	if not _blueprints.has(cell):
+	if not _blueprints.has(cell) or not _staged_materials.has(cell):
 		return false
 	var object_id: StringName = _blueprints[cell]
+	var required_item := ConstructionCatalog.get_required_item(object_id)
+	if _staged_materials[cell] != required_item:
+		return false
 	_blueprints.erase(cell)
+	_staged_materials.erase(cell)
 	_completed_objects[cell] = object_id
 	blueprints_changed.emit()
 	construction_completed.emit(cell, object_id)
@@ -258,6 +297,9 @@ func _draw() -> void:
 		else:
 			_draw_invalid_placement(cell)
 
+	for cell: Vector2i in _staged_materials:
+		_draw_staged_material(cell, _staged_materials[cell])
+
 	if not _dragging:
 		if _hover_visible and _is_cell_inside_map(_hover_cell):
 			if active_tool == ERASE_TOOL:
@@ -324,6 +366,16 @@ func _draw_completed_object(cell: Vector2i, object_id: StringName) -> void:
 	else:
 		draw_rect(rect.grow(-2.0), color, true)
 		draw_rect(rect.grow(-2.0), color.lightened(0.18), false, 2.0)
+
+
+func _draw_staged_material(cell: Vector2i, item_id: StringName) -> void:
+	var color := SupplyDepot.get_item_color(item_id)
+	var rect := Rect2(
+		Vector2(cell * TILE_SIZE) + Vector2(9, 19),
+		Vector2(14, 9)
+	)
+	draw_rect(rect, color, true)
+	draw_rect(rect, Color.WHITE, false, 1.0)
 
 
 func _draw_blueprint(cell: Vector2i, object_id: StringName, is_preview: bool) -> void:
@@ -406,3 +458,11 @@ func _is_cell_inside_map(cell: Vector2i) -> bool:
 func _cancel_drag() -> void:
 	_dragging = false
 	_drag_tool = &""
+
+
+func _release_staged_material(cell: Vector2i) -> void:
+	if not _staged_materials.has(cell):
+		return
+	var item_id: StringName = _staged_materials[cell]
+	_staged_materials.erase(cell)
+	material_released.emit(cell, item_id, 1)

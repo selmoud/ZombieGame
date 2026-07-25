@@ -19,6 +19,7 @@ const ITEM_COLORS := {
 
 var _boxes: Dictionary[Vector2i, Dictionary] = {}
 var _reservations: Dictionary[int, Dictionary] = {}
+var _loose_piles: Dictionary[Vector2i, Dictionary] = {}
 
 
 func _ready() -> void:
@@ -56,17 +57,28 @@ func reserve_from_box(
 	item_id: StringName,
 	agent_id: int
 ) -> bool:
+	return reserve_quantity_from_box(cell, item_id, 1, agent_id)
+
+
+func reserve_quantity_from_box(
+	cell: Vector2i,
+	item_id: StringName,
+	quantity: int,
+	agent_id: int
+) -> bool:
 	if _reservations.has(agent_id):
 		return false
 	if (
-		not _boxes.has(cell)
+		quantity <= 0
+		or not _boxes.has(cell)
 		or _boxes[cell]["item_id"] != item_id
-		or _get_available_in_box(cell) <= 0
+		or _get_available_in_box(cell) < quantity
 	):
 		return false
 	_reservations[agent_id] = {
 		"cell": cell,
 		"item_id": item_id,
+		"quantity": quantity,
 	}
 	return true
 
@@ -76,18 +88,30 @@ func has_reservation(agent_id: int) -> bool:
 
 
 func take_reserved_item(agent_id: int) -> StringName:
-	if not _reservations.has(agent_id):
+	var taken := take_reserved_quantity(agent_id)
+	if taken.is_empty() or int(taken["quantity"]) <= 0:
 		return &""
+	return taken["item_id"]
+
+
+func take_reserved_quantity(agent_id: int) -> Dictionary:
+	if not _reservations.has(agent_id):
+		return {}
 	var reservation: Dictionary = _reservations[agent_id]
 	var cell: Vector2i = reservation["cell"]
 	var item_id: StringName = reservation["item_id"]
+	var quantity: int = reservation["quantity"]
 	_reservations.erase(agent_id)
-	if not _boxes.has(cell) or int(_boxes[cell]["quantity"]) <= 0:
-		return &""
-	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) - 1
+	if not _boxes.has(cell) or int(_boxes[cell]["quantity"]) < quantity:
+		return {}
+	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) - quantity
 	inventory_changed.emit()
 	queue_redraw()
-	return item_id
+	return {
+		"cell": cell,
+		"item_id": item_id,
+		"quantity": quantity,
+	}
 
 
 func release_reservation(agent_id: int) -> void:
@@ -95,11 +119,58 @@ func release_reservation(agent_id: int) -> void:
 
 
 func return_item_to_box(cell: Vector2i, item_id: StringName) -> void:
+	return_items_to_box(cell, item_id, 1)
+
+
+func return_items_to_box(
+	cell: Vector2i,
+	item_id: StringName,
+	quantity: int
+) -> void:
 	if not _boxes.has(cell) or _boxes[cell]["item_id"] != item_id:
 		return
-	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) + 1
+	_boxes[cell]["quantity"] = int(_boxes[cell]["quantity"]) + maxi(quantity, 0)
 	inventory_changed.emit()
 	queue_redraw()
+
+
+func drop_loose_items(
+	cell: Vector2i,
+	item_id: StringName,
+	quantity: int
+) -> void:
+	if quantity <= 0:
+		return
+	if not _loose_piles.has(cell):
+		_loose_piles[cell] = {}
+	var pile: Dictionary = _loose_piles[cell]
+	pile[item_id] = int(pile.get(item_id, 0)) + quantity
+	inventory_changed.emit()
+	queue_redraw()
+
+
+func get_loose_quantity(cell: Vector2i, item_id: StringName) -> int:
+	if not _loose_piles.has(cell):
+		return 0
+	return int(_loose_piles[cell].get(item_id, 0))
+
+
+func get_total_loose_quantity() -> int:
+	var total := 0
+	for pile: Dictionary in _loose_piles.values():
+		for quantity: int in pile.values():
+			total += quantity
+	return total
+
+
+func get_quantity_in_box(cell: Vector2i) -> int:
+	if not _boxes.has(cell):
+		return 0
+	return int(_boxes[cell]["quantity"])
+
+
+func get_available_quantity_in_box(cell: Vector2i) -> int:
+	return _get_available_in_box(cell)
 
 
 func get_total_quantity(item_id: StringName) -> int:
@@ -111,10 +182,11 @@ func get_total_quantity(item_id: StringName) -> int:
 
 
 func get_summary_text() -> String:
-	return "Стены: %d  •  Двери: %d  •  Обломки: %d" % [
+	return "Стены: %d  •  Двери: %d  •  Обломки: %d  •  На земле: %d" % [
 		get_total_quantity(&"wall_section"),
 		get_total_quantity(&"door_module"),
 		get_total_quantity(&"debris"),
+		get_total_loose_quantity(),
 	]
 
 
@@ -128,7 +200,7 @@ func _get_available_in_box(cell: Vector2i) -> int:
 	var reserved := 0
 	for reservation: Dictionary in _reservations.values():
 		if reservation["cell"] == cell:
-			reserved += 1
+			reserved += int(reservation["quantity"])
 	return int(_boxes[cell]["quantity"]) - reserved
 
 
@@ -153,3 +225,19 @@ func _draw() -> void:
 			13,
 			Color.WHITE
 		)
+
+	for cell: Vector2i in _loose_piles:
+		var pile: Dictionary = _loose_piles[cell]
+		var offset_index := 0
+		for item_id: StringName in pile:
+			var quantity: int = pile[item_id]
+			if quantity <= 0:
+				continue
+			var color := get_item_color(item_id)
+			var origin := (
+				Vector2(cell * TILE_SIZE)
+				+ Vector2(5 + offset_index * 7, 18)
+			)
+			draw_rect(Rect2(origin, Vector2(10, 7)), color, true)
+			draw_rect(Rect2(origin, Vector2(10, 7)), Color.WHITE, false, 1.0)
+			offset_index += 1

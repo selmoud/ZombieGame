@@ -27,6 +27,9 @@ func _ready() -> void:
 	construction_manager.construction_removed.connect(
 		navigation_grid.remove_construction
 	)
+	construction_manager.material_released.connect(
+		supplies.drop_loose_items
+	)
 	worker.setup(
 		game_clock,
 		navigation_grid,
