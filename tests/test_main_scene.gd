@@ -12,13 +12,20 @@ func _run() -> void:
 	await process_frame
 
 	var zones: ZoneManager = main.get_node("ZoneLayer")
+	var construction: ConstructionManager = main.get_node("ConstructionLayer")
 	var menu: BuildMenu = main.get_node("Interface/BuildMenu")
 
 	menu.zone_tool_selected.emit(&"residential")
 	assert(zones.active_tool == &"residential")
+	assert(construction.active_tool.is_empty())
+
+	menu.construction_tool_selected.emit(&"wall")
+	assert(construction.active_tool == &"wall")
+	assert(zones.active_tool.is_empty())
 
 	menu.cancel_tool_selected.emit()
 	assert(zones.active_tool.is_empty())
+	assert(construction.active_tool.is_empty())
 
 	print("Main scene tests passed")
 	main.free()

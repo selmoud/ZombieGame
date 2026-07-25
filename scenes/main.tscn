@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_grid.gd" id="2_world"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/game_clock.gd" id="4_clock"]
 [ext_resource type="Script" path="res://scripts/zones/zone_manager.gd" id="5_zones"]
 [ext_resource type="Script" path="res://scripts/ui/build_menu.gd" id="6_menu"]
+[ext_resource type="Script" path="res://scripts/construction/construction_manager.gd" id="7_construction"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -15,6 +16,9 @@ script = ExtResource("2_world")
 
 [node name="ZoneLayer" type="Node2D" parent="."]
 script = ExtResource("5_zones")
+
+[node name="ConstructionLayer" type="Node2D" parent="."]
+script = ExtResource("7_construction")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(1024, 1024)

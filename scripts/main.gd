@@ -2,14 +2,32 @@ extends Node2D
 
 @onready var game_clock: GameClock = $GameClock
 @onready var zone_manager: ZoneManager = $ZoneLayer
+@onready var construction_manager: ConstructionManager = $ConstructionLayer
 @onready var build_menu: BuildMenu = $Interface/BuildMenu
 
 
 func _ready() -> void:
 	_create_hud()
-	build_menu.zone_tool_selected.connect(zone_manager.set_active_tool)
-	build_menu.cancel_tool_selected.connect(zone_manager.clear_active_tool)
+	build_menu.zone_tool_selected.connect(_select_zone_tool)
+	build_menu.construction_tool_selected.connect(_select_construction_tool)
+	build_menu.cancel_tool_selected.connect(_clear_planning_tools)
 	zone_manager.active_tool_changed.connect(build_menu.sync_active_tool)
+	construction_manager.active_tool_changed.connect(build_menu.sync_construction_tool)
+
+
+func _select_zone_tool(tool_id: StringName) -> void:
+	construction_manager.clear_active_tool()
+	zone_manager.set_active_tool(tool_id)
+
+
+func _select_construction_tool(tool_id: StringName) -> void:
+	zone_manager.clear_active_tool()
+	construction_manager.set_active_tool(tool_id)
+
+
+func _clear_planning_tools() -> void:
+	zone_manager.clear_active_tool()
+	construction_manager.clear_active_tool()
 
 
 func _create_hud() -> void:

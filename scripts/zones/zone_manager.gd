@@ -63,6 +63,8 @@ func get_zone_count(zone_id: StringName) -> int:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
+		if active_tool.is_empty():
+			return
 		clear_active_tool()
 		get_viewport().set_input_as_handled()
 		return
