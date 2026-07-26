@@ -108,6 +108,38 @@ func get_room_status_at(cell: Vector2i) -> Dictionary:
 	return {}
 
 
+func get_room_info_at_world(world_position: Vector2) -> Dictionary:
+	return get_room_info_at(_world_to_cell(world_position))
+
+
+func get_room_info_at(cell: Vector2i) -> Dictionary:
+	if not _cells.has(cell):
+		return {}
+	for area in _get_areas():
+		var area_cells: Array[Vector2i] = area["cells"]
+		if cell not in area_cells:
+			continue
+		var status := _get_room_status(area_cells)
+		var missing: Array[String] = []
+		if not status["is_connected"]:
+			missing.append("Зона разделена")
+		if not status["is_enclosed"]:
+			missing.append(
+				"Не замкнут периметр (%d открытых сторон)"
+				% status["open_edges"]
+			)
+		if not status["has_door"]:
+			missing.append("Нет двери")
+		return {
+			"zone_id": area["zone_id"],
+			"label": ZoneCatalog.get_label(area["zone_id"]),
+			"cell_count": area_cells.size(),
+			"status": status,
+			"missing": missing,
+		}
+	return {}
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
 		if active_tool.is_empty():
@@ -199,6 +231,47 @@ func _draw_zone_area(cells: Array[Vector2i], color: Color) -> void:
 			)
 		if not cell_set.has(cell + Vector2i.LEFT):
 			draw_line(origin, origin + Vector2(0, TILE_SIZE), outline, 3.0)
+	if not status["is_enclosed"]:
+		_draw_room_warning(_get_area_center(cells))
+
+
+func _draw_room_warning(center: Vector2) -> void:
+	var points := PackedVector2Array([
+		center + Vector2(0, -15),
+		center + Vector2(15, 13),
+		center + Vector2(-15, 13),
+	])
+	draw_colored_polygon(points, Color("c93632"))
+	var outline := PackedVector2Array([points[0], points[1], points[2], points[0]])
+	draw_polyline(outline, Color("ffd3c7"), 2.0)
+	draw_string(
+		ThemeDB.fallback_font,
+		center + Vector2(-4, 9),
+		"!",
+		HORIZONTAL_ALIGNMENT_CENTER,
+		8,
+		20,
+		Color.WHITE
+	)
+
+
+func _get_area_center(cells: Array[Vector2i]) -> Vector2:
+	var average := Vector2.ZERO
+	for cell in cells:
+		average += Vector2(cell * TILE_SIZE) + Vector2.ONE * TILE_SIZE * 0.5
+	average /= float(cells.size())
+	var closest := average
+	var closest_distance := INF
+	for cell in cells:
+		var cell_center := (
+			Vector2(cell * TILE_SIZE)
+			+ Vector2.ONE * TILE_SIZE * 0.5
+		)
+		var distance := cell_center.distance_squared_to(average)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest = cell_center
+	return closest
 
 
 func _draw_zone_preview(color: Color) -> void:
@@ -258,6 +331,7 @@ func _get_areas() -> Array[Dictionary]:
 func _get_room_status(cells: Array[Vector2i]) -> Dictionary:
 	var has_door := false
 	var is_enclosed := _boundary_provider.is_valid()
+	var open_edges := 0
 	var cell_set: Dictionary[Vector2i, bool] = {}
 	for cell in cells:
 		cell_set[cell] = true
@@ -274,11 +348,13 @@ func _get_room_status(cells: Array[Vector2i]) -> Dictionary:
 				has_door = true
 			elif boundary != &"wall":
 				is_enclosed = false
+				open_edges += 1
 
 	return {
 		"is_connected": true,
 		"is_enclosed": is_enclosed,
 		"has_door": has_door,
+		"open_edges": open_edges,
 		"is_valid": is_enclosed and has_door,
 	}
 

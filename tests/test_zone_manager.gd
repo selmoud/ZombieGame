@@ -42,6 +42,10 @@ func _init() -> void:
 
 	boundaries.erase(Vector2i(6, 6))
 	assert(not room_zones.is_room_valid_at(Vector2i(5, 5)))
+	var invalid_info := room_zones.get_room_info_at(Vector2i(5, 5))
+	assert(invalid_info["status"]["open_edges"] == 1)
+	assert(invalid_info["missing"].size() == 1)
+	assert(String(invalid_info["missing"][0]).contains("1 открытых сторон"))
 	boundaries[Vector2i(6, 6)] = &"wall"
 
 	room_zones.paint_rect(Vector2i(7, 6), Vector2i(7, 6), &"residential")

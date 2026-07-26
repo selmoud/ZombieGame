@@ -34,6 +34,8 @@ func _run() -> void:
 	await process_frame
 	var inspector: PanelContainer = main.get_node("HUD/WorkerInspector")
 	var inspector_details: Label = inspector.get_node("Content/Details")
+	var zone_tooltip: PanelContainer = main.get_node("HUD/ZoneTooltip")
+	assert(not zone_tooltip.visible)
 	assert(inspector.visible)
 	assert(inspector_details.text.contains("Состояние:"))
 	assert(inspector_details.text.contains("Маршрут:"))

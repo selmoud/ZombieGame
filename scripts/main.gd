@@ -13,12 +13,14 @@ var workers: Array[WorkerAgent] = []
 var selected_worker: WorkerAgent
 var worker_inspector_panel: PanelContainer
 var worker_inspector_label: Label
+var zone_tooltip_panel: PanelContainer
+var zone_tooltip_label: Label
 
 
 func _process(_delta: float) -> void:
-	if selected_worker == null or not is_instance_valid(selected_worker):
-		return
-	worker_inspector_label.text = selected_worker.get_inspector_text()
+	if selected_worker != null and is_instance_valid(selected_worker):
+		worker_inspector_label.text = selected_worker.get_inspector_text()
+	_update_zone_tooltip()
 
 
 func _input(event: InputEvent) -> void:
@@ -111,6 +113,43 @@ func _clear_worker_selection() -> void:
 		selected_worker.set_inspected(false)
 	selected_worker = null
 	worker_inspector_panel.visible = false
+
+
+func _update_zone_tooltip() -> void:
+	var hovered_control := get_viewport().gui_get_hovered_control()
+	if hovered_control != null:
+		zone_tooltip_panel.visible = false
+		return
+	var info := zone_manager.get_room_info_at_world(
+		get_global_mouse_position()
+	)
+	if info.is_empty():
+		zone_tooltip_panel.visible = false
+		return
+
+	var status: Dictionary = info["status"]
+	var lines := PackedStringArray([
+		String(info["label"]),
+		"Площадь: %d" % info["cell_count"],
+		"Статус: %s" % (
+			"Действует" if status["is_valid"] else "Не действует"
+		),
+	])
+	var missing: Array[String] = info["missing"]
+	if not missing.is_empty():
+		lines.append("Не хватает:")
+		for requirement in missing:
+			lines.append("• " + requirement)
+	zone_tooltip_label.text = "\n".join(lines)
+
+	var mouse_position := get_viewport().get_mouse_position()
+	var viewport_size := get_viewport_rect().size
+	var tooltip_size := Vector2(300, 130)
+	zone_tooltip_panel.position = Vector2(
+		minf(mouse_position.x + 18.0, viewport_size.x - tooltip_size.x - 8.0),
+		minf(mouse_position.y + 18.0, viewport_size.y - tooltip_size.y - 8.0)
+	)
+	zone_tooltip_panel.visible = true
 
 
 func _sync_construction_jobs() -> void:
@@ -217,6 +256,27 @@ func _create_hud() -> void:
 		Color(0.92, 0.92, 0.86)
 	)
 	inspector_margin.add_child(worker_inspector_label)
+
+	zone_tooltip_panel = PanelContainer.new()
+	zone_tooltip_panel.name = "ZoneTooltip"
+	zone_tooltip_panel.custom_minimum_size = Vector2(300, 130)
+	zone_tooltip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zone_tooltip_panel.visible = false
+	canvas.add_child(zone_tooltip_panel)
+
+	var zone_tooltip_margin := MarginContainer.new()
+	zone_tooltip_margin.add_theme_constant_override("margin_left", 12)
+	zone_tooltip_margin.add_theme_constant_override("margin_top", 10)
+	zone_tooltip_margin.add_theme_constant_override("margin_right", 12)
+	zone_tooltip_margin.add_theme_constant_override("margin_bottom", 10)
+	zone_tooltip_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zone_tooltip_panel.add_child(zone_tooltip_margin)
+
+	zone_tooltip_label = Label.new()
+	zone_tooltip_label.name = "Details"
+	zone_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	zone_tooltip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zone_tooltip_margin.add_child(zone_tooltip_label)
 
 	game_clock.time_changed.connect(
 		func(_day: int, _hour: int, _minute: int) -> void:
