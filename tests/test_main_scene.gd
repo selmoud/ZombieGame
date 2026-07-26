@@ -40,6 +40,23 @@ func _run() -> void:
 	assert(zones.active_tool.is_empty())
 	assert(construction.active_tool.is_empty())
 
+	var furniture_button := _find_button(menu, "Мебель")
+	assert(furniture_button != null)
+	furniture_button.pressed.emit()
+	var bunk_bed_button := _find_button(menu, "Двухъярусная кровать")
+	assert(bunk_bed_button != null)
+	assert(not bunk_bed_button.disabled)
+	bunk_bed_button.pressed.emit()
+	assert(construction.active_tool == &"bunk_bed")
+	assert(construction.get_active_rotation_quarters() == 0)
+	var rotate_event := InputEventKey.new()
+	rotate_event.keycode = KEY_R
+	rotate_event.pressed = true
+	Input.parse_input_event(rotate_event)
+	await process_frame
+	assert(construction.get_active_rotation_quarters() == 1)
+	menu.cancel_tool_selected.emit()
+
 	var workers: Array[WorkerAgent] = main.workers
 	assert(workers.size() == 3)
 	var worker: WorkerAgent = workers.front()
@@ -158,6 +175,23 @@ func _run() -> void:
 	assert(construction.get_completed_object_at(occupied_cell) == &"wall")
 	blocking_worker.set_process(true)
 
+	var bed_anchor := Vector2i(38, 38)
+	var bed_tail := Vector2i(38, 39)
+	var beds_before := supplies.get_total_quantity(&"single_bed")
+	blocking_worker.set_process(false)
+	blocking_worker.position = navigation.cell_to_world(bed_tail)
+	blocking_worker.state = WorkerAgent.State.IDLE
+	construction.place_blueprint(bed_anchor, &"single_bed")
+	await create_timer(0.5).timeout
+	assert(construction.get_completed_object_at(bed_anchor).is_empty())
+	assert(construction.get_blueprint_at(bed_tail) == &"single_bed")
+	blocking_worker.position = navigation.cell_to_world(Vector2i(30, 38))
+	await create_timer(0.5).timeout
+	assert(construction.get_completed_object_at(bed_anchor) == &"single_bed")
+	assert(construction.get_completed_object_at(bed_tail) == &"single_bed")
+	assert(supplies.get_total_quantity(&"single_bed") == beds_before - 1)
+	blocking_worker.set_process(true)
+
 	var idle_blueprint_cell := Vector2i(30, 40)
 	blocking_worker.position = navigation.cell_to_world(idle_blueprint_cell)
 	blocking_worker.state = WorkerAgent.State.WAITING_FOR_BUILD_CELL
@@ -203,3 +237,11 @@ func _run() -> void:
 	print("Main scene tests passed")
 	main.free()
 	quit()
+
+
+func _find_button(parent: Node, caption: String) -> Button:
+	for child in parent.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button.text == caption:
+			return button
+	return null

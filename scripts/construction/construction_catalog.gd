@@ -12,6 +12,28 @@ const GROUPS := {
 	},
 }
 
+const FURNITURE_GROUPS := {
+	"residential": {
+		"label": "Жилое",
+		"tools": [
+			"cardboard_bed",
+			"sleeping_bag",
+			"single_bed",
+			"bunk_bed",
+			"toilet",
+			"food_table",
+		],
+	},
+	"service": {
+		"label": "Служебное",
+		"tools": [],
+	},
+	"security": {
+		"label": "Безопасность",
+		"tools": [],
+	},
+}
+
 const TOOLS := {
 	"wall": {
 		"label": "Стена",
@@ -38,6 +60,60 @@ const TOOLS := {
 		"required_item": "debris",
 		"footprint": Vector2i.ONE,
 		"rotatable": false,
+		"blocks_movement": true,
+	},
+	"cardboard_bed": {
+		"label": "Картон",
+		"color": Color("a98256"),
+		"placement": "single",
+		"required_item": "cardboard_bed",
+		"footprint": Vector2i.ONE,
+		"rotatable": false,
+		"blocks_movement": false,
+	},
+	"sleeping_bag": {
+		"label": "Спальный мешок",
+		"color": Color("71855c"),
+		"placement": "single",
+		"required_item": "sleeping_bag",
+		"footprint": Vector2i(1, 2),
+		"rotatable": true,
+		"blocks_movement": false,
+	},
+	"single_bed": {
+		"label": "Кровать",
+		"color": Color("7393a8"),
+		"placement": "single",
+		"required_item": "single_bed",
+		"footprint": Vector2i(1, 2),
+		"rotatable": true,
+		"blocks_movement": true,
+	},
+	"bunk_bed": {
+		"label": "Двухъярусная кровать",
+		"color": Color("58778c"),
+		"placement": "single",
+		"required_item": "bunk_bed",
+		"footprint": Vector2i(1, 2),
+		"rotatable": true,
+		"blocks_movement": true,
+	},
+	"toilet": {
+		"label": "Туалет",
+		"color": Color("d7ddd8"),
+		"placement": "single",
+		"required_item": "toilet",
+		"footprint": Vector2i.ONE,
+		"rotatable": false,
+		"blocks_movement": true,
+	},
+	"food_table": {
+		"label": "Стол раздачи еды",
+		"color": Color("a56d46"),
+		"placement": "single",
+		"required_item": "food_table",
+		"footprint": Vector2i(4, 1),
+		"rotatable": true,
 		"blocks_movement": true,
 	},
 }

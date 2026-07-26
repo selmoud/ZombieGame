@@ -48,6 +48,14 @@ func _run() -> void:
 		navigation.find_path_to_adjacent(Vector2i(7, 7), target).is_empty()
 	)
 
+	var furniture_cell := Vector2i(20, 20)
+	navigation.register_construction(furniture_cell, &"single_bed")
+	assert(not navigation.is_cell_walkable(furniture_cell))
+	navigation.remove_construction(furniture_cell, &"single_bed")
+	assert(navigation.is_cell_walkable(furniture_cell))
+	navigation.register_construction(furniture_cell, &"sleeping_bag")
+	assert(navigation.is_cell_walkable(furniture_cell))
+
 	print("NavigationGrid tests passed")
 	navigation.free()
 	quit()

@@ -19,6 +19,7 @@ var _deconstruction_orders: Dictionary[Vector2i, bool] = {}
 var _staged_materials: Dictionary[Vector2i, StringName] = {}
 var _placement_validator := Callable()
 var _rotation_quarters := 0
+var _furniture_styles: Dictionary[StringName, StyleBoxFlat] = {}
 
 
 func _needs_continuous_redraw() -> bool:
@@ -44,8 +45,12 @@ func set_placement_validator(validator: Callable) -> void:
 	queue_redraw()
 
 
-func place_blueprint(cell: Vector2i, object_id: StringName) -> void:
-	_place_blueprint(cell, object_id, _rotation_quarters)
+func place_blueprint(
+	cell: Vector2i,
+	object_id: StringName,
+	rotation_quarters: int = 0
+) -> void:
+	_place_blueprint(cell, object_id, rotation_quarters)
 
 
 func _place_blueprint(
@@ -133,6 +138,13 @@ func get_blueprint_at(cell: Vector2i) -> StringName:
 
 func get_blueprint_anchor_at(cell: Vector2i) -> Vector2i:
 	return _blueprint_anchor_by_cell.get(cell, INVALID_CELL)
+
+
+func get_blueprint_occupied_cells(cell: Vector2i) -> Array[Vector2i]:
+	var anchor := get_blueprint_anchor_at(cell)
+	if anchor == INVALID_CELL:
+		return []
+	return _blueprints[anchor].occupied_cells.duplicate()
 
 
 func stage_material(cell: Vector2i, item_id: StringName) -> bool:
@@ -321,7 +333,7 @@ func _apply_planning_drag() -> void:
 	elif _drag_tool == DECONSTRUCT_TOOL:
 		mark_deconstruction_line(_drag_start, _drag_current)
 	elif ConstructionCatalog.get_placement(_drag_tool) == "single":
-		place_blueprint(_drag_start, _drag_tool)
+		_place_blueprint(_drag_start, _drag_tool, _rotation_quarters)
 	else:
 		place_line(_drag_start, _drag_current, _drag_tool)
 
@@ -334,17 +346,26 @@ func _handle_planning_event(event: InputEvent) -> bool:
 		and event.keycode == KEY_R
 		and ConstructionCatalog.is_rotatable(active_tool)
 	):
-		_rotation_quarters = posmod(_rotation_quarters + 1, 4)
-		_cancel_drag()
-		queue_redraw()
+		rotate_active_tool()
 		return true
 	return false
 
 
+func rotate_active_tool() -> void:
+	if not ConstructionCatalog.is_rotatable(active_tool):
+		return
+	_rotation_quarters = posmod(_rotation_quarters + 1, 4)
+	_cancel_drag()
+	queue_redraw()
+
+
+func get_active_rotation_quarters() -> int:
+	return _rotation_quarters
+
+
 func _draw() -> void:
 	for instance: BuildableInstance in _completed_objects.values():
-		for cell in instance.occupied_cells:
-			_draw_completed_object(cell, instance.object_id)
+		_draw_completed_instance(instance)
 
 	for cell: Vector2i in _deconstruction_orders:
 		if can_mark_for_deconstruction(cell):
@@ -456,6 +477,108 @@ func _draw_placement_footprint(
 			_draw_invalid_placement(cell)
 		else:
 			_draw_blueprint(cell, object_id, true)
+
+
+func _draw_completed_instance(instance: BuildableInstance) -> void:
+	if instance.object_id in [
+		&"cardboard_bed",
+		&"sleeping_bag",
+		&"single_bed",
+		&"bunk_bed",
+		&"toilet",
+		&"food_table",
+	]:
+		_draw_furniture(instance)
+		return
+	for cell in instance.occupied_cells:
+		_draw_completed_object(cell, instance.object_id)
+
+
+func _draw_furniture(instance: BuildableInstance) -> void:
+	var footprint := ConstructionCatalog.get_footprint(
+		instance.object_id,
+		instance.rotation_quarters
+	)
+	var rect := Rect2(
+		Vector2(instance.anchor * TILE_SIZE),
+		Vector2(footprint * TILE_SIZE)
+	).grow(-4.0)
+	var color := ConstructionCatalog.get_color(instance.object_id)
+
+	if instance.object_id == &"cardboard_bed":
+		draw_rect(rect, color.darkened(0.18), true)
+		draw_line(rect.position, rect.end, color.lightened(0.2), 2.0)
+	elif instance.object_id == &"sleeping_bag":
+		draw_style_box(
+			_get_furniture_style(instance.object_id, color, 10),
+			rect
+		)
+		_draw_pillow(rect, color.lightened(0.22))
+	elif instance.object_id in [&"single_bed", &"bunk_bed"]:
+		draw_style_box(
+			_get_furniture_style(instance.object_id, color, 3),
+			rect
+		)
+		_draw_pillow(rect, Color("d7d2c4"))
+		if instance.object_id == &"bunk_bed":
+			draw_rect(rect.grow(-5.0), color.lightened(0.25), false, 3.0)
+			draw_circle(rect.position + Vector2(7, 7), 2.5, Color("d7d2c4"))
+	elif instance.object_id == &"toilet":
+		draw_circle(rect.get_center(), 10.0, color.darkened(0.12))
+		draw_circle(rect.get_center(), 5.0, Color("7d8b89"))
+		draw_rect(
+			Rect2(rect.position + Vector2(5, 2), Vector2(rect.size.x - 10, 8)),
+			color,
+			true
+		)
+	elif instance.object_id == &"food_table":
+		draw_rect(rect, color.darkened(0.2), true)
+		draw_rect(rect, color.lightened(0.2), false, 3.0)
+		var horizontal := footprint.x > footprint.y
+		var segments := footprint.x if horizontal else footprint.y
+		for index in range(1, segments):
+			var offset := float(index * TILE_SIZE)
+			if horizontal:
+				draw_line(
+					Vector2(rect.position.x + offset, rect.position.y),
+					Vector2(rect.position.x + offset, rect.end.y),
+					color.lightened(0.08),
+					1.0
+				)
+			else:
+				draw_line(
+					Vector2(rect.position.x, rect.position.y + offset),
+					Vector2(rect.end.x, rect.position.y + offset),
+					color.lightened(0.08),
+					1.0
+				)
+
+
+func _get_furniture_style(
+	object_id: StringName,
+	color: Color,
+	radius: int
+) -> StyleBoxFlat:
+	if _furniture_styles.has(object_id):
+		return _furniture_styles[object_id]
+	var style := StyleBoxFlat.new()
+	style.bg_color = color.darkened(0.16)
+	style.border_color = color.lightened(0.22)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(radius)
+	_furniture_styles[object_id] = style
+	return style
+
+
+func _draw_pillow(rect: Rect2, color: Color) -> void:
+	var horizontal := rect.size.x > rect.size.y
+	var pillow_size := (
+		Vector2(18, rect.size.y - 12)
+		if horizontal
+		else Vector2(rect.size.x - 12, 18)
+	)
+	var pillow_position := rect.position + Vector2(6, 6)
+	draw_rect(Rect2(pillow_position, pillow_size), color, true)
 
 
 func _draw_completed_object(cell: Vector2i, object_id: StringName) -> void:

@@ -103,6 +103,48 @@ func _init() -> void:
 	assert(construction.can_mark_for_deconstruction(Vector2i(2, 1)))
 	construction.mark_deconstruction_line(Vector2i(2, 1), Vector2i(2, 1))
 	assert(construction.get_deconstruction_cells() == [Vector2i(2, 1)])
+	assert(construction.complete_deconstruction(Vector2i(2, 1)))
+
+	construction.set_placement_validator(Callable())
+	construction.set_active_tool(&"bunk_bed")
+	assert(construction.get_active_rotation_quarters() == 0)
+	construction.rotate_active_tool()
+	assert(construction.get_active_rotation_quarters() == 1)
+	construction.place_blueprint(Vector2i(12, 12), &"bunk_bed", 1)
+	assert(construction.get_blueprint_at(Vector2i(12, 12)) == &"bunk_bed")
+	assert(construction.get_blueprint_at(Vector2i(13, 12)) == &"bunk_bed")
+	assert(
+		construction.get_blueprint_occupied_cells(Vector2i(13, 12))
+		== [Vector2i(12, 12), Vector2i(13, 12)]
+	)
+	assert(
+		not construction.can_place_blueprint(
+			Vector2i(13, 12),
+			&"toilet"
+		)
+	)
+	assert(construction.stage_material(Vector2i(13, 12), &"bunk_bed"))
+	assert(construction.complete_blueprint(Vector2i(12, 12)))
+	assert(
+		construction.get_completed_object_at(Vector2i(13, 12))
+		== &"bunk_bed"
+	)
+	construction.mark_deconstruction_line(
+		Vector2i(13, 12),
+		Vector2i(13, 12)
+	)
+	assert(construction.get_deconstruction_cells() == [Vector2i(12, 12)])
+	assert(construction.complete_deconstruction(Vector2i(13, 12)))
+	assert(
+		construction.get_completed_object_at(Vector2i(12, 12)).is_empty()
+	)
+	assert(
+		not construction.can_place_blueprint(
+			Vector2i(WorldConfig.MAP_SIZE.x - 2, 5),
+			&"food_table"
+		)
+	)
+	assert(construction.has_valid_state())
 
 	print("ConstructionManager tests passed")
 	construction.free()

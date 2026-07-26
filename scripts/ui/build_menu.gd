@@ -14,6 +14,7 @@ const CATEGORY_LABELS := {
 var _selected_category := "zones"
 var _selected_zone_group := "blocks"
 var _selected_construction_group := "boundaries"
+var _selected_furniture_group := "residential"
 var _category_buttons: Dictionary[String, Button] = {}
 var _group_buttons: Dictionary[String, Button] = {}
 var _tool_buttons: Dictionary[StringName, Button] = {}
@@ -68,7 +69,15 @@ func sync_construction_tool(tool_id: StringName) -> void:
 		_cursor_label.text = "×  Разобрать"
 		_cursor_label.add_theme_color_override("font_color", Color("e3a447"))
 	else:
-		_status_label.text = "%s  •  ЛКМ разместить  •  ПКМ/Esc отмена" % ConstructionCatalog.get_label(tool_id)
+		var rotation_hint := (
+			"  •  R повернуть"
+			if ConstructionCatalog.is_rotatable(tool_id)
+			else ""
+		)
+		_status_label.text = (
+			"%s  •  ЛКМ разместить%s  •  ПКМ/Esc отмена"
+			% [ConstructionCatalog.get_label(tool_id), rotation_hint]
+		)
 		_cursor_label.text = "◇  %s (чертёж)" % ConstructionCatalog.get_label(tool_id)
 		_cursor_label.add_theme_color_override(
 			"font_color",
@@ -208,11 +217,7 @@ func _show_category(category_id: String) -> void:
 		"construction":
 			_show_construction_groups()
 		"furniture":
-			_show_placeholder_groups({
-				"residential": "Жилое",
-				"service": "Служебное",
-				"security": "Безопасность",
-			})
+			_show_furniture_groups()
 
 
 func _show_zone_groups() -> void:
@@ -300,17 +305,61 @@ func _show_construction_tools(group_id: String) -> void:
 	_tool_buttons[ConstructionManager.ERASE_TOOL] = eraser
 
 
-func _show_placeholder_groups(groups: Dictionary) -> void:
-	for label: String in groups.values():
-		var button := Button.new()
-		button.text = label
-		button.disabled = true
-		button.tooltip_text = "Будет доступно на следующем этапе"
+func _show_furniture_groups() -> void:
+	var group := ButtonGroup.new()
+	for group_id: String in ConstructionCatalog.FURNITURE_GROUPS:
+		var definition: Dictionary = (
+			ConstructionCatalog.FURNITURE_GROUPS[group_id]
+		)
+		var button := _make_toggle_button(definition["label"], group)
+		button.pressed.connect(_show_furniture_tools.bind(group_id))
 		_groups_row.add_child(button)
-	var hint := Label.new()
-	hint.text = "Инструменты этого раздела появятся на следующих этапах"
-	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.68))
-	_tools_row.add_child(hint)
+		_group_buttons[group_id] = button
+	_show_furniture_tools(
+		_selected_furniture_group
+		if ConstructionCatalog.FURNITURE_GROUPS.has(
+			_selected_furniture_group
+		)
+		else "residential"
+	)
+
+
+func _show_furniture_tools(group_id: String) -> void:
+	cancel_tool_selected.emit()
+	_selected_furniture_group = group_id
+	_group_buttons[group_id].button_pressed = true
+	_clear_row(_tools_row)
+	_tool_buttons.clear()
+
+	var definition: Dictionary = (
+		ConstructionCatalog.FURNITURE_GROUPS[group_id]
+	)
+	var tools: Array = definition["tools"]
+	if tools.is_empty():
+		var hint := Label.new()
+		hint.text = "Пока нет доступных объектов"
+		hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.68))
+		_tools_row.add_child(hint)
+		return
+
+	var tool_group := ButtonGroup.new()
+	for tool_id: String in tools:
+		var button := _make_toggle_button(
+			ConstructionCatalog.get_label(tool_id),
+			tool_group
+		)
+		button.pressed.connect(
+			_select_construction_tool.bind(StringName(tool_id))
+		)
+		_tools_row.add_child(button)
+		_tool_buttons[StringName(tool_id)] = button
+
+	var deconstruct := _make_toggle_button("Разобрать", tool_group)
+	deconstruct.pressed.connect(
+		_select_construction_tool.bind(ConstructionManager.DECONSTRUCT_TOOL)
+	)
+	_tools_row.add_child(deconstruct)
+	_tool_buttons[ConstructionManager.DECONSTRUCT_TOOL] = deconstruct
 
 
 func _select_zone_tool(tool_id: StringName) -> void:

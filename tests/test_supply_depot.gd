@@ -76,6 +76,9 @@ func _init() -> void:
 		1
 	)
 	assert(supplies.get_loose_quantity(Vector2i(7, 7), &"wall_section") == 1)
+	assert(ItemCatalog.is_furniture(&"bunk_bed"))
+	assert(not ItemCatalog.is_furniture(&"wall_section"))
+	assert(supplies.has_valid_state())
 
 	print("SupplyDepot tests passed")
 	supplies.free()

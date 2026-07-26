@@ -637,7 +637,7 @@ func _update_work(delta: float) -> void:
 		return
 
 	if _task.job_type == CONSTRUCTION_JOB:
-		if _is_cell_used_by_other_worker(_task.target_cell):
+		if _is_blueprint_used_by_other_worker(_task.target_cell):
 			_begin_build_retry()
 			return
 		if _construction.complete_blueprint(_task.target_cell):
@@ -756,9 +756,16 @@ func _find_nearest_buildable(
 ) -> Vector2i:
 	var available_cells: Array[Vector2i] = []
 	for cell in cells:
-		if not _is_cell_used_by_other_worker(cell):
+		if not _is_blueprint_used_by_other_worker(cell):
 			available_cells.append(cell)
 	return _find_nearest_reachable(available_cells, origin)
+
+
+func _is_blueprint_used_by_other_worker(cell: Vector2i) -> bool:
+	for occupied_cell in _construction.get_blueprint_occupied_cells(cell):
+		if _is_cell_used_by_other_worker(occupied_cell):
+			return true
+	return false
 
 
 func _find_nearest_reachable(

@@ -16,6 +16,12 @@ func _ready() -> void:
 	add_box(Vector2i(29, 31), &"wall_section", 24)
 	add_box(Vector2i(29, 33), &"door_module", 6)
 	add_box(Vector2i(29, 35), &"debris", 12)
+	add_box(Vector2i(27, 29), &"cardboard_bed", 4)
+	add_box(Vector2i(27, 30), &"sleeping_bag", 4)
+	add_box(Vector2i(27, 31), &"single_bed", 2)
+	add_box(Vector2i(27, 32), &"bunk_bed", 2)
+	add_box(Vector2i(27, 33), &"toilet", 2)
+	add_box(Vector2i(27, 34), &"food_table", 1)
 
 
 func add_box(cell: Vector2i, item_id: StringName, quantity: int) -> void:
@@ -240,10 +246,18 @@ func has_valid_state() -> bool:
 
 
 func get_summary_text() -> String:
-	return "Стены: %d  •  Двери: %d  •  Обломки: %d  •  На земле: %d" % [
+	var furniture_count := 0
+	for item_id: String in ItemCatalog.ITEMS:
+		if ItemCatalog.is_furniture(item_id):
+			furniture_count += get_total_quantity(item_id)
+	return (
+		"Стены: %d  •  Двери: %d  •  Обломки: %d"
+		+ "  •  Оснащение: %d  •  На земле: %d"
+	) % [
 		get_total_quantity(&"wall_section"),
 		get_total_quantity(&"door_module"),
 		get_total_quantity(&"debris"),
+		furniture_count,
 		get_total_loose_quantity(),
 	]
 
