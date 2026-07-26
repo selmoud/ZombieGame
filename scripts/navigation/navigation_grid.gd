@@ -48,8 +48,7 @@ func get_cell_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 
 
 func register_construction(cell: Vector2i, object_id: StringName) -> void:
-	var blocks_movement := object_id == &"wall" or object_id == &"barricade"
-	_grid.set_point_solid(cell, blocks_movement)
+	_grid.set_point_solid(cell, ConstructionCatalog.blocks_movement(object_id))
 
 
 func remove_construction(cell: Vector2i, _object_id: StringName = &"") -> void:

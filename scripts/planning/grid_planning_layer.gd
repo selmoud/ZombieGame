@@ -74,6 +74,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	if _handle_planning_event(event):
+		get_viewport().set_input_as_handled()
+		return
+
 	if active_tool.is_empty():
 		return
 
@@ -101,6 +105,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _apply_planning_drag() -> void:
 	pass
+
+
+func _handle_planning_event(_event: InputEvent) -> bool:
+	return false
 
 
 func _needs_continuous_redraw() -> bool:

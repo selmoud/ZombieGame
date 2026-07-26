@@ -7,6 +7,22 @@ func _init() -> void:
 	assert(ConstructionCatalog.get_required_item(&"wall") == &"wall_section")
 	assert(ConstructionCatalog.get_required_item(&"door") == &"door_module")
 	assert(ConstructionCatalog.get_required_item(&"barricade") == &"debris")
+	assert(
+		ConstructionCatalog.get_cells_for_footprint(
+			Vector2i(3, 1),
+			Vector2i(4, 5),
+			1
+		) == [
+			Vector2i(4, 5),
+			Vector2i(4, 6),
+			Vector2i(4, 7),
+		]
+	)
+	var instance := BuildableInstance.new(&"wall", Vector2i(6, 6), 3)
+	assert(instance.anchor == Vector2i(6, 6))
+	assert(instance.object_id == &"wall")
+	assert(instance.rotation_quarters == 3)
+	assert(instance.occupies(Vector2i(6, 6)))
 
 	construction.place_line(Vector2i(2, 4), Vector2i(5, 5), &"wall")
 	assert(construction.get_blueprint_count(&"wall") == 4)
