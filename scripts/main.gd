@@ -53,6 +53,15 @@ func _ready() -> void:
 	construction_manager.material_released.connect(
 		supplies.drop_loose_items
 	)
+	zone_manager.set_boundary_provider(
+		construction_manager.get_completed_object_at
+	)
+	construction_manager.construction_completed.connect(
+		zone_manager.refresh_boundaries
+	)
+	construction_manager.construction_removed.connect(
+		zone_manager.refresh_boundaries
+	)
 	for child in agents.get_children():
 		if child is not WorkerAgent:
 			continue
