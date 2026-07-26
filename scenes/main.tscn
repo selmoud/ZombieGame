@@ -48,6 +48,14 @@ script = ExtResource("9_jobs")
 position = Vector2(1040, 1040)
 script = ExtResource("10_worker")
 
+[node name="Worker2" type="Node2D" parent="Agents"]
+position = Vector2(1008, 1040)
+script = ExtResource("10_worker")
+
+[node name="Worker3" type="Node2D" parent="Agents"]
+position = Vector2(1040, 1008)
+script = ExtResource("10_worker")
+
 [node name="Interface" type="CanvasLayer" parent="."]
 
 [node name="BuildMenu" type="Control" parent="Interface"]

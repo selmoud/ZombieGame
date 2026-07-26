@@ -27,13 +27,16 @@ func _run() -> void:
 	assert(zones.active_tool.is_empty())
 	assert(construction.active_tool.is_empty())
 
-	var worker: WorkerAgent = main.get_node("Agents/Worker")
+	var workers: Array[WorkerAgent] = main.workers
+	assert(workers.size() == 3)
+	var worker: WorkerAgent = workers.front()
 	var clock: GameClock = main.get_node("GameClock")
 	var supplies: SupplyDepot = main.get_node("SupplyDepot")
-	worker.movement_speed = 1000.0
-	worker.pickup_duration = 0.01
-	worker.delivery_duration = 0.01
-	worker.construction_duration = 0.01
+	for current_worker in workers:
+		current_worker.movement_speed = 1000.0
+		current_worker.pickup_duration = 0.01
+		current_worker.delivery_duration = 0.01
+		current_worker.construction_duration = 0.01
 	assert(worker.get_carry_capacity(&"wall_section") == 4)
 	assert(worker.get_carry_capacity(&"door_module") == 4)
 	clock.set_speed(4.0)

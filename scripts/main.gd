@@ -6,8 +6,10 @@ extends Node2D
 @onready var supplies: SupplyDepot = $SupplyDepot
 @onready var navigation_grid: NavigationGrid = $NavigationGrid
 @onready var job_board: JobBoard = $JobBoard
-@onready var worker: WorkerAgent = $Agents/Worker
+@onready var agents: Node2D = $Agents
 @onready var build_menu: BuildMenu = $Interface/BuildMenu
+
+var workers: Array[WorkerAgent] = []
 
 
 func _ready() -> void:
@@ -30,13 +32,18 @@ func _ready() -> void:
 	construction_manager.material_released.connect(
 		supplies.drop_loose_items
 	)
-	worker.setup(
-		game_clock,
-		navigation_grid,
-		job_board,
-		construction_manager,
-		supplies
-	)
+	for child in agents.get_children():
+		if child is not WorkerAgent:
+			continue
+		var worker := child as WorkerAgent
+		workers.append(worker)
+		worker.setup(
+			game_clock,
+			navigation_grid,
+			job_board,
+			construction_manager,
+			supplies
+		)
 	construction_manager.set_placement_validator(
 		_can_worker_reach_construction_cell
 	)
@@ -72,8 +79,14 @@ func _sync_deconstruction_jobs() -> void:
 func _can_worker_reach_construction_cell(cell: Vector2i) -> bool:
 	if supplies.has_box_at(cell):
 		return false
-	var worker_cell := navigation_grid.world_to_cell(worker.position)
-	return not navigation_grid.find_path_to_adjacent(worker_cell, cell).is_empty()
+	for worker in workers:
+		var worker_cell := navigation_grid.world_to_cell(worker.position)
+		if not navigation_grid.find_path_to_adjacent(
+			worker_cell,
+			cell
+		).is_empty():
+			return true
+	return false
 
 
 func _create_hud() -> void:
