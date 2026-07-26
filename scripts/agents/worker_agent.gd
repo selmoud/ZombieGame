@@ -46,6 +46,7 @@ var _path: Array[Vector2i] = []
 var _path_index := 0
 var _action_progress := 0.0
 var _idle_retry := 0.0
+var _state_after_vacating := State.IDLE
 
 
 func setup(
@@ -72,7 +73,8 @@ func _process(delta: float) -> void:
 	match state:
 		State.IDLE:
 			if _try_vacate_blueprint(
-				_navigation.world_to_cell(position)
+				_navigation.world_to_cell(position),
+				State.IDLE
 			):
 				return
 			_idle_retry -= simulation_delta
@@ -96,7 +98,10 @@ func get_carry_capacity(_item_id: StringName) -> int:
 	return CARRY_CAPACITY
 
 
-func _try_vacate_blueprint(current_cell: Vector2i) -> bool:
+func _try_vacate_blueprint(
+	current_cell: Vector2i,
+	return_state: int
+) -> bool:
 	if _construction.get_blueprint_at(current_cell).is_empty():
 		return false
 	var escape_path := _find_blueprint_escape_path(current_cell)
@@ -106,6 +111,7 @@ func _try_vacate_blueprint(current_cell: Vector2i) -> bool:
 	_target_cell = escape_path.back()
 	_path = escape_path
 	_path_index = 1 if _path.size() > 1 else _path.size()
+	_state_after_vacating = return_state
 	state = State.VACATING_BLUEPRINT
 	queue_redraw()
 	return true
@@ -339,7 +345,7 @@ func _update_movement(delta: float) -> void:
 			State.MOVING_TO_JOB:
 				state = State.WORKING
 			State.VACATING_BLUEPRINT:
-				_finish_job()
+				_finish_vacating_blueprint()
 				return
 		_action_progress = 0.0
 		queue_redraw()
@@ -559,6 +565,11 @@ func _begin_build_retry() -> void:
 
 
 func _update_build_retry(delta: float) -> void:
+	if _try_vacate_blueprint(
+		_navigation.world_to_cell(position),
+		State.WAITING_FOR_BUILD_CELL
+	):
+		return
 	_action_progress += delta
 	if _action_progress < BUILD_RETRY_INTERVAL:
 		return
@@ -600,7 +611,19 @@ func _recalculate_current_path() -> void:
 			else:
 				_cancel_job()
 		State.VACATING_BLUEPRINT:
-			_finish_job()
+			_finish_vacating_blueprint()
+
+
+func _finish_vacating_blueprint() -> void:
+	state = _state_after_vacating
+	_state_after_vacating = State.IDLE
+	_target_cell = JobBoard.INVALID_CELL
+	_path.clear()
+	_path_index = 0
+	_action_progress = 0.0
+	if state == State.IDLE:
+		_idle_retry = 0.0
+	queue_redraw()
 
 
 func _is_cell_used_by_other_worker(cell: Vector2i) -> bool:
@@ -728,6 +751,7 @@ func _finish_job() -> void:
 	_path_index = 0
 	_action_progress = 0.0
 	_idle_retry = 0.15
+	_state_after_vacating = State.IDLE
 	queue_redraw()
 
 

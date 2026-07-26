@@ -124,7 +124,7 @@ func _run() -> void:
 
 	var idle_blueprint_cell := Vector2i(30, 40)
 	blocking_worker.position = navigation.cell_to_world(idle_blueprint_cell)
-	blocking_worker.state = WorkerAgent.State.IDLE
+	blocking_worker.state = WorkerAgent.State.WAITING_FOR_BUILD_CELL
 	blocking_worker._path.clear()
 	construction.place_blueprint(idle_blueprint_cell, &"wall")
 	await create_timer(0.6).timeout
