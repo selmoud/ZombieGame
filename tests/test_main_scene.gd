@@ -97,6 +97,19 @@ func _run() -> void:
 	)
 	assert(inventory_events[0] == 1)
 
+	var occupied_cell := Vector2i(32, 38)
+	var blocking_worker: WorkerAgent = workers.back()
+	blocking_worker.set_process(false)
+	blocking_worker.position = navigation.cell_to_world(occupied_cell)
+	construction.place_blueprint(occupied_cell, &"wall")
+	await create_timer(0.5).timeout
+	assert(construction.get_completed_object_at(occupied_cell).is_empty())
+	assert(construction.get_blueprint_at(occupied_cell) == &"wall")
+	blocking_worker.position = navigation.cell_to_world(Vector2i(30, 38))
+	await create_timer(0.5).timeout
+	assert(construction.get_completed_object_at(occupied_cell) == &"wall")
+	blocking_worker.set_process(true)
+
 	var cancelled_cell := Vector2i(31, 37)
 	construction.place_blueprint(cancelled_cell, &"wall")
 	assert(

@@ -57,6 +57,7 @@ func setup(
 	_job_board = job_board
 	_construction = construction
 	_supplies = supplies
+	add_to_group(&"workers")
 	queue_redraw()
 
 
@@ -291,6 +292,10 @@ func _update_movement(delta: float) -> void:
 		queue_redraw()
 		return
 
+	if not _navigation.is_cell_walkable(_path[_path_index]):
+		_recalculate_current_path()
+		return
+
 	var target_position := _navigation.cell_to_world(_path[_path_index])
 	position = position.move_toward(target_position, movement_speed * delta)
 	if position.is_equal_approx(target_position):
@@ -470,6 +475,10 @@ func _update_work(delta: float) -> void:
 		return
 
 	if _job_type == CONSTRUCTION_JOB:
+		if _has_other_worker_on_cell(_target_cell):
+			_action_progress = construction_duration
+			queue_redraw()
+			return
 		if _construction.complete_blueprint(_target_cell):
 			_job_board.complete_construction(_target_cell, get_instance_id())
 		_pending_build.erase(_target_cell)
@@ -478,6 +487,45 @@ func _update_work(delta: float) -> void:
 	elif _construction.complete_deconstruction(_target_cell):
 		_job_board.complete_deconstruction(_target_cell, get_instance_id())
 		_finish_job()
+
+
+func _recalculate_current_path() -> void:
+	var current_cell := _navigation.world_to_cell(position)
+	var replacement_path := _navigation.find_path_to_adjacent(
+		current_cell,
+		_target_cell
+	)
+	if not replacement_path.is_empty():
+		_path = replacement_path
+		_path_index = 1 if _path.size() > 1 else _path.size()
+		queue_redraw()
+		return
+
+	match state:
+		State.MOVING_TO_SUPPLY:
+			_cancel_job()
+		State.DELIVERING_MATERIAL:
+			_pending_delivery.erase(_target_cell)
+			_start_next_delivery()
+		State.RETURNING_MATERIAL:
+			_drop_carried_material()
+			_start_next_build()
+		State.MOVING_TO_JOB:
+			if _job_type == CONSTRUCTION_JOB:
+				_pending_build.erase(_target_cell)
+				_start_next_build()
+			else:
+				_cancel_job()
+
+
+func _has_other_worker_on_cell(cell: Vector2i) -> bool:
+	for node in get_tree().get_nodes_in_group(&"workers"):
+		if node == self or node is not WorkerAgent:
+			continue
+		var other_worker := node as WorkerAgent
+		if _navigation.world_to_cell(other_worker.position) == cell:
+			return true
+	return false
 
 
 func _find_nearest_reachable(
