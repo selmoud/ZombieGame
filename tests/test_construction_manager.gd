@@ -7,6 +7,12 @@ func _init() -> void:
 	assert(ConstructionCatalog.get_required_item(&"wall") == &"wall_section")
 	assert(ConstructionCatalog.get_required_item(&"door") == &"door_module")
 	assert(ConstructionCatalog.get_required_item(&"barricade") == &"debris")
+	assert(ConstructionCatalog.get_footprint(&"cardboard_bed") == Vector2i(1, 2))
+	assert(
+		ConstructionCatalog.get_footprint(&"cardboard_bed", 1)
+		== Vector2i(2, 1)
+	)
+	assert(ConstructionCatalog.is_rotatable(&"cardboard_bed"))
 	assert(
 		ConstructionCatalog.get_cells_for_footprint(
 			Vector2i(3, 1),

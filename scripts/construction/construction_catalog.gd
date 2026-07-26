@@ -67,8 +67,8 @@ const TOOLS := {
 		"color": Color("a98256"),
 		"placement": "single",
 		"required_item": "cardboard_bed",
-		"footprint": Vector2i.ONE,
-		"rotatable": false,
+		"footprint": Vector2i(1, 2),
+		"rotatable": true,
 		"blocks_movement": false,
 	},
 	"sleeping_bag": {
