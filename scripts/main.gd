@@ -21,6 +21,18 @@ func _process(_delta: float) -> void:
 	worker_inspector_label.text = selected_worker.get_inspector_text()
 
 
+func _input(event: InputEvent) -> void:
+	if (
+		event is InputEventKey
+		and event.keycode == KEY_ESCAPE
+		and event.pressed
+		and not event.echo
+		and selected_worker != null
+	):
+		_clear_worker_selection()
+		get_viewport().set_input_as_handled()
+
+
 func _ready() -> void:
 	_create_hud()
 	build_menu.zone_tool_selected.connect(_select_zone_tool)
@@ -83,6 +95,13 @@ func _select_worker(worker: WorkerAgent) -> void:
 	selected_worker.set_inspected(true)
 	worker_inspector_label.text = selected_worker.get_inspector_text()
 	worker_inspector_panel.visible = true
+
+
+func _clear_worker_selection() -> void:
+	if selected_worker != null and is_instance_valid(selected_worker):
+		selected_worker.set_inspected(false)
+	selected_worker = null
+	worker_inspector_panel.visible = false
 
 
 func _sync_construction_jobs() -> void:

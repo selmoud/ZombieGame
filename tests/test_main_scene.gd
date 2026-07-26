@@ -37,6 +37,13 @@ func _run() -> void:
 	assert(inspector.visible)
 	assert(inspector_details.text.contains("Состояние:"))
 	assert(inspector_details.text.contains("Маршрут:"))
+	var escape_event := InputEventKey.new()
+	escape_event.keycode = KEY_ESCAPE
+	escape_event.pressed = true
+	Input.parse_input_event(escape_event)
+	await process_frame
+	assert(not inspector.visible)
+	assert(main.selected_worker == null)
 	var clock: GameClock = main.get_node("GameClock")
 	var supplies: SupplyDepot = main.get_node("SupplyDepot")
 	for current_worker in workers:
