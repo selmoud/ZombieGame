@@ -34,15 +34,7 @@ var _job_board: JobBoard
 var _construction: ConstructionManager
 var _supplies: SupplyDepot
 
-var _job_type: StringName = &""
-var _target_cell := JobBoard.INVALID_CELL
-var _supply_cell := JobBoard.INVALID_CELL
-var _supply_source_type := SupplyDepot.SOURCE_BOX
-var _batch_item: StringName = &""
-var _batch_cells: Array[Vector2i] = []
-var _pending_delivery: Array[Vector2i] = []
-var _pending_build: Array[Vector2i] = []
-var _carried_quantity := 0
+var _task := WorkerTaskState.new()
 
 var _path: Array[Vector2i] = []
 var _path_index := 0
@@ -108,14 +100,14 @@ func set_inspected(value: bool) -> void:
 
 func get_inspector_text() -> String:
 	var target_text := "—"
-	if _target_cell != JobBoard.INVALID_CELL:
-		target_text = "%d, %d" % [_target_cell.x, _target_cell.y]
+	if _task.target_cell != JobBoard.INVALID_CELL:
+		target_text = "%d, %d" % [_task.target_cell.x, _task.target_cell.y]
 
 	var cargo_text := "—"
-	if _carried_quantity > 0:
+	if _task.carried_quantity > 0:
 		cargo_text = "%s ×%d" % [
-			ItemCatalog.get_label(_batch_item),
-			_carried_quantity,
+			ItemCatalog.get_label(_task.item_id),
+			_task.carried_quantity,
 		]
 
 	var route_parts := PackedStringArray()
@@ -171,9 +163,9 @@ func _get_state_label() -> String:
 
 
 func _get_job_label() -> String:
-	if _job_type == CONSTRUCTION_JOB:
+	if _task.job_type == CONSTRUCTION_JOB:
 		return "Строительство"
-	if _job_type == DECONSTRUCTION_JOB:
+	if _task.job_type == DECONSTRUCTION_JOB:
 		return "Разбор"
 	return "Нет"
 
@@ -209,7 +201,7 @@ func _try_vacate_blueprint(
 	if escape_path.is_empty():
 		_idle_retry = 0.5
 		return false
-	_target_cell = escape_path.back()
+	_task.target_cell = escape_path.back()
 	_path = escape_path
 	_path_index = 1 if _path.size() > 1 else _path.size()
 	_state_after_vacating = return_state
@@ -263,11 +255,11 @@ func _try_claim_staged_construction(current_cell: Vector2i) -> bool:
 			continue
 		if not _job_board.claim_construction(cell, get_instance_id()):
 			continue
-		_job_type = CONSTRUCTION_JOB
-		_batch_item = _construction.get_staged_material(cell)
-		_batch_cells = [cell]
-		_pending_build = [cell]
-		_target_cell = cell
+		_task.begin_staged_construction(
+			CONSTRUCTION_JOB,
+			cell,
+			_construction.get_staged_material(cell)
+		)
 		_path = path
 		_path_index = 1 if _path.size() > 1 else _path.size()
 		state = State.MOVING_TO_JOB
@@ -349,14 +341,13 @@ func _try_claim_construction_batch(current_cell: Vector2i) -> bool:
 			_release_construction_claims(claimed_cells)
 			continue
 
-		_job_type = CONSTRUCTION_JOB
-		_batch_item = item_id
-		_batch_cells = claimed_cells.duplicate()
-		_pending_delivery = claimed_cells.duplicate()
-		_pending_build.clear()
-		_supply_cell = best_option["cell"]
-		_supply_source_type = best_option["source_type"]
-		_target_cell = _supply_cell
+		_task.begin_delivery_batch(
+			CONSTRUCTION_JOB,
+			claimed_cells,
+			item_id,
+			best_option["cell"],
+			best_option["source_type"]
+		)
 		_path = best_option["path"]
 		_path_index = 1 if _path.size() > 1 else _path.size()
 		state = State.MOVING_TO_SUPPLY
@@ -398,8 +389,7 @@ func _try_claim_deconstruction(current_cell: Vector2i) -> bool:
 		):
 			continue
 
-		_job_type = DECONSTRUCTION_JOB
-		_target_cell = job_cell
+		_task.begin_single_job(DECONSTRUCTION_JOB, job_cell)
 		_path = path
 		_path_index = 1 if _path.size() > 1 else _path.size()
 		state = State.MOVING_TO_JOB
@@ -414,17 +404,17 @@ func _update_movement(delta: float) -> void:
 		return
 	if (
 		state == State.DELIVERING_MATERIAL
-		and not _is_valid_construction_job(_target_cell)
+		and not _is_valid_construction_job(_task.target_cell)
 	):
-		_pending_delivery.erase(_target_cell)
+		_task.pending_delivery.erase(_task.target_cell)
 		_start_next_delivery()
 		return
 	if (
 		state == State.MOVING_TO_JOB
 		and not _is_current_work_target_valid()
 	):
-		if _job_type == CONSTRUCTION_JOB:
-			_pending_build.erase(_target_cell)
+		if _task.job_type == CONSTRUCTION_JOB:
+			_task.pending_build.erase(_task.target_cell)
 			_start_next_build()
 		else:
 			_cancel_job()
@@ -478,29 +468,29 @@ func _update_pickup(delta: float) -> void:
 	if taken.is_empty():
 		_cancel_job()
 		return
-	_batch_item = taken["item_id"]
-	_carried_quantity = taken["quantity"]
+	_task.item_id = taken["item_id"]
+	_task.carried_quantity = taken["quantity"]
 	_action_progress = 0.0
 	_start_next_delivery()
 
 
 func _start_next_delivery() -> void:
 	_prune_cancelled_batch_cells()
-	if _pending_delivery.is_empty():
+	if _task.pending_delivery.is_empty():
 		_start_next_build()
 		return
 
 	var current_cell := _navigation.world_to_cell(position)
-	var next_cell := _find_nearest_reachable(_pending_delivery, current_cell)
+	var next_cell := _find_nearest_reachable(_task.pending_delivery, current_cell)
 	if next_cell == JobBoard.INVALID_CELL:
-		for cell in _pending_delivery:
+		for cell in _task.pending_delivery:
 			_job_board.release_construction(cell, get_instance_id())
-			_batch_cells.erase(cell)
-		_pending_delivery.clear()
+			_task.batch_cells.erase(cell)
+		_task.pending_delivery.clear()
 		_start_return_material()
 		return
 
-	_target_cell = next_cell
+	_task.target_cell = next_cell
 	_path = _navigation.find_path_to_adjacent(current_cell, next_cell)
 	_path_index = 1 if _path.size() > 1 else _path.size()
 	state = State.DELIVERING_MATERIAL
@@ -508,8 +498,8 @@ func _start_next_delivery() -> void:
 
 
 func _update_delivery(delta: float) -> void:
-	if not _is_valid_construction_job(_target_cell):
-		_pending_delivery.erase(_target_cell)
+	if not _is_valid_construction_job(_task.target_cell):
+		_task.pending_delivery.erase(_task.target_cell)
 		_start_next_delivery()
 		return
 	_action_progress += delta
@@ -517,30 +507,30 @@ func _update_delivery(delta: float) -> void:
 		queue_redraw()
 		return
 	if (
-		_carried_quantity > 0
-		and _construction.stage_material(_target_cell, _batch_item)
+		_task.carried_quantity > 0
+		and _construction.stage_material(_task.target_cell, _task.item_id)
 	):
-		_carried_quantity -= 1
-		_pending_build.append(_target_cell)
-	_pending_delivery.erase(_target_cell)
+		_task.carried_quantity -= 1
+		_task.pending_build.append(_task.target_cell)
+	_task.pending_delivery.erase(_task.target_cell)
 	_action_progress = 0.0
 	_start_next_delivery()
 
 
 func _start_return_material() -> void:
-	if _carried_quantity <= 0:
+	if _task.carried_quantity <= 0:
 		_start_next_build()
 		return
 	var current_cell := _navigation.world_to_cell(position)
 	var path := _navigation.find_path_to_adjacent(
 		current_cell,
-		_supply_cell
+		_task.supply_cell
 	)
 	if path.is_empty():
 		_drop_carried_material()
 		_start_next_build()
 		return
-	_target_cell = _supply_cell
+	_task.target_cell = _task.supply_cell
 	_path = path
 	_path_index = 1 if path.size() > 1 else path.size()
 	state = State.RETURNING_MATERIAL
@@ -548,80 +538,80 @@ func _start_return_material() -> void:
 
 
 func _store_carried_material() -> void:
-	if _carried_quantity <= 0:
+	if _task.carried_quantity <= 0:
 		return
 	_supplies.return_items_to_source(
-		_supply_cell,
-		_supply_source_type,
-		_batch_item,
-		_carried_quantity
+		_task.supply_cell,
+		_task.supply_source_type,
+		_task.item_id,
+		_task.carried_quantity
 	)
-	_carried_quantity = 0
+	_task.carried_quantity = 0
 
 
 func _drop_carried_material() -> void:
-	if _carried_quantity <= 0:
+	if _task.carried_quantity <= 0:
 		return
 	var current_cell := _navigation.world_to_cell(position)
 	_supplies.drop_loose_items(
 		current_cell,
-		_batch_item,
-		_carried_quantity
+		_task.item_id,
+		_task.carried_quantity
 	)
-	_carried_quantity = 0
+	_task.carried_quantity = 0
 
 
 func _start_next_build() -> void:
 	_prune_cancelled_batch_cells()
 	var valid_build_cells: Array[Vector2i] = []
-	for cell in _pending_build:
+	for cell in _task.pending_build:
 		if (
 			_is_valid_construction_job(cell)
 			and _construction.has_staged_material(cell)
 		):
 			valid_build_cells.append(cell)
-	_pending_build = valid_build_cells
+	_task.pending_build = valid_build_cells
 
-	if _pending_build.is_empty():
-		if _carried_quantity > 0:
+	if _task.pending_build.is_empty():
+		if _task.carried_quantity > 0:
 			_start_return_material()
 			return
-		_release_construction_claims(_batch_cells)
+		_release_construction_claims(_task.batch_cells)
 		_finish_job()
 		return
 
 	var current_cell := _navigation.world_to_cell(position)
-	var reachable_cell := _find_nearest_reachable(_pending_build, current_cell)
+	var reachable_cell := _find_nearest_reachable(_task.pending_build, current_cell)
 	if reachable_cell == JobBoard.INVALID_CELL:
-		_release_construction_claims(_pending_build)
-		for cell in _pending_build:
-			_batch_cells.erase(cell)
-		_pending_build.clear()
-		if _carried_quantity > 0:
+		_release_construction_claims(_task.pending_build)
+		for cell in _task.pending_build:
+			_task.batch_cells.erase(cell)
+		_task.pending_build.clear()
+		if _task.carried_quantity > 0:
 			_start_return_material()
 		else:
 			_finish_job()
 		return
 
-	var next_cell := _find_nearest_buildable(_pending_build, current_cell)
+	var next_cell := _find_nearest_buildable(_task.pending_build, current_cell)
 	if next_cell == JobBoard.INVALID_CELL:
-		if _carried_quantity > 0:
+		if _task.carried_quantity > 0:
 			_start_return_material()
 		else:
 			_begin_build_retry()
 		return
 
 	var build_path := _navigation.find_path_to_adjacent(current_cell, next_cell)
-	if _carried_quantity > 0:
+	if _task.carried_quantity > 0:
 		var return_path := _navigation.find_path_to_adjacent(
 			current_cell,
-			_supply_cell
+			_task.supply_cell
 		)
 		if not return_path.is_empty() and return_path.size() <= build_path.size():
 			_start_return_material()
 			return
 
-	_target_cell = next_cell
+	_task.target_cell = next_cell
 	_path = build_path
 	_path_index = 1 if _path.size() > 1 else _path.size()
 	state = State.MOVING_TO_JOB
@@ -630,8 +620,8 @@ func _start_next_build() -> void:
 
 func _update_work(delta: float) -> void:
 	if not _is_current_work_target_valid():
-		if _job_type == CONSTRUCTION_JOB:
-			_pending_build.erase(_target_cell)
+		if _task.job_type == CONSTRUCTION_JOB:
+			_task.pending_build.erase(_task.target_cell)
 			_start_next_build()
 		else:
 			_cancel_job()
@@ -642,23 +632,23 @@ func _update_work(delta: float) -> void:
 		queue_redraw()
 		return
 
-	if _job_type == CONSTRUCTION_JOB:
-		if _is_cell_used_by_other_worker(_target_cell):
+	if _task.job_type == CONSTRUCTION_JOB:
+		if _is_cell_used_by_other_worker(_task.target_cell):
 			_begin_build_retry()
 			return
-		if _construction.complete_blueprint(_target_cell):
-			_job_board.complete_construction(_target_cell, get_instance_id())
-		_pending_build.erase(_target_cell)
-		_batch_cells.erase(_target_cell)
+		if _construction.complete_blueprint(_task.target_cell):
+			_job_board.complete_construction(_task.target_cell, get_instance_id())
+		_task.pending_build.erase(_task.target_cell)
+		_task.batch_cells.erase(_task.target_cell)
 		_start_next_build()
-	elif _construction.complete_deconstruction(_target_cell):
-		_job_board.complete_deconstruction(_target_cell, get_instance_id())
+	elif _construction.complete_deconstruction(_task.target_cell):
+		_job_board.complete_deconstruction(_task.target_cell, get_instance_id())
 		_finish_job()
 
 
 func _begin_build_retry() -> void:
 	state = State.WAITING_FOR_BUILD_CELL
-	_target_cell = JobBoard.INVALID_CELL
+	_task.target_cell = JobBoard.INVALID_CELL
 	_path.clear()
 	_path_index = 0
 	_action_progress = 0.0
@@ -683,12 +673,12 @@ func _recalculate_current_path() -> void:
 	if state == State.VACATING_BLUEPRINT:
 		replacement_path = _navigation.get_cell_path(
 			current_cell,
-			_target_cell
+			_task.target_cell
 		)
 	else:
 		replacement_path = _navigation.find_path_to_adjacent(
 			current_cell,
-			_target_cell
+			_task.target_cell
 		)
 	if not replacement_path.is_empty():
 		_path = replacement_path
@@ -700,14 +690,14 @@ func _recalculate_current_path() -> void:
 		State.MOVING_TO_SUPPLY:
 			_cancel_job()
 		State.DELIVERING_MATERIAL:
-			_pending_delivery.erase(_target_cell)
+			_task.pending_delivery.erase(_task.target_cell)
 			_start_next_delivery()
 		State.RETURNING_MATERIAL:
 			_drop_carried_material()
 			_start_next_build()
 		State.MOVING_TO_JOB:
-			if _job_type == CONSTRUCTION_JOB:
-				_pending_build.erase(_target_cell)
+			if _task.job_type == CONSTRUCTION_JOB:
+				_task.pending_build.erase(_task.target_cell)
 				_start_next_build()
 			else:
 				_cancel_job()
@@ -718,7 +708,7 @@ func _recalculate_current_path() -> void:
 func _finish_vacating_blueprint() -> void:
 	state = _state_after_vacating
 	_state_after_vacating = State.IDLE
-	_target_cell = JobBoard.INVALID_CELL
+	_task.target_cell = JobBoard.INVALID_CELL
 	_path.clear()
 	_path_index = 0
 	_action_progress = 0.0
@@ -785,18 +775,18 @@ func _find_nearest_reachable(
 
 func _has_valid_batch_jobs() -> bool:
 	_prune_cancelled_batch_cells()
-	return not _batch_cells.is_empty()
+	return not _task.batch_cells.is_empty()
 
 
 func _prune_cancelled_batch_cells() -> void:
 	var valid_cells: Array[Vector2i] = []
-	for cell in _batch_cells:
+	for cell in _task.batch_cells:
 		if _is_valid_construction_job(cell):
 			valid_cells.append(cell)
 		else:
-			_pending_delivery.erase(cell)
-			_pending_build.erase(cell)
-	_batch_cells = valid_cells
+			_task.pending_delivery.erase(cell)
+			_task.pending_build.erase(cell)
+	_task.batch_cells = valid_cells
 
 
 func _is_valid_construction_job(cell: Vector2i) -> bool:
@@ -807,16 +797,16 @@ func _is_valid_construction_job(cell: Vector2i) -> bool:
 
 
 func _is_current_work_target_valid() -> bool:
-	if _target_cell == JobBoard.INVALID_CELL:
+	if _task.target_cell == JobBoard.INVALID_CELL:
 		return false
-	if _job_type == CONSTRUCTION_JOB:
+	if _task.job_type == CONSTRUCTION_JOB:
 		return (
-			_is_valid_construction_job(_target_cell)
-			and _construction.has_staged_material(_target_cell)
+			_is_valid_construction_job(_task.target_cell)
+			and _construction.has_staged_material(_task.target_cell)
 		)
 	return (
-		not _construction.get_completed_object_at(_target_cell).is_empty()
-		and _job_board.has_deconstruction_job(_target_cell)
+		not _construction.get_completed_object_at(_task.target_cell).is_empty()
+		and _job_board.has_deconstruction_job(_task.target_cell)
 	)
 
 
@@ -827,27 +817,19 @@ func _release_construction_claims(cells: Array[Vector2i]) -> void:
 
 func _cancel_job() -> void:
 	_supplies.release_reservation(get_instance_id())
-	if _carried_quantity > 0:
+	if _task.carried_quantity > 0:
 		_start_return_material()
 		return
-	if _job_type == CONSTRUCTION_JOB:
-		_release_construction_claims(_batch_cells)
-	elif _target_cell != JobBoard.INVALID_CELL:
-		_job_board.release_deconstruction(_target_cell, get_instance_id())
+	if _task.job_type == CONSTRUCTION_JOB:
+		_release_construction_claims(_task.batch_cells)
+	elif _task.target_cell != JobBoard.INVALID_CELL:
+		_job_board.release_deconstruction(_task.target_cell, get_instance_id())
 	_finish_job()
 
 
 func _finish_job() -> void:
 	state = State.IDLE
-	_job_type = &""
-	_target_cell = JobBoard.INVALID_CELL
-	_supply_cell = JobBoard.INVALID_CELL
-	_supply_source_type = SupplyDepot.SOURCE_BOX
-	_batch_item = &""
-	_batch_cells.clear()
-	_pending_delivery.clear()
-	_pending_build.clear()
-	_carried_quantity = 0
+	_task.reset()
 	_path.clear()
 	_path_index = 0
 	_action_progress = 0.0
@@ -876,9 +858,9 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, 15.0, Color("f0d36b"), false, 3.0)
 	draw_rect(Rect2(-5, -2, 10, 4), Color("d9c28a"), true)
 
-	if _carried_quantity > 0:
-		var item_color := SupplyDepot.get_item_color(_batch_item)
-		var width := 8.0 + minf(float(_carried_quantity), 6.0) * 2.0
+	if _task.carried_quantity > 0:
+		var item_color := SupplyDepot.get_item_color(_task.item_id)
+		var width := 8.0 + minf(float(_task.carried_quantity), 6.0) * 2.0
 		draw_rect(Rect2(-width / 2.0, -20, width, 9), item_color, true)
 		draw_rect(
 			Rect2(-width / 2.0, -20, width, 9),
