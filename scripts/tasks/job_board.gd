@@ -115,3 +115,15 @@ func get_construction_job_count() -> int:
 
 func get_deconstruction_job_count() -> int:
 	return _deconstruction_jobs.size()
+
+
+func has_valid_state() -> bool:
+	for cell: Vector2i in _construction_jobs:
+		if int(_construction_jobs[cell]) < 0:
+			return false
+		if _deconstruction_jobs.has(cell):
+			return false
+	for agent_id: int in _deconstruction_jobs.values():
+		if agent_id < 0:
+			return false
+	return true

@@ -18,6 +18,7 @@ func _init() -> void:
 	assert(task.batch_cells.size() == 2)
 	assert(task.pending_delivery.size() == 2)
 	assert(task.pending_build.is_empty())
+	assert(task.is_valid())
 
 	task.carried_quantity = 2
 	task.reset()
@@ -25,6 +26,7 @@ func _init() -> void:
 	assert(task.target_cell == JobBoard.INVALID_CELL)
 	assert(task.batch_cells.is_empty())
 	assert(task.carried_quantity == 0)
+	assert(task.is_valid())
 
 	print("WorkerTaskState tests passed")
 	quit()

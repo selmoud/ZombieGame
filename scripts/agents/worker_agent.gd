@@ -93,6 +93,10 @@ func get_carry_capacity(_item_id: StringName) -> int:
 	return CARRY_CAPACITY
 
 
+func has_valid_task_state() -> bool:
+	return _task.is_valid()
+
+
 func set_inspected(value: bool) -> void:
 	_is_inspected = value
 	queue_redraw()

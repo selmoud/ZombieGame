@@ -48,6 +48,25 @@ func begin_single_job(p_job_type: StringName, cell: Vector2i) -> void:
 	target_cell = cell
 
 
+func is_valid() -> bool:
+	if carried_quantity < 0:
+		return false
+	if carried_quantity > 0 and item_id.is_empty():
+		return false
+	var batch_set: Dictionary[Vector2i, bool] = {}
+	for cell in batch_cells:
+		if batch_set.has(cell):
+			return false
+		batch_set[cell] = true
+	for cell in pending_delivery:
+		if not batch_set.has(cell):
+			return false
+	for cell in pending_build:
+		if not batch_set.has(cell):
+			return false
+	return true
+
+
 func reset() -> void:
 	job_type = &""
 	target_cell = JobBoard.INVALID_CELL

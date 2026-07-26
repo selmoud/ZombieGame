@@ -200,6 +200,45 @@ func get_total_quantity(item_id: StringName) -> int:
 	return total
 
 
+func get_reservation_count() -> int:
+	return _reservations.size()
+
+
+func has_valid_state() -> bool:
+	var reserved_by_source: Dictionary[String, int] = {}
+	for reservation: Dictionary in _reservations.values():
+		var quantity: int = reservation["quantity"]
+		if quantity <= 0:
+			return false
+		var cell: Vector2i = reservation["cell"]
+		var source_type: StringName = reservation["source_type"]
+		var item_id: StringName = reservation["item_id"]
+		var key := "%s:%d:%d:%s" % [
+			source_type,
+			cell.x,
+			cell.y,
+			item_id,
+		]
+		reserved_by_source[key] = (
+			int(reserved_by_source.get(key, 0)) + quantity
+		)
+		var available_quantity := 0
+		if source_type == SOURCE_BOX:
+			if (
+				not _boxes.has(cell)
+				or _boxes[cell]["item_id"] != item_id
+			):
+				return false
+			available_quantity = get_quantity_in_box(cell)
+		elif source_type == SOURCE_LOOSE:
+			available_quantity = get_loose_quantity(cell, item_id)
+		else:
+			return false
+		if int(reserved_by_source[key]) > available_quantity:
+			return false
+	return true
+
+
 func get_summary_text() -> String:
 	return "Стены: %d  •  Двери: %d  •  Обломки: %d  •  На земле: %d" % [
 		get_total_quantity(&"wall_section"),

@@ -230,6 +230,41 @@ func get_deconstruction_cells() -> Array[Vector2i]:
 	return result
 
 
+func has_valid_state() -> bool:
+	for anchor: Vector2i in _blueprints:
+		var instance: BuildableInstance = _blueprints[anchor]
+		if instance.anchor != anchor:
+			return false
+		for cell in instance.occupied_cells:
+			if _blueprint_anchor_by_cell.get(cell, INVALID_CELL) != anchor:
+				return false
+	for cell: Vector2i in _blueprint_anchor_by_cell:
+		var anchor: Vector2i = _blueprint_anchor_by_cell[cell]
+		if not _blueprints.has(anchor) or not _blueprints[anchor].occupies(cell):
+			return false
+	for anchor: Vector2i in _completed_objects:
+		var instance: BuildableInstance = _completed_objects[anchor]
+		if instance.anchor != anchor:
+			return false
+		for cell in instance.occupied_cells:
+			if _completed_anchor_by_cell.get(cell, INVALID_CELL) != anchor:
+				return false
+	for cell: Vector2i in _completed_anchor_by_cell:
+		var anchor: Vector2i = _completed_anchor_by_cell[cell]
+		if (
+			not _completed_objects.has(anchor)
+			or not _completed_objects[anchor].occupies(cell)
+		):
+			return false
+	for anchor: Vector2i in _staged_materials:
+		if not _blueprints.has(anchor):
+			return false
+	for anchor: Vector2i in _deconstruction_orders:
+		if not _completed_objects.has(anchor):
+			return false
+	return true
+
+
 func complete_blueprint(cell: Vector2i) -> bool:
 	var anchor := get_blueprint_anchor_at(cell)
 	if anchor == INVALID_CELL or not _staged_materials.has(anchor):

@@ -181,6 +181,24 @@ func _run() -> void:
 	assert(
 		supplies.get_loose_quantity(cancelled_cell, &"wall_section") == 1
 	)
+	await create_timer(0.2).timeout
+	var job_board: JobBoard = main.get_node("JobBoard")
+	assert(construction.has_valid_state())
+	assert(job_board.has_valid_state())
+	assert(supplies.has_valid_state())
+	assert(
+		job_board.get_construction_job_count()
+		== construction.get_blueprint_cells().size()
+	)
+	assert(
+		job_board.get_deconstruction_job_count()
+		== construction.get_deconstruction_cells().size()
+	)
+	assert(supplies.get_reservation_count() == 0)
+	for current_worker in workers:
+		assert(current_worker.has_valid_task_state())
+		var worker_cell := navigation.world_to_cell(current_worker.position)
+		assert(navigation.is_cell_walkable(worker_cell))
 
 	print("Main scene tests passed")
 	main.free()
