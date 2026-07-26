@@ -10,12 +10,14 @@ enum State {
 	RETURNING_MATERIAL,
 	MOVING_TO_JOB,
 	WORKING,
+	WAITING_FOR_BUILD_CELL,
 }
 
 const CONSTRUCTION_JOB := &"construction"
 const DECONSTRUCTION_JOB := &"deconstruction"
 const BATCH_RADIUS := 3
 const CARRY_CAPACITY := 4
+const BUILD_RETRY_INTERVAL := 1.0
 
 @export var movement_speed := 120.0
 @export var pickup_duration := 0.5
@@ -80,6 +82,8 @@ func _process(delta: float) -> void:
 			_update_delivery(simulation_delta)
 		State.WORKING:
 			_update_work(simulation_delta)
+		State.WAITING_FOR_BUILD_CELL:
+			_update_build_retry(simulation_delta)
 
 
 func get_carry_capacity(_item_id: StringName) -> int:
@@ -431,8 +435,8 @@ func _start_next_build() -> void:
 		return
 
 	var current_cell := _navigation.world_to_cell(position)
-	var next_cell := _find_nearest_reachable(_pending_build, current_cell)
-	if next_cell == JobBoard.INVALID_CELL:
+	var reachable_cell := _find_nearest_reachable(_pending_build, current_cell)
+	if reachable_cell == JobBoard.INVALID_CELL:
 		_release_construction_claims(_pending_build)
 		for cell in _pending_build:
 			_batch_cells.erase(cell)
@@ -441,6 +445,14 @@ func _start_next_build() -> void:
 			_start_return_material()
 		else:
 			_finish_job()
+		return
+
+	var next_cell := _find_nearest_buildable(_pending_build, current_cell)
+	if next_cell == JobBoard.INVALID_CELL:
+		if _carried_quantity > 0:
+			_start_return_material()
+		else:
+			_begin_build_retry()
 		return
 
 	var build_path := _navigation.find_path_to_adjacent(current_cell, next_cell)
@@ -475,9 +487,8 @@ func _update_work(delta: float) -> void:
 		return
 
 	if _job_type == CONSTRUCTION_JOB:
-		if _has_other_worker_on_cell(_target_cell):
-			_action_progress = construction_duration
-			queue_redraw()
+		if _is_cell_used_by_other_worker(_target_cell):
+			_begin_build_retry()
 			return
 		if _construction.complete_blueprint(_target_cell):
 			_job_board.complete_construction(_target_cell, get_instance_id())
@@ -487,6 +498,22 @@ func _update_work(delta: float) -> void:
 	elif _construction.complete_deconstruction(_target_cell):
 		_job_board.complete_deconstruction(_target_cell, get_instance_id())
 		_finish_job()
+
+
+func _begin_build_retry() -> void:
+	state = State.WAITING_FOR_BUILD_CELL
+	_target_cell = JobBoard.INVALID_CELL
+	_path.clear()
+	_path_index = 0
+	_action_progress = 0.0
+	queue_redraw()
+
+
+func _update_build_retry(delta: float) -> void:
+	_action_progress += delta
+	if _action_progress < BUILD_RETRY_INTERVAL:
+		return
+	_start_next_build()
 
 
 func _recalculate_current_path() -> void:
@@ -518,14 +545,43 @@ func _recalculate_current_path() -> void:
 				_cancel_job()
 
 
-func _has_other_worker_on_cell(cell: Vector2i) -> bool:
+func _is_cell_used_by_other_worker(cell: Vector2i) -> bool:
 	for node in get_tree().get_nodes_in_group(&"workers"):
 		if node == self or node is not WorkerAgent:
 			continue
 		var other_worker := node as WorkerAgent
-		if _navigation.world_to_cell(other_worker.position) == cell:
+		if other_worker.is_using_cell(cell):
 			return true
 	return false
+
+
+func is_using_cell(cell: Vector2i) -> bool:
+	if _navigation == null:
+		return false
+	if _navigation.world_to_cell(position) == cell:
+		return true
+	if state not in [
+		State.MOVING_TO_SUPPLY,
+		State.DELIVERING_MATERIAL,
+		State.RETURNING_MATERIAL,
+		State.MOVING_TO_JOB,
+	]:
+		return false
+	for index in range(_path_index, _path.size()):
+		if _path[index] == cell:
+			return true
+	return false
+
+
+func _find_nearest_buildable(
+	cells: Array[Vector2i],
+	origin: Vector2i
+) -> Vector2i:
+	var available_cells: Array[Vector2i] = []
+	for cell in cells:
+		if not _is_cell_used_by_other_worker(cell):
+			available_cells.append(cell)
+	return _find_nearest_reachable(available_cells, origin)
 
 
 func _find_nearest_reachable(

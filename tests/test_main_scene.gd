@@ -100,12 +100,24 @@ func _run() -> void:
 	var occupied_cell := Vector2i(32, 38)
 	var blocking_worker: WorkerAgent = workers.back()
 	blocking_worker.set_process(false)
-	blocking_worker.position = navigation.cell_to_world(occupied_cell)
+	blocking_worker.position = navigation.cell_to_world(Vector2i(30, 38))
+	blocking_worker.state = WorkerAgent.State.MOVING_TO_JOB
+	blocking_worker._path = [
+		Vector2i(30, 38),
+		Vector2i(31, 38),
+		occupied_cell,
+		Vector2i(33, 38),
+	]
+	blocking_worker._path_index = 1
+	var alternate_cell := Vector2i(32, 39)
 	construction.place_blueprint(occupied_cell, &"wall")
+	construction.place_blueprint(alternate_cell, &"wall")
 	await create_timer(0.5).timeout
 	assert(construction.get_completed_object_at(occupied_cell).is_empty())
 	assert(construction.get_blueprint_at(occupied_cell) == &"wall")
-	blocking_worker.position = navigation.cell_to_world(Vector2i(30, 38))
+	assert(construction.get_completed_object_at(alternate_cell) == &"wall")
+	blocking_worker._path.clear()
+	blocking_worker.state = WorkerAgent.State.IDLE
 	await create_timer(0.5).timeout
 	assert(construction.get_completed_object_at(occupied_cell) == &"wall")
 	blocking_worker.set_process(true)
