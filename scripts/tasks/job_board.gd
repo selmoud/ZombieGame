@@ -37,22 +37,6 @@ func sync_deconstruction_jobs(cells: Array[Vector2i]) -> void:
 		_deconstruction_jobs.erase(cell)
 
 
-func claim_nearest_construction(agent_id: int, origin: Vector2i) -> Vector2i:
-	var best_cell := INVALID_CELL
-	var best_distance := INF
-	for cell: Vector2i in _construction_jobs:
-		if _construction_jobs[cell] != 0:
-			continue
-		var distance := origin.distance_squared_to(cell)
-		if distance < best_distance:
-			best_distance = distance
-			best_cell = cell
-
-	if best_cell != INVALID_CELL:
-		_construction_jobs[best_cell] = agent_id
-	return best_cell
-
-
 func get_available_construction_jobs(origin: Vector2i) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	for cell: Vector2i in _construction_jobs:

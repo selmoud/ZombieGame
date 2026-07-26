@@ -10,14 +10,17 @@ func _init() -> void:
 	])
 
 	assert(jobs.get_construction_job_count() == 3)
-	var claimed := jobs.claim_nearest_construction(10, Vector2i(3, 3))
+	var claimed := jobs.get_available_construction_jobs(Vector2i(3, 3))[0]
+	assert(jobs.claim_construction(claimed, 10))
 	assert(claimed == Vector2i(4, 3))
 
-	var second_claim := jobs.claim_nearest_construction(11, Vector2i(3, 3))
+	var second_claim := jobs.get_available_construction_jobs(Vector2i(3, 3))[0]
+	assert(jobs.claim_construction(second_claim, 11))
 	assert(second_claim == Vector2i(2, 2))
 
 	jobs.release_construction(claimed, 10)
-	assert(jobs.claim_nearest_construction(12, Vector2i(4, 4)) == claimed)
+	assert(jobs.get_available_construction_jobs(Vector2i(4, 4))[0] == claimed)
+	assert(jobs.claim_construction(claimed, 12))
 
 	jobs.sync_construction_jobs([Vector2i(8, 8)])
 	assert(jobs.get_construction_job_count() == 1)

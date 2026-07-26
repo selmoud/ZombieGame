@@ -1,8 +1,8 @@
 class_name NavigationGrid
 extends Node
 
-const TILE_SIZE := 32
-const MAP_SIZE := Vector2i(64, 64)
+const TILE_SIZE := WorldConfig.TILE_SIZE
+const MAP_SIZE := WorldConfig.MAP_SIZE
 const NEIGHBORS: Array[Vector2i] = [
 	Vector2i.LEFT,
 	Vector2i.RIGHT,

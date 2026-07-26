@@ -4,8 +4,8 @@ extends Node2D
 signal active_tool_changed(tool_id: StringName)
 signal zones_changed
 
-const TILE_SIZE := 32
-const MAP_SIZE := Vector2i(64, 64)
+const TILE_SIZE := WorldConfig.TILE_SIZE
+const MAP_SIZE := WorldConfig.MAP_SIZE
 const ERASE_TOOL := &"erase"
 const CARDINAL_DIRECTIONS: Array[Vector2i] = [
 	Vector2i.LEFT,
@@ -23,6 +23,9 @@ var _drag_current := Vector2i.ZERO
 var _drag_tool: StringName = &""
 var _hover_cell := Vector2i.ZERO
 var _hover_visible := false
+var _areas_cache: Array[Dictionary] = []
+var _area_index_by_cell: Dictionary[Vector2i, int] = {}
+var _areas_dirty := true
 
 
 func _process(_delta: float) -> void:
@@ -59,6 +62,7 @@ func clear_active_tool() -> void:
 
 func set_boundary_provider(provider: Callable) -> void:
 	_boundary_provider = provider
+	_invalidate_areas()
 	queue_redraw()
 
 
@@ -66,6 +70,7 @@ func refresh_boundaries(
 	_cell: Vector2i = Vector2i.ZERO,
 	_object_id: StringName = &""
 ) -> void:
+	_invalidate_areas()
 	queue_redraw()
 
 
@@ -75,6 +80,7 @@ func paint_rect(from: Vector2i, to: Vector2i, zone_id: StringName) -> void:
 	for cell in _get_cells_in_rect(from, to):
 		if _is_cell_inside_map(cell):
 			_cells[cell] = zone_id
+	_invalidate_areas()
 	zones_changed.emit()
 	queue_redraw()
 
@@ -82,6 +88,7 @@ func paint_rect(from: Vector2i, to: Vector2i, zone_id: StringName) -> void:
 func erase_rect(from: Vector2i, to: Vector2i) -> void:
 	for cell in _get_cells_in_rect(from, to):
 		_cells.erase(cell)
+	_invalidate_areas()
 	zones_changed.emit()
 	queue_redraw()
 
@@ -111,23 +118,13 @@ func get_area_count(zone_id: StringName) -> int:
 
 
 func is_room_valid_at(cell: Vector2i) -> bool:
-	if not _cells.has(cell):
-		return false
-	for area in _get_areas():
-		var area_cells: Array[Vector2i] = area["cells"]
-		if cell in area_cells:
-			return _get_room_status(area_cells)["is_valid"]
-	return false
+	var area := _get_area_at(cell)
+	return not area.is_empty() and area["status"]["is_valid"]
 
 
 func get_room_status_at(cell: Vector2i) -> Dictionary:
-	if not _cells.has(cell):
-		return {}
-	for area in _get_areas():
-		var area_cells: Array[Vector2i] = area["cells"]
-		if cell in area_cells:
-			return _get_room_status(area_cells)
-	return {}
+	var area := _get_area_at(cell)
+	return {} if area.is_empty() else area["status"]
 
 
 func get_room_info_at_world(world_position: Vector2) -> Dictionary:
@@ -135,31 +132,26 @@ func get_room_info_at_world(world_position: Vector2) -> Dictionary:
 
 
 func get_room_info_at(cell: Vector2i) -> Dictionary:
-	if not _cells.has(cell):
+	var area := _get_area_at(cell)
+	if area.is_empty():
 		return {}
-	for area in _get_areas():
-		var area_cells: Array[Vector2i] = area["cells"]
-		if cell not in area_cells:
-			continue
-		var status := _get_room_status(area_cells)
-		var missing: Array[String] = []
-		if not status["is_connected"]:
-			missing.append("Зона разделена")
-		if not status["is_enclosed"]:
-			missing.append(
-				"Не замкнут периметр (%d открытых сторон)"
-				% status["open_edges"]
-			)
-		if not status["has_door"]:
-			missing.append("Нет двери")
-		return {
-			"zone_id": area["zone_id"],
-			"label": ZoneCatalog.get_label(area["zone_id"]),
-			"cell_count": area_cells.size(),
-			"status": status,
-			"missing": missing,
-		}
-	return {}
+	var area_cells: Array[Vector2i] = area["cells"]
+	var status: Dictionary = area["status"]
+	var missing: Array[String] = []
+	if not status["is_enclosed"]:
+		missing.append(
+			"Не замкнут периметр (%d открытых сторон)"
+			% status["open_edges"]
+		)
+	if not status["has_door"]:
+		missing.append("Нет двери")
+	return {
+		"zone_id": area["zone_id"],
+		"label": ZoneCatalog.get_label(area["zone_id"]),
+		"cell_count": area_cells.size(),
+		"status": status,
+		"missing": missing,
+	}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -215,7 +207,8 @@ func _draw() -> void:
 	for area in _get_areas():
 		_draw_zone_area(
 			area["cells"],
-			ZoneCatalog.get_color(area["zone_id"])
+			ZoneCatalog.get_color(area["zone_id"]),
+			area["status"]
 		)
 
 	if not _dragging:
@@ -245,8 +238,11 @@ func _draw_zone_hover(cell: Vector2i, color: Color) -> void:
 	draw_rect(rect.grow(-1.0), outline, false, 3.0)
 
 
-func _draw_zone_area(cells: Array[Vector2i], color: Color) -> void:
-	var status := _get_room_status(cells)
+func _draw_zone_area(
+	cells: Array[Vector2i],
+	color: Color,
+	status: Dictionary
+) -> void:
 	var fill := color
 	fill.a = 0.24
 	if not status["is_valid"]:
@@ -352,7 +348,22 @@ func _draw_zone_preview(color: Color) -> void:
 
 
 func _get_areas() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
+	if _areas_dirty:
+		_rebuild_areas_cache()
+	return _areas_cache
+
+
+func _get_area_at(cell: Vector2i) -> Dictionary:
+	if _areas_dirty:
+		_rebuild_areas_cache()
+	if not _area_index_by_cell.has(cell):
+		return {}
+	return _areas_cache[_area_index_by_cell[cell]]
+
+
+func _rebuild_areas_cache() -> void:
+	_areas_cache.clear()
+	_area_index_by_cell.clear()
 	var visited: Dictionary[Vector2i, bool] = {}
 	for start: Vector2i in _cells:
 		if visited.has(start):
@@ -373,11 +384,20 @@ func _get_areas() -> Array[Dictionary]:
 					continue
 				visited[neighbor] = true
 				frontier.append(neighbor)
-		result.append({
+		var area_index := _areas_cache.size()
+		var area := {
 			"zone_id": zone_id,
 			"cells": area_cells,
-		})
-	return result
+			"status": _get_room_status(area_cells),
+		}
+		_areas_cache.append(area)
+		for cell in area_cells:
+			_area_index_by_cell[cell] = area_index
+	_areas_dirty = false
+
+
+func _invalidate_areas() -> void:
+	_areas_dirty = true
 
 
 func _get_room_status(cells: Array[Vector2i]) -> Dictionary:
@@ -403,7 +423,6 @@ func _get_room_status(cells: Array[Vector2i]) -> Dictionary:
 				open_edges += 1
 
 	return {
-		"is_connected": true,
 		"is_enclosed": is_enclosed,
 		"has_door": has_door,
 		"open_edges": open_edges,

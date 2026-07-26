@@ -3,21 +3,9 @@ extends Node2D
 
 signal inventory_changed
 
-const TILE_SIZE := 32
+const TILE_SIZE := WorldConfig.TILE_SIZE
 const SOURCE_BOX := &"box"
 const SOURCE_LOOSE := &"loose"
-
-const ITEM_LABELS := {
-	"wall_section": "Секции стен",
-	"door_module": "Двери",
-	"debris": "Обломки",
-}
-
-const ITEM_COLORS := {
-	"wall_section": Color("c5c1b3"),
-	"door_module": Color("b88752"),
-	"debris": Color("8f7558"),
-}
 
 var _boxes: Dictionary[Vector2i, Dictionary] = {}
 var _reservations: Dictionary[int, Dictionary] = {}
@@ -72,29 +60,6 @@ func get_available_sources(item_id: StringName) -> Array[Dictionary]:
 	return result
 
 
-func reserve_from_box(
-	cell: Vector2i,
-	item_id: StringName,
-	agent_id: int
-) -> bool:
-	return reserve_quantity_from_box(cell, item_id, 1, agent_id)
-
-
-func reserve_quantity_from_box(
-	cell: Vector2i,
-	item_id: StringName,
-	quantity: int,
-	agent_id: int
-) -> bool:
-	return reserve_quantity_from_source(
-		cell,
-		SOURCE_BOX,
-		item_id,
-		quantity,
-		agent_id
-	)
-
-
 func reserve_quantity_from_source(
 	cell: Vector2i,
 	source_type: StringName,
@@ -128,13 +93,6 @@ func reserve_quantity_from_source(
 
 func has_reservation(agent_id: int) -> bool:
 	return _reservations.has(agent_id)
-
-
-func take_reserved_item(agent_id: int) -> StringName:
-	var taken := take_reserved_quantity(agent_id)
-	if taken.is_empty() or int(taken["quantity"]) <= 0:
-		return &""
-	return taken["item_id"]
 
 
 func take_reserved_quantity(agent_id: int) -> Dictionary:
@@ -173,10 +131,6 @@ func take_reserved_quantity(agent_id: int) -> Dictionary:
 
 func release_reservation(agent_id: int) -> void:
 	_reservations.erase(agent_id)
-
-
-func return_item_to_box(cell: Vector2i, item_id: StringName) -> void:
-	return_items_to_box(cell, item_id, 1)
 
 
 func return_items_to_box(
@@ -238,10 +192,6 @@ func get_quantity_in_box(cell: Vector2i) -> int:
 	return int(_boxes[cell]["quantity"])
 
 
-func get_available_quantity_in_box(cell: Vector2i) -> int:
-	return _get_available_in_box(cell)
-
-
 func get_total_quantity(item_id: StringName) -> int:
 	var total := 0
 	for box: Dictionary in _boxes.values():
@@ -260,7 +210,7 @@ func get_summary_text() -> String:
 
 
 static func get_item_color(item_id: StringName) -> Color:
-	return ITEM_COLORS.get(String(item_id), Color.WHITE)
+	return ItemCatalog.get_color(item_id)
 
 
 func _get_available_in_box(cell: Vector2i) -> int:

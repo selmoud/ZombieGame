@@ -1,9 +1,9 @@
 class_name WorldGrid
 extends Node2D
 
-const TILE_SIZE := 32
-const MAP_SIZE := Vector2i(64, 64)
-const WORLD_SIZE := Vector2(MAP_SIZE * TILE_SIZE)
+const TILE_SIZE := WorldConfig.TILE_SIZE
+const MAP_SIZE := WorldConfig.MAP_SIZE
+const WORLD_SIZE := WorldConfig.WORLD_SIZE
 
 const GROUND_COLOR := Color("485b3b")
 const GRID_COLOR := Color(0.13, 0.17, 0.12, 0.28)

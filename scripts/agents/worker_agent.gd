@@ -114,7 +114,7 @@ func get_inspector_text() -> String:
 	var cargo_text := "—"
 	if _carried_quantity > 0:
 		cargo_text = "%s ×%d" % [
-			SupplyDepot.ITEM_LABELS.get(String(_batch_item), String(_batch_item)),
+			ItemCatalog.get_label(_batch_item),
 			_carried_quantity,
 		]
 

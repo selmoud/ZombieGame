@@ -8,8 +8,8 @@ signal construction_completed(cell: Vector2i, object_id: StringName)
 signal construction_removed(cell: Vector2i, object_id: StringName)
 signal material_released(cell: Vector2i, item_id: StringName, quantity: int)
 
-const TILE_SIZE := 32
-const MAP_SIZE := Vector2i(64, 64)
+const TILE_SIZE := WorldConfig.TILE_SIZE
+const MAP_SIZE := WorldConfig.MAP_SIZE
 const ERASE_TOOL := &"erase_construction"
 const DECONSTRUCT_TOOL := &"deconstruct"
 

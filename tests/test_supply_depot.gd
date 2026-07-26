@@ -8,24 +8,35 @@ func _init() -> void:
 
 	assert(supplies.has_box_at(box_cell))
 	assert(supplies.get_total_quantity(&"wall_section") == 2)
-	assert(supplies.reserve_from_box(box_cell, &"wall_section", 10))
-	assert(supplies.reserve_from_box(box_cell, &"wall_section", 11))
-	assert(not supplies.reserve_from_box(box_cell, &"wall_section", 12))
+	assert(supplies.reserve_quantity_from_source(
+		box_cell, SupplyDepot.SOURCE_BOX, &"wall_section", 1, 10
+	))
+	assert(supplies.reserve_quantity_from_source(
+		box_cell, SupplyDepot.SOURCE_BOX, &"wall_section", 1, 11
+	))
+	assert(not supplies.reserve_quantity_from_source(
+		box_cell, SupplyDepot.SOURCE_BOX, &"wall_section", 1, 12
+	))
 
-	assert(supplies.take_reserved_item(10) == &"wall_section")
+	assert(supplies.take_reserved_quantity(10)["item_id"] == &"wall_section")
 	assert(supplies.get_total_quantity(&"wall_section") == 1)
 	supplies.release_reservation(11)
-	assert(supplies.reserve_from_box(box_cell, &"wall_section", 12))
-	assert(supplies.take_reserved_item(12) == &"wall_section")
+	assert(supplies.reserve_quantity_from_source(
+		box_cell, SupplyDepot.SOURCE_BOX, &"wall_section", 1, 12
+	))
+	assert(supplies.take_reserved_quantity(12)["item_id"] == &"wall_section")
 	assert(supplies.get_total_quantity(&"wall_section") == 0)
 
-	supplies.return_item_to_box(box_cell, &"wall_section")
+	supplies.return_items_to_source(
+		box_cell, SupplyDepot.SOURCE_BOX, &"wall_section", 1
+	)
 	assert(supplies.get_total_quantity(&"wall_section") == 1)
 
 	supplies.add_box(Vector2i(5, 5), &"wall_section", 8)
 	assert(
-		supplies.reserve_quantity_from_box(
+		supplies.reserve_quantity_from_source(
 			Vector2i(5, 5),
+			SupplyDepot.SOURCE_BOX,
 			&"wall_section",
 			6,
 			20

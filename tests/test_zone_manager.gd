@@ -36,17 +36,18 @@ func _init() -> void:
 	assert(room_zones.get_area_count(&"residential") == 1)
 	assert(room_zones.is_room_valid_at(Vector2i(5, 5)))
 	var room_status := room_zones.get_room_status_at(Vector2i(5, 5))
-	assert(room_status["is_connected"])
 	assert(room_status["is_enclosed"])
 	assert(room_status["has_door"])
 
 	boundaries.erase(Vector2i(6, 6))
+	room_zones.refresh_boundaries()
 	assert(not room_zones.is_room_valid_at(Vector2i(5, 5)))
 	var invalid_info := room_zones.get_room_info_at(Vector2i(5, 5))
 	assert(invalid_info["status"]["open_edges"] == 1)
 	assert(invalid_info["missing"].size() == 1)
 	assert(String(invalid_info["missing"][0]).contains("1 открытых сторон"))
 	boundaries[Vector2i(6, 6)] = &"wall"
+	room_zones.refresh_boundaries()
 
 	room_zones.paint_rect(Vector2i(7, 6), Vector2i(7, 6), &"residential")
 	assert(room_zones.get_area_count(&"residential") == 2)

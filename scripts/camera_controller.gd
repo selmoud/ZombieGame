@@ -1,7 +1,7 @@
 class_name CameraController
 extends Camera2D
 
-const WORLD_SIZE := Vector2(64 * 32, 64 * 32)
+const WORLD_SIZE := WorldConfig.WORLD_SIZE
 const MIN_ZOOM := 0.75
 const MAX_ZOOM := 2.0
 const ZOOM_STEP := 0.125
