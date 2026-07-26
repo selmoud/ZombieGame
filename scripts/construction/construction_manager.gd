@@ -1,50 +1,27 @@
 class_name ConstructionManager
-extends Node2D
+extends GridPlanningLayer
 
-signal active_tool_changed(tool_id: StringName)
 signal blueprints_changed
 signal deconstruction_orders_changed
 signal construction_completed(cell: Vector2i, object_id: StringName)
 signal construction_removed(cell: Vector2i, object_id: StringName)
 signal material_released(cell: Vector2i, item_id: StringName, quantity: int)
 
-const TILE_SIZE := WorldConfig.TILE_SIZE
-const MAP_SIZE := WorldConfig.MAP_SIZE
 const ERASE_TOOL := &"erase_construction"
 const DECONSTRUCT_TOOL := &"deconstruct"
 
-var active_tool: StringName = &""
 var _blueprints: Dictionary[Vector2i, StringName] = {}
 var _completed_objects: Dictionary[Vector2i, StringName] = {}
 var _deconstruction_orders: Dictionary[Vector2i, bool] = {}
 var _staged_materials: Dictionary[Vector2i, StringName] = {}
-var _dragging := false
-var _drag_start := Vector2i.ZERO
-var _drag_current := Vector2i.ZERO
-var _drag_tool: StringName = &""
-var _hover_cell := Vector2i.ZERO
-var _hover_visible := false
 var _placement_validator := Callable()
 
 
-func _process(_delta: float) -> void:
-	var next_hover_visible := (
-		not active_tool.is_empty()
-		and get_viewport().gui_get_hovered_control() == null
-	)
-	var next_hover_cell := _world_to_cell(get_global_mouse_position())
-	if (
-		next_hover_visible != _hover_visible
-		or next_hover_cell != _hover_cell
-	):
-		_hover_visible = next_hover_visible
-		_hover_cell = next_hover_cell
-		queue_redraw()
-	elif (
+func _needs_continuous_redraw() -> bool:
+	return (
 		(not _blueprints.is_empty() or not _deconstruction_orders.is_empty())
 		and _placement_validator.is_valid()
-	):
-		queue_redraw()
+	)
 
 
 func set_active_tool(tool_id: StringName) -> void:
@@ -54,17 +31,7 @@ func set_active_tool(tool_id: StringName) -> void:
 		and not ConstructionCatalog.has_tool(tool_id)
 	):
 		return
-	active_tool = tool_id
-	_cancel_drag()
-	active_tool_changed.emit(active_tool)
-	queue_redraw()
-
-
-func clear_active_tool() -> void:
-	active_tool = &""
-	_cancel_drag()
-	active_tool_changed.emit(active_tool)
-	queue_redraw()
+	_activate_tool(tool_id)
 
 
 func set_placement_validator(validator: Callable) -> void:
@@ -228,53 +195,7 @@ func complete_deconstruction(cell: Vector2i) -> bool:
 	return true
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		if active_tool.is_empty():
-			return
-		clear_active_tool()
-		get_viewport().set_input_as_handled()
-		return
-
-	if (
-		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_RIGHT
-		and event.pressed
-	):
-		if active_tool.is_empty():
-			return
-		clear_active_tool()
-		get_viewport().set_input_as_handled()
-		return
-
-	if active_tool.is_empty():
-		return
-
-	if event is InputEventMouseButton:
-		var is_place_button: bool = event.button_index == MOUSE_BUTTON_LEFT
-		if not is_place_button:
-			return
-
-		if event.pressed:
-			_dragging = true
-			_drag_start = _world_to_cell(get_global_mouse_position())
-			_drag_current = _drag_start
-			_drag_tool = active_tool
-		else:
-			if not _dragging:
-				return
-			_drag_current = _world_to_cell(get_global_mouse_position())
-			_apply_drag()
-			_cancel_drag()
-		queue_redraw()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and _dragging:
-		_drag_current = _world_to_cell(get_global_mouse_position())
-		queue_redraw()
-		get_viewport().set_input_as_handled()
-
-
-func _apply_drag() -> void:
+func _apply_planning_drag() -> void:
 	if _drag_tool == ERASE_TOOL:
 		erase_line(_drag_start, _drag_current)
 	elif _drag_tool == DECONSTRUCT_TOOL:
@@ -451,19 +372,6 @@ func _get_orthogonal_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		for y in range(start_y, end_y + 1):
 			result.append(Vector2i(from.x, y))
 	return result
-
-
-func _world_to_cell(world_position: Vector2) -> Vector2i:
-	return Vector2i(floori(world_position.x / TILE_SIZE), floori(world_position.y / TILE_SIZE))
-
-
-func _is_cell_inside_map(cell: Vector2i) -> bool:
-	return cell.x >= 0 and cell.y >= 0 and cell.x < MAP_SIZE.x and cell.y < MAP_SIZE.y
-
-
-func _cancel_drag() -> void:
-	_dragging = false
-	_drag_tool = &""
 
 
 func _release_staged_material(cell: Vector2i) -> void:

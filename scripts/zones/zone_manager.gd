@@ -1,11 +1,8 @@
 class_name ZoneManager
-extends Node2D
+extends GridPlanningLayer
 
-signal active_tool_changed(tool_id: StringName)
 signal zones_changed
 
-const TILE_SIZE := WorldConfig.TILE_SIZE
-const MAP_SIZE := WorldConfig.MAP_SIZE
 const ERASE_TOOL := &"erase"
 const CARDINAL_DIRECTIONS: Array[Vector2i] = [
 	Vector2i.LEFT,
@@ -14,50 +11,17 @@ const CARDINAL_DIRECTIONS: Array[Vector2i] = [
 	Vector2i.DOWN,
 ]
 
-var active_tool: StringName = &""
 var _cells: Dictionary[Vector2i, StringName] = {}
 var _boundary_provider := Callable()
-var _dragging := false
-var _drag_start := Vector2i.ZERO
-var _drag_current := Vector2i.ZERO
-var _drag_tool: StringName = &""
-var _hover_cell := Vector2i.ZERO
-var _hover_visible := false
 var _areas_cache: Array[Dictionary] = []
 var _area_index_by_cell: Dictionary[Vector2i, int] = {}
 var _areas_dirty := true
 
 
-func _process(_delta: float) -> void:
-	var next_hover_visible := (
-		not active_tool.is_empty()
-		and get_viewport().gui_get_hovered_control() == null
-	)
-	var next_hover_cell := _world_to_cell(get_global_mouse_position())
-	if (
-		next_hover_visible != _hover_visible
-		or next_hover_cell != _hover_cell
-	):
-		_hover_visible = next_hover_visible
-		_hover_cell = next_hover_cell
-		queue_redraw()
-
-
 func set_active_tool(tool_id: StringName) -> void:
 	if tool_id != ERASE_TOOL and not ZoneCatalog.has_zone(tool_id):
 		return
-	active_tool = tool_id
-	_cancel_drag()
-	active_tool_changed.emit(active_tool)
-	queue_redraw()
-
-
-func clear_active_tool() -> void:
-	active_tool = &""
-	_cancel_drag()
-	_hover_visible = false
-	active_tool_changed.emit(active_tool)
-	queue_redraw()
+	_activate_tool(tool_id)
 
 
 func set_boundary_provider(provider: Callable) -> void:
@@ -95,10 +59,6 @@ func erase_rect(from: Vector2i, to: Vector2i) -> void:
 
 func get_zone_at(cell: Vector2i) -> StringName:
 	return _cells.get(cell, &"")
-
-
-func is_hover_preview_visible() -> bool:
-	return _hover_visible and _is_cell_inside_map(_hover_cell)
 
 
 func get_zone_count(zone_id: StringName) -> int:
@@ -154,53 +114,11 @@ func get_room_info_at(cell: Vector2i) -> Dictionary:
 	}
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		if active_tool.is_empty():
-			return
-		clear_active_tool()
-		get_viewport().set_input_as_handled()
-		return
-
-	if (
-		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_RIGHT
-		and event.pressed
-	):
-		if active_tool.is_empty():
-			return
-		clear_active_tool()
-		get_viewport().set_input_as_handled()
-		return
-
-	if active_tool.is_empty():
-		return
-
-	if event is InputEventMouseButton:
-		var is_paint_button: bool = event.button_index == MOUSE_BUTTON_LEFT
-		if not is_paint_button:
-			return
-
-		if event.pressed:
-			_dragging = true
-			_drag_start = _world_to_cell(get_global_mouse_position())
-			_drag_current = _drag_start
-			_drag_tool = active_tool
-		else:
-			if not _dragging:
-				return
-			_drag_current = _world_to_cell(get_global_mouse_position())
-			if _drag_tool == ERASE_TOOL:
-				erase_rect(_drag_start, _drag_current)
-			else:
-				paint_rect(_drag_start, _drag_current, _drag_tool)
-			_cancel_drag()
-		queue_redraw()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and _dragging:
-		_drag_current = _world_to_cell(get_global_mouse_position())
-		queue_redraw()
-		get_viewport().set_input_as_handled()
+func _apply_planning_drag() -> void:
+	if _drag_tool == ERASE_TOOL:
+		erase_rect(_drag_start, _drag_current)
+	else:
+		paint_rect(_drag_start, _drag_current, _drag_tool)
 
 
 func _draw() -> void:
@@ -436,10 +354,6 @@ func _get_boundary_at(cell: Vector2i) -> StringName:
 	return _boundary_provider.call(cell)
 
 
-func _world_to_cell(world_position: Vector2) -> Vector2i:
-	return Vector2i(floori(world_position.x / TILE_SIZE), floori(world_position.y / TILE_SIZE))
-
-
 func _get_cells_in_rect(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	var minimum := Vector2i(mini(from.x, to.x), mini(from.y, to.y))
@@ -448,12 +362,3 @@ func _get_cells_in_rect(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		for x in range(minimum.x, maximum.x + 1):
 			result.append(Vector2i(x, y))
 	return result
-
-
-func _is_cell_inside_map(cell: Vector2i) -> bool:
-	return cell.x >= 0 and cell.y >= 0 and cell.x < MAP_SIZE.x and cell.y < MAP_SIZE.y
-
-
-func _cancel_drag() -> void:
-	_dragging = false
-	_drag_tool = &""
