@@ -18,12 +18,14 @@ func _run() -> void:
 	menu.zone_tool_selected.emit(&"residential")
 	assert(zones.active_tool == &"residential")
 	assert(construction.active_tool.is_empty())
+	await process_frame
 	var right_click := InputEventMouseButton.new()
 	right_click.button_index = MOUSE_BUTTON_RIGHT
 	right_click.pressed = true
 	Input.parse_input_event(right_click)
 	await process_frame
 	assert(zones.active_tool.is_empty())
+	assert(not zones.is_hover_preview_visible())
 
 	menu.zone_tool_selected.emit(&"residential")
 	menu.construction_tool_selected.emit(&"wall")

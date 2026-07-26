@@ -21,6 +21,23 @@ var _dragging := false
 var _drag_start := Vector2i.ZERO
 var _drag_current := Vector2i.ZERO
 var _drag_tool: StringName = &""
+var _hover_cell := Vector2i.ZERO
+var _hover_visible := false
+
+
+func _process(_delta: float) -> void:
+	var next_hover_visible := (
+		not active_tool.is_empty()
+		and get_viewport().gui_get_hovered_control() == null
+	)
+	var next_hover_cell := _world_to_cell(get_global_mouse_position())
+	if (
+		next_hover_visible != _hover_visible
+		or next_hover_cell != _hover_cell
+	):
+		_hover_visible = next_hover_visible
+		_hover_cell = next_hover_cell
+		queue_redraw()
 
 
 func set_active_tool(tool_id: StringName) -> void:
@@ -35,6 +52,7 @@ func set_active_tool(tool_id: StringName) -> void:
 func clear_active_tool() -> void:
 	active_tool = &""
 	_cancel_drag()
+	_hover_visible = false
 	active_tool_changed.emit(active_tool)
 	queue_redraw()
 
@@ -70,6 +88,10 @@ func erase_rect(from: Vector2i, to: Vector2i) -> void:
 
 func get_zone_at(cell: Vector2i) -> StringName:
 	return _cells.get(cell, &"")
+
+
+func is_hover_preview_visible() -> bool:
+	return _hover_visible and _is_cell_inside_map(_hover_cell)
 
 
 func get_zone_count(zone_id: StringName) -> int:
@@ -197,10 +219,30 @@ func _draw() -> void:
 		)
 
 	if not _dragging:
+		if is_hover_preview_visible():
+			var hover_color := (
+				Color(0.75, 0.18, 0.18)
+				if active_tool == ERASE_TOOL
+				else ZoneCatalog.get_color(active_tool)
+			)
+			_draw_zone_hover(_hover_cell, hover_color)
 		return
 
 	var preview_color := Color(0.75, 0.18, 0.18) if _drag_tool == ERASE_TOOL else ZoneCatalog.get_color(_drag_tool)
 	_draw_zone_preview(preview_color)
+
+
+func _draw_zone_hover(cell: Vector2i, color: Color) -> void:
+	var rect := Rect2(
+		Vector2(cell * TILE_SIZE),
+		Vector2.ONE * TILE_SIZE
+	)
+	var fill := color
+	fill.a = 0.32
+	var outline := color.lightened(0.2)
+	outline.a = 0.95
+	draw_rect(rect.grow(-1.0), fill, true)
+	draw_rect(rect.grow(-1.0), outline, false, 3.0)
 
 
 func _draw_zone_area(cells: Array[Vector2i], color: Color) -> void:
