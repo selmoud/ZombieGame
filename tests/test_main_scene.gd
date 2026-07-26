@@ -122,6 +122,20 @@ func _run() -> void:
 	assert(construction.get_completed_object_at(occupied_cell) == &"wall")
 	blocking_worker.set_process(true)
 
+	var idle_blueprint_cell := Vector2i(30, 40)
+	blocking_worker.position = navigation.cell_to_world(idle_blueprint_cell)
+	blocking_worker.state = WorkerAgent.State.IDLE
+	blocking_worker._path.clear()
+	construction.place_blueprint(idle_blueprint_cell, &"wall")
+	await create_timer(0.6).timeout
+	assert(
+		navigation.world_to_cell(blocking_worker.position)
+		!= idle_blueprint_cell
+	)
+	assert(
+		construction.get_completed_object_at(idle_blueprint_cell) == &"wall"
+	)
+
 	var cancelled_cell := Vector2i(31, 37)
 	construction.place_blueprint(cancelled_cell, &"wall")
 	assert(

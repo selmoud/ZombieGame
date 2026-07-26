@@ -11,6 +11,7 @@ enum State {
 	MOVING_TO_JOB,
 	WORKING,
 	WAITING_FOR_BUILD_CELL,
+	VACATING_BLUEPRINT,
 }
 
 const CONSTRUCTION_JOB := &"construction"
@@ -70,11 +71,16 @@ func _process(delta: float) -> void:
 
 	match state:
 		State.IDLE:
+			if _try_vacate_blueprint(
+				_navigation.world_to_cell(position)
+			):
+				return
 			_idle_retry -= simulation_delta
 			if _idle_retry <= 0.0:
 				_try_claim_job()
 		State.MOVING_TO_SUPPLY, State.DELIVERING_MATERIAL, \
-				State.RETURNING_MATERIAL, State.MOVING_TO_JOB:
+				State.RETURNING_MATERIAL, State.MOVING_TO_JOB, \
+				State.VACATING_BLUEPRINT:
 			_update_movement(simulation_delta)
 		State.PICKING_UP:
 			_update_pickup(simulation_delta)
@@ -88,6 +94,46 @@ func _process(delta: float) -> void:
 
 func get_carry_capacity(_item_id: StringName) -> int:
 	return CARRY_CAPACITY
+
+
+func _try_vacate_blueprint(current_cell: Vector2i) -> bool:
+	if _construction.get_blueprint_at(current_cell).is_empty():
+		return false
+	var escape_path := _find_blueprint_escape_path(current_cell)
+	if escape_path.is_empty():
+		_idle_retry = 0.5
+		return false
+	_target_cell = escape_path.back()
+	_path = escape_path
+	_path_index = 1 if _path.size() > 1 else _path.size()
+	state = State.VACATING_BLUEPRINT
+	queue_redraw()
+	return true
+
+
+func _find_blueprint_escape_path(origin: Vector2i) -> Array[Vector2i]:
+	for radius in range(1, 9):
+		var best_path: Array[Vector2i] = []
+		for x_offset in range(-radius, radius + 1):
+			for y_offset in range(-radius, radius + 1):
+				if maxi(absi(x_offset), absi(y_offset)) != radius:
+					continue
+				var candidate := origin + Vector2i(x_offset, y_offset)
+				if (
+					not _navigation.is_cell_walkable(candidate)
+					or not _construction.get_blueprint_at(candidate).is_empty()
+					or _supplies.has_box_at(candidate)
+					or _is_cell_used_by_other_worker(candidate)
+				):
+					continue
+				var path := _navigation.get_cell_path(origin, candidate)
+				if path.is_empty():
+					continue
+				if best_path.is_empty() or path.size() < best_path.size():
+					best_path = path
+		if not best_path.is_empty():
+			return best_path
+	return []
 
 
 func _try_claim_job() -> void:
@@ -292,6 +338,9 @@ func _update_movement(delta: float) -> void:
 				return
 			State.MOVING_TO_JOB:
 				state = State.WORKING
+			State.VACATING_BLUEPRINT:
+				_finish_job()
+				return
 		_action_progress = 0.0
 		queue_redraw()
 		return
@@ -518,10 +567,17 @@ func _update_build_retry(delta: float) -> void:
 
 func _recalculate_current_path() -> void:
 	var current_cell := _navigation.world_to_cell(position)
-	var replacement_path := _navigation.find_path_to_adjacent(
-		current_cell,
-		_target_cell
-	)
+	var replacement_path: Array[Vector2i]
+	if state == State.VACATING_BLUEPRINT:
+		replacement_path = _navigation.get_cell_path(
+			current_cell,
+			_target_cell
+		)
+	else:
+		replacement_path = _navigation.find_path_to_adjacent(
+			current_cell,
+			_target_cell
+		)
 	if not replacement_path.is_empty():
 		_path = replacement_path
 		_path_index = 1 if _path.size() > 1 else _path.size()
@@ -543,6 +599,8 @@ func _recalculate_current_path() -> void:
 				_start_next_build()
 			else:
 				_cancel_job()
+		State.VACATING_BLUEPRINT:
+			_finish_job()
 
 
 func _is_cell_used_by_other_worker(cell: Vector2i) -> bool:
@@ -565,6 +623,7 @@ func is_using_cell(cell: Vector2i) -> bool:
 		State.DELIVERING_MATERIAL,
 		State.RETURNING_MATERIAL,
 		State.MOVING_TO_JOB,
+		State.VACATING_BLUEPRINT,
 	]:
 		return false
 	for index in range(_path_index, _path.size()):
@@ -678,6 +737,7 @@ func _draw() -> void:
 		State.DELIVERING_MATERIAL,
 		State.RETURNING_MATERIAL,
 		State.MOVING_TO_JOB,
+		State.VACATING_BLUEPRINT,
 	]:
 		var points := PackedVector2Array([Vector2.ZERO])
 		for index in range(_path_index, _path.size()):
