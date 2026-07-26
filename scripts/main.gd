@@ -33,6 +33,15 @@ func _input(event: InputEvent) -> void:
 	):
 		_clear_worker_selection()
 		get_viewport().set_input_as_handled()
+		return
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_RIGHT
+		and event.pressed
+		and selected_worker != null
+	):
+		_clear_worker_selection()
+		get_viewport().set_input_as_handled()
 
 
 func _ready() -> void:

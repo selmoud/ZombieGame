@@ -59,6 +59,13 @@ func _run() -> void:
 	await process_frame
 	assert(not inspector.visible)
 	assert(main.selected_worker == null)
+	worker.inspection_requested.emit(worker)
+	await process_frame
+	assert(inspector.visible)
+	Input.parse_input_event(right_click)
+	await process_frame
+	assert(not inspector.visible)
+	assert(main.selected_worker == null)
 	var clock: GameClock = main.get_node("GameClock")
 	var supplies: SupplyDepot = main.get_node("SupplyDepot")
 	for current_worker in workers:
