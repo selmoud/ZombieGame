@@ -148,20 +148,30 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_RIGHT
+		and event.pressed
+	):
+		if active_tool.is_empty():
+			return
+		clear_active_tool()
+		get_viewport().set_input_as_handled()
+		return
+
 	if active_tool.is_empty():
 		return
 
 	if event is InputEventMouseButton:
 		var is_paint_button: bool = event.button_index == MOUSE_BUTTON_LEFT
-		var is_erase_button: bool = event.button_index == MOUSE_BUTTON_RIGHT
-		if not is_paint_button and not is_erase_button:
+		if not is_paint_button:
 			return
 
 		if event.pressed:
 			_dragging = true
 			_drag_start = _world_to_cell(get_global_mouse_position())
 			_drag_current = _drag_start
-			_drag_tool = ERASE_TOOL if is_erase_button else active_tool
+			_drag_tool = active_tool
 		else:
 			if not _dragging:
 				return

@@ -18,11 +18,22 @@ func _run() -> void:
 	menu.zone_tool_selected.emit(&"residential")
 	assert(zones.active_tool == &"residential")
 	assert(construction.active_tool.is_empty())
+	var right_click := InputEventMouseButton.new()
+	right_click.button_index = MOUSE_BUTTON_RIGHT
+	right_click.pressed = true
+	Input.parse_input_event(right_click)
+	await process_frame
+	assert(zones.active_tool.is_empty())
 
+	menu.zone_tool_selected.emit(&"residential")
 	menu.construction_tool_selected.emit(&"wall")
 	assert(construction.active_tool == &"wall")
 	assert(zones.active_tool.is_empty())
+	Input.parse_input_event(right_click)
+	await process_frame
+	assert(construction.active_tool.is_empty())
 
+	menu.construction_tool_selected.emit(&"wall")
 	menu.cancel_tool_selected.emit()
 	assert(zones.active_tool.is_empty())
 	assert(construction.active_tool.is_empty())

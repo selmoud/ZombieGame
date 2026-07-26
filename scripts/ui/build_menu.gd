@@ -43,11 +43,11 @@ func sync_active_tool(tool_id: StringName) -> void:
 		_status_label.text = "Инструмент не выбран"
 		_cursor_indicator.hide()
 	elif tool_id == ZoneManager.ERASE_TOOL:
-		_status_label.text = "Ластик  •  ЛКМ удалить  •  Esc отмена"
+		_status_label.text = "Ластик  •  ЛКМ удалить  •  ПКМ/Esc отмена"
 		_cursor_label.text = "×  Удаление зоны"
 		_cursor_label.add_theme_color_override("font_color", Color("e36b63"))
 	else:
-		_status_label.text = "%s  •  ЛКМ выделить  •  ПКМ удалить  •  Esc отмена" % ZoneCatalog.get_label(tool_id)
+		_status_label.text = "%s  •  ЛКМ выделить  •  ПКМ/Esc отмена" % ZoneCatalog.get_label(tool_id)
 		_cursor_label.text = "■  %s" % ZoneCatalog.get_label(tool_id)
 		_cursor_label.add_theme_color_override("font_color", ZoneCatalog.get_color(tool_id).lightened(0.22))
 
@@ -60,15 +60,15 @@ func sync_construction_tool(tool_id: StringName) -> void:
 		_status_label.text = "Инструмент не выбран"
 		_cursor_indicator.hide()
 	elif tool_id == ConstructionManager.ERASE_TOOL:
-		_status_label.text = "Отмена планов  •  ЛКМ удалить  •  Esc отмена"
+		_status_label.text = "Отмена планов  •  ЛКМ удалить  •  ПКМ/Esc отмена"
 		_cursor_label.text = "×  Отмена планов"
 		_cursor_label.add_theme_color_override("font_color", Color("e36b63"))
 	elif tool_id == ConstructionManager.DECONSTRUCT_TOOL:
-		_status_label.text = "Разобрать  •  ЛКМ отметить  •  ПКМ отменить  •  Esc отмена"
+		_status_label.text = "Разобрать  •  ЛКМ отметить  •  ПКМ/Esc отмена"
 		_cursor_label.text = "×  Разобрать"
 		_cursor_label.add_theme_color_override("font_color", Color("e3a447"))
 	else:
-		_status_label.text = "%s  •  ЛКМ разместить  •  ПКМ удалить  •  Esc отмена" % ConstructionCatalog.get_label(tool_id)
+		_status_label.text = "%s  •  ЛКМ разместить  •  ПКМ/Esc отмена" % ConstructionCatalog.get_label(tool_id)
 		_cursor_label.text = "◇  %s (чертёж)" % ConstructionCatalog.get_label(tool_id)
 		_cursor_label.add_theme_color_override(
 			"font_color",
