@@ -77,6 +77,16 @@ func _init() -> void:
 	)
 	assert(not construction.can_place_blueprint(Vector2i(1, 1), &"wall"))
 	assert(construction.can_place_blueprint(Vector2i(2, 1), &"wall"))
+	construction.place_blueprint(Vector2i(2, 1), &"wall")
+	assert(construction.stage_material(Vector2i(2, 1), &"wall_section"))
+	assert(construction.complete_blueprint(Vector2i(2, 1)))
+	construction.set_placement_validator(
+		func(_cell: Vector2i) -> bool:
+			return false
+	)
+	assert(construction.can_mark_for_deconstruction(Vector2i(2, 1)))
+	construction.mark_deconstruction_line(Vector2i(2, 1), Vector2i(2, 1))
+	assert(construction.get_deconstruction_cells() == [Vector2i(2, 1)])
 
 	print("ConstructionManager tests passed")
 	construction.free()

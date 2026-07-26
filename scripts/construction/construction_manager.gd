@@ -173,11 +173,7 @@ func can_place_blueprint(cell: Vector2i, object_id: StringName) -> bool:
 
 
 func can_mark_for_deconstruction(cell: Vector2i) -> bool:
-	if not _is_cell_inside_map(cell) or not _completed_objects.has(cell):
-		return false
-	if _placement_validator.is_valid():
-		return bool(_placement_validator.call(cell))
-	return true
+	return _is_cell_inside_map(cell) and _completed_objects.has(cell)
 
 
 func get_blueprint_cells() -> Array[Vector2i]:
