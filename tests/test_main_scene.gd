@@ -30,6 +30,13 @@ func _run() -> void:
 	var workers: Array[WorkerAgent] = main.workers
 	assert(workers.size() == 3)
 	var worker: WorkerAgent = workers.front()
+	worker.inspection_requested.emit(worker)
+	await process_frame
+	var inspector: PanelContainer = main.get_node("HUD/WorkerInspector")
+	var inspector_details: Label = inspector.get_node("Content/Details")
+	assert(inspector.visible)
+	assert(inspector_details.text.contains("Состояние:"))
+	assert(inspector_details.text.contains("Маршрут:"))
 	var clock: GameClock = main.get_node("GameClock")
 	var supplies: SupplyDepot = main.get_node("SupplyDepot")
 	for current_worker in workers:

@@ -1,6 +1,8 @@
 class_name WorkerAgent
 extends Node2D
 
+signal inspection_requested(worker: WorkerAgent)
+
 enum State {
 	IDLE,
 	MOVING_TO_SUPPLY,
@@ -47,6 +49,7 @@ var _path_index := 0
 var _action_progress := 0.0
 var _idle_retry := 0.0
 var _state_after_vacating := State.IDLE
+var _is_inspected := false
 
 
 func setup(
@@ -96,6 +99,104 @@ func _process(delta: float) -> void:
 
 func get_carry_capacity(_item_id: StringName) -> int:
 	return CARRY_CAPACITY
+
+
+func set_inspected(value: bool) -> void:
+	_is_inspected = value
+	queue_redraw()
+
+
+func get_inspector_text() -> String:
+	var target_text := "—"
+	if _target_cell != JobBoard.INVALID_CELL:
+		target_text = "%d, %d" % [_target_cell.x, _target_cell.y]
+
+	var cargo_text := "—"
+	if _carried_quantity > 0:
+		cargo_text = "%s ×%d" % [
+			SupplyDepot.ITEM_LABELS.get(String(_batch_item), String(_batch_item)),
+			_carried_quantity,
+		]
+
+	var route_parts := PackedStringArray()
+	for index in range(_path_index, mini(_path.size(), _path_index + 6)):
+		var cell: Vector2i = _path[index]
+		route_parts.append("(%d,%d)" % [cell.x, cell.y])
+	if _path.size() - _path_index > 6:
+		route_parts.append("…")
+	var route_text := " → ".join(route_parts) if not route_parts.is_empty() else "—"
+
+	return (
+		"%s\n"
+		+ "Состояние: %s\n"
+		+ "Задача: %s\n"
+		+ "Цель: %s\n"
+		+ "Груз: %s\n"
+		+ "Ожидание: %s\n"
+		+ "Маршрут: %s"
+	) % [
+		name,
+		_get_state_label(),
+		_get_job_label(),
+		target_text,
+		cargo_text,
+		_get_waiting_reason(),
+		route_text,
+	]
+
+
+func _get_state_label() -> String:
+	match state:
+		State.IDLE:
+			return "Свободен"
+		State.MOVING_TO_SUPPLY:
+			return "Идёт за материалами"
+		State.PICKING_UP:
+			return "Забирает материалы"
+		State.DELIVERING_MATERIAL:
+			return "Доставляет материалы"
+		State.PLACING_MATERIAL:
+			return "Размещает материалы"
+		State.RETURNING_MATERIAL:
+			return "Возвращает остаток"
+		State.MOVING_TO_JOB:
+			return "Идёт к работе"
+		State.WORKING:
+			return "Работает"
+		State.WAITING_FOR_BUILD_CELL:
+			return "Ожидает"
+		State.VACATING_BLUEPRINT:
+			return "Освобождает чертёж"
+	return "Неизвестно"
+
+
+func _get_job_label() -> String:
+	if _job_type == CONSTRUCTION_JOB:
+		return "Строительство"
+	if _job_type == DECONSTRUCTION_JOB:
+		return "Разбор"
+	return "Нет"
+
+
+func _get_waiting_reason() -> String:
+	if state == State.IDLE:
+		return "Нет доступной задачи"
+	if state == State.WAITING_FOR_BUILD_CELL:
+		return "Цель занята работником или его маршрутом"
+	if state == State.VACATING_BLUEPRINT:
+		return "Освобождает клетку для строительства"
+	return "—"
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.pressed
+		and global_position.distance_to(get_global_mouse_position()) <= 14.0
+	):
+		inspection_requested.emit(self)
+		get_viewport().set_input_as_handled()
 
 
 func _try_vacate_blueprint(
@@ -771,6 +872,8 @@ func _draw() -> void:
 
 	draw_circle(Vector2.ZERO, 11.0, Color("3f83a6"))
 	draw_circle(Vector2.ZERO, 11.0, Color("b8d8e8"), false, 2.0)
+	if _is_inspected:
+		draw_circle(Vector2.ZERO, 15.0, Color("f0d36b"), false, 3.0)
 	draw_rect(Rect2(-5, -2, 10, 4), Color("d9c28a"), true)
 
 	if _carried_quantity > 0:

@@ -10,6 +10,15 @@ extends Node2D
 @onready var build_menu: BuildMenu = $Interface/BuildMenu
 
 var workers: Array[WorkerAgent] = []
+var selected_worker: WorkerAgent
+var worker_inspector_panel: PanelContainer
+var worker_inspector_label: Label
+
+
+func _process(_delta: float) -> void:
+	if selected_worker == null or not is_instance_valid(selected_worker):
+		return
+	worker_inspector_label.text = selected_worker.get_inspector_text()
 
 
 func _ready() -> void:
@@ -37,6 +46,7 @@ func _ready() -> void:
 			continue
 		var worker := child as WorkerAgent
 		workers.append(worker)
+		worker.inspection_requested.connect(_select_worker)
 		worker.setup(
 			game_clock,
 			navigation_grid,
@@ -64,6 +74,15 @@ func _select_construction_tool(tool_id: StringName) -> void:
 func _clear_planning_tools() -> void:
 	zone_manager.clear_active_tool()
 	construction_manager.clear_active_tool()
+
+
+func _select_worker(worker: WorkerAgent) -> void:
+	if selected_worker != null and is_instance_valid(selected_worker):
+		selected_worker.set_inspected(false)
+	selected_worker = worker
+	selected_worker.set_inspected(true)
+	worker_inspector_label.text = selected_worker.get_inspector_text()
+	worker_inspector_panel.visible = true
 
 
 func _sync_construction_jobs() -> void:
@@ -142,6 +161,34 @@ func _create_hud() -> void:
 	help.position = Vector2(16, 136)
 	help.add_theme_color_override("font_color", Color(0.9, 0.92, 0.86, 0.9))
 	canvas.add_child(help)
+
+	worker_inspector_panel = PanelContainer.new()
+	worker_inspector_panel.name = "WorkerInspector"
+	worker_inspector_panel.anchor_left = 1.0
+	worker_inspector_panel.anchor_right = 1.0
+	worker_inspector_panel.offset_left = -360.0
+	worker_inspector_panel.offset_top = 16.0
+	worker_inspector_panel.offset_right = -16.0
+	worker_inspector_panel.offset_bottom = 220.0
+	worker_inspector_panel.visible = false
+	canvas.add_child(worker_inspector_panel)
+
+	var inspector_margin := MarginContainer.new()
+	inspector_margin.name = "Content"
+	inspector_margin.add_theme_constant_override("margin_left", 14)
+	inspector_margin.add_theme_constant_override("margin_top", 12)
+	inspector_margin.add_theme_constant_override("margin_right", 14)
+	inspector_margin.add_theme_constant_override("margin_bottom", 12)
+	worker_inspector_panel.add_child(inspector_margin)
+
+	worker_inspector_label = Label.new()
+	worker_inspector_label.name = "Details"
+	worker_inspector_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	worker_inspector_label.add_theme_color_override(
+		"font_color",
+		Color(0.92, 0.92, 0.86)
+	)
+	inspector_margin.add_child(worker_inspector_label)
 
 	game_clock.time_changed.connect(
 		func(_day: int, _hour: int, _minute: int) -> void:
