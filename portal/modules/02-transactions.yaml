@@ -49,7 +49,7 @@ questions:
           sortOptions: true
         - key: name
           title: Группа участников
-          description: "Выберите подходящую группу из списка или впишите свою."
+          description: "Выберите из списка или впишите свой вариант."
           type: suggest
           allowCustom: true
           required: true
@@ -200,7 +200,7 @@ questions:
           fullWidth: true
         - key: name
           title: Действие (микротранзакция)
-          description: "Выберите типовое действие или впишите более точное отраслевое название."
+          description: "Выберите из списка или впишите свой вариант."
           type: suggest
           allowCustom: true
           required: true
@@ -244,37 +244,38 @@ questions:
   - key: transaction_assessments
     order: 4
     type: table
-    title: Оценка действий и транзакционных издержек
-    description: "Оцените каждое действие из собранных выше цепочек. Для всех показателей используется единая шкала: от «очень низкой» до «очень высокой»."
+    title: Оценка микротранзакций и транзакционных издержек
+    description: "Карточки создаются автоматически из действий пункта 3. Для всех показателей используется единая шкала: от «очень низкой» до «очень высокой»."
     required: true
     config:
       minRows: 2
       maxRows: 40
+      lockRows: true
+      autoRowsFromQuestionKey: microtransactions
+      autoRowMappings:
+        - { sourceColumnKey: macro, targetColumnKey: macro }
+        - { sourceColumnKey: name, targetColumnKey: micro }
+        - { sourceColumnKey: actor, targetColumnKey: actor, identity: false }
+        - { sourceColumnKey: executionMode, targetColumnKey: executionMode, identity: false }
       rowLabel: Оценка
-      addRowLabel: Добавить оценку действия
       coverSourceQuestionKey: microtransactions
       coverSourceColumns: [macro, name]
       coverTargetColumns: [macro, micro]
       columns:
         - key: macro
           title: Сценарий
-          type: suggest
-          allowCustom: false
-          required: true
-          sourceQuestionKey: macrotransactions
-          sourceColumnKey: name
+          type: readonly
           fullWidth: true
         - key: micro
           title: Действие
-          description: "Предлагаются только действия, добавленные для выбранного сценария."
-          type: suggest
-          allowCustom: false
-          required: true
-          sourceQuestionKey: microtransactions
-          sourceColumnKey: name
-          sourceFilterColumnKey: macro
-          sourceFilterValueFromColumnKey: macro
+          type: readonly
           fullWidth: true
+        - key: actor
+          title: Исполнитель
+          type: readonly
+        - key: executionMode
+          title: Как выполняется сейчас
+          type: readonly
         - key: frequency
           title: Массовость
           description: "Количество участников и частота совершения действия в отрасли."
@@ -332,6 +333,7 @@ questions:
             - { value: Очень высокий, label: Очень высокий }
         - key: costSources
           title: Основные источники издержек
+          description: "Выберите из списка или впишите свой вариант."
           type: multi_suggest
           allowCustom: true
           required: true
@@ -342,14 +344,23 @@ questions:
             - { value: Ручные проверки, label: Ручные проверки }
             - { value: Переговоры и согласования, label: Переговоры и согласования }
             - { value: Оформление документов, label: Оформление документов }
+            - { value: "Получение прав, лицензий или разрешений", label: "Получение прав, лицензий или разрешений" }
+            - { value: Обмен данными между системами, label: Обмен данными между системами }
             - { value: Проведение расчётов, label: Проведение расчётов }
             - { value: Контроль исполнения, label: Контроль исполнения }
+            - { value: Модерация и проверка контента, label: Модерация и проверка контента }
             - { value: Ошибки и дублирование, label: Ошибки и дублирование }
         - key: rationale
-          title: Обоснование оценки
-          description: "Кратко поясните, на каких данных, наблюдениях или примерах основана оценка."
+          title: Комментарий к оценке
+          description: "Обязателен для высоких издержек, высокой ресурсоёмкости или низкой стандартизированности."
           type: long_text
-          required: true
+          requiredWhenAny:
+            - { columnKey: resourceIntensity, equals: Высокая }
+            - { columnKey: resourceIntensity, equals: Очень высокая }
+            - { columnKey: costLevel, equals: Высокий }
+            - { columnKey: costLevel, equals: Очень высокий }
+            - { columnKey: standardization, equals: Низкая }
+            - { columnKey: standardization, equals: Очень низкая }
           fullWidth: true
 
   - key: transaction_materials

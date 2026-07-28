@@ -50,6 +50,7 @@ const columnSchema = z.object({
   notBeforeColumnKey: z.string().optional(),
   optionsFromColumnKey: z.string().optional(),
   requiredWhen: conditionSchema.optional(),
+  requiredWhenAny: z.array(conditionSchema).min(1).optional(),
   sortOptions: z.boolean().optional(),
   sourceQuestionKey: z.string().optional(),
   sourceColumnKey: z.string().optional(),
@@ -96,6 +97,18 @@ const questionSchema = z.object({
       coverSourceQuestionKey: z.string().optional(),
       coverSourceColumns: z.array(z.string().min(1)).optional(),
       coverTargetColumns: z.array(z.string().min(1)).optional(),
+      autoRowsFromQuestionKey: z.string().optional(),
+      autoRowMappings: z
+        .array(
+          z.object({
+            sourceColumnKey: z.string().min(1),
+            targetColumnKey: z.string().min(1),
+            identity: z.boolean().optional(),
+          }),
+        )
+        .min(1)
+        .optional(),
+      lockRows: z.boolean().optional(),
       columns: z.array(columnSchema).optional(),
     })
     .passthrough()

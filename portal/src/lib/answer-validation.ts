@@ -30,6 +30,7 @@ type Config = {
     max?: number;
     notBeforeColumnKey?: string;
     requiredWhen?: FieldCondition;
+    requiredWhenAny?: FieldCondition[];
     visibleWhen?: FieldCondition;
   }>;
 };
@@ -101,7 +102,10 @@ export function validateAnswers(
             const isRequired =
               column.required ||
               (column.requiredWhen &&
-                matchesFieldCondition(typedRow, column.requiredWhen));
+                matchesFieldCondition(typedRow, column.requiredWhen)) ||
+              column.requiredWhenAny?.some((condition) =>
+                matchesFieldCondition(typedRow, condition),
+              );
             return isVisible && isRequired && isEmpty(typedRow?.[column.key]);
           },
         ),

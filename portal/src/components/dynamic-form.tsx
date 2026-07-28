@@ -6,6 +6,7 @@ import {
   matchesFieldCondition,
   type FieldCondition,
 } from "@/lib/field-conditions";
+import { synchronizeAutomaticTableRows } from "@/lib/auto-table-rows";
 
 type Option = { value: string; label: string };
 type Column = {
@@ -25,6 +26,7 @@ type Column = {
   notBeforeColumnKey?: string;
   optionsFromColumnKey?: string;
   requiredWhen?: FieldCondition;
+  requiredWhenAny?: FieldCondition[];
   sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
@@ -56,6 +58,13 @@ type Question = {
     rowLabel?: string;
     sortableRows?: boolean;
     groupByColumnKey?: string;
+    autoRowsFromQuestionKey?: string;
+    autoRowMappings?: Array<{
+      sourceColumnKey: string;
+      targetColumnKey: string;
+      identity?: boolean;
+    }>;
+    lockRows?: boolean;
     columns?: Column[];
   };
 };
@@ -707,7 +716,9 @@ function TableField({
                 {question.config.numberRows === false ? "" : ` ${rowIndex + 1}`}
               </span>
             </div>
-            {!disabled && !question.config.fixedRows && (
+            {!disabled &&
+              !question.config.fixedRows &&
+              !question.config.lockRows && (
               <button
                 type="button"
                 onClick={() => onChange(rows.filter((_, index) => index !== rowIndex))}
@@ -728,7 +739,10 @@ function TableField({
               const isRequired =
                 column.required ||
                 (column.requiredWhen &&
-                  matchesFieldCondition(row, column.requiredWhen));
+                  matchesFieldCondition(row, column.requiredWhen)) ||
+                column.requiredWhenAny?.some((condition) =>
+                  matchesFieldCondition(row, condition),
+                );
               const comparisonValue = column.notBeforeColumnKey
                 ? row[column.notBeforeColumnKey]
                 : undefined;
@@ -782,6 +796,7 @@ function TableField({
       ))}
       {!disabled &&
         !question.config.fixedRows &&
+        !question.config.lockRows &&
         (question.config.maxRows === undefined ||
           rows.length < question.config.maxRows) && (
           <button
@@ -955,7 +970,9 @@ export function DynamicForm({
   contextualOptions?: Record<string, Option[]>;
 }) {
   const router = useRouter();
-  const [answers, setAnswers] = useState(initialAnswers);
+  const [answers, setAnswers] = useState(() =>
+    synchronizeAutomaticTableRows(questions, initialAnswers),
+  );
   const [revision, setRevision] = useState(initialRevision);
   const [status, setStatus] = useState(initialStatus);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "dirty" | "error">("saved");
@@ -1032,7 +1049,16 @@ export function DynamicForm({
   function setAnswer(questionId: string, value: unknown) {
     setSaveError("");
     setSaveState("dirty");
-    setAnswers((current) => ({ ...current, [questionId]: value }));
+    setAnswers((current) => {
+      const changedQuestion = questions.find(
+        (question) => question.id === questionId,
+      );
+      return synchronizeAutomaticTableRows(
+        questions,
+        { ...current, [questionId]: value },
+        changedQuestion?.key,
+      );
+    });
     setErrors((current) => {
       const next = { ...current };
       delete next[questionId];

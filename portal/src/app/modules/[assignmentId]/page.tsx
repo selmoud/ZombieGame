@@ -179,6 +179,11 @@ export default async function ModulePage({
           equals?: string;
           includes?: string;
         };
+        requiredWhenAny?: Array<{
+          columnKey: string;
+          equals?: string;
+          includes?: string;
+        }>;
         sortOptions?: boolean;
         sourceQuestionKey?: string;
         sourceColumnKey?: string;

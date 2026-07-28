@@ -196,15 +196,28 @@ describe("module definitions", () => {
 
     expect(chain?.config.groupByColumnKey).toBe("macro");
     expect(assessments?.config).toMatchObject({
+      lockRows: true,
+      autoRowsFromQuestionKey: "microtransactions",
+      autoRowMappings: [
+        { sourceColumnKey: "macro", targetColumnKey: "macro" },
+        { sourceColumnKey: "name", targetColumnKey: "micro" },
+        {
+          sourceColumnKey: "actor",
+          targetColumnKey: "actor",
+          identity: false,
+        },
+        {
+          sourceColumnKey: "executionMode",
+          targetColumnKey: "executionMode",
+          identity: false,
+        },
+      ],
       coverSourceQuestionKey: "microtransactions",
       coverSourceColumns: ["macro", "name"],
       coverTargetColumns: ["macro", "micro"],
     });
     expect(actionColumn).toMatchObject({
-      sourceQuestionKey: "microtransactions",
-      sourceColumnKey: "name",
-      sourceFilterColumnKey: "macro",
-      sourceFilterValueFromColumnKey: "macro",
+      type: "readonly",
     });
   });
 });
