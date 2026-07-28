@@ -3,7 +3,7 @@ import type { SubmissionStatus } from "@/generated/prisma/enums";
 export const statusLabels: Record<SubmissionStatus, string> = {
   NOT_STARTED: "Не начато",
   DRAFT: "Черновик",
-  SUBMITTED: "Отправлено",
+  SUBMITTED: "На рассмотрении модератором",
   NEEDS_REVISION: "На доработке",
   ACCEPTED: "Принято",
 };

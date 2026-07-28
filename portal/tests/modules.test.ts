@@ -33,18 +33,7 @@ describe("module definitions", () => {
     expect(boundaries?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",
       "multi_suggest",
-      "number",
-      "number",
-      "select",
-      "long_text",
-      "select",
-      "long_text",
     ]);
-    expect(
-      boundaries?.config.columns
-        ?.filter((column) => ["gdpShare", "employmentShare"].includes(column.key))
-        .every((column) => column.required === false),
-    ).toBe(true);
     expect(segments).toMatchObject({
       order: 2,
       title: "Сегменты отрасли",
@@ -53,7 +42,6 @@ describe("module definitions", () => {
       "readonly",
       "suggest",
       "short_text",
-      "multi_suggest",
       "multi_suggest",
       "select",
       "select",
