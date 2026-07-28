@@ -144,10 +144,18 @@ export default async function SubmissionsPage({
                       {statusLabels[submission.status]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#0059C7]">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-4">
+                      <a
+                        href={`/api/assignments/${submission.assignmentId}/pdf`}
+                        className="font-semibold text-[#8125C8]"
+                      >
+                        Скачать PDF
+                      </a>
+                      <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#0059C7]">
                       Открыть →
-                    </Link>
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

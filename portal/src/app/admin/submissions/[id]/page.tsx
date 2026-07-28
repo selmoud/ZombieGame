@@ -122,9 +122,17 @@ export default async function SubmissionPage({
                   )}
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusStyles[submission.status]}`}>
-                {statusLabels[submission.status]}
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={`/api/assignments/${submission.assignment.id}/pdf`}
+                  className="rounded-xl border border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
+                >
+                  Скачать PDF
+                </a>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusStyles[submission.status]}`}>
+                  {statusLabels[submission.status]}
+                </span>
+              </div>
             </div>
           </section>
 
