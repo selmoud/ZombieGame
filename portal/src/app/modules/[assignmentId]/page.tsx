@@ -80,8 +80,7 @@ export default async function ModulePage({
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
-                  Раздел {String(assignment.module.order).padStart(2, "0")} · версия{" "}
-                  {assignment.moduleVersion.version}
+                  Раздел {String(assignment.module.order).padStart(2, "0")}
                 </p>
                 <h1 className="mt-2 text-3xl text-[#000000] sm:text-4xl">
                   {assignment.module.title}
@@ -90,11 +89,13 @@ export default async function ModulePage({
                   {assignment.moduleVersion.description}
                 </p>
               </div>
-              <span
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusStyles[status]}`}
-              >
-                {statusLabels[status]}
-              </span>
+              {status !== "DRAFT" && (
+                <span
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusStyles[status]}`}
+                >
+                  {statusLabels[status]}
+                </span>
+              )}
             </div>
           </div>
 
