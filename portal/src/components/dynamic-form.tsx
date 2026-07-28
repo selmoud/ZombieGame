@@ -9,6 +9,8 @@ type Column = {
   type: string;
   required?: boolean;
   options?: Option[];
+  allowCustom?: boolean;
+  defaultValue?: string;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
   min?: number;
@@ -34,25 +36,33 @@ type Question = {
 function SearchableSelect({
   value,
   options,
+  allowCustom = true,
   disabled,
   onChange,
 }: {
   value: unknown;
   options: Option[];
+  allowCustom?: boolean;
   disabled: boolean;
   onChange: (value: string) => void;
 }) {
   const currentValue = String(value ?? "");
+  const displayValue =
+    options.find((option) => option.value === currentValue)?.label ??
+    currentValue;
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const inputValue = allowCustom ? displayValue : searchQuery ?? displayValue;
   const listboxId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const filteredOptions = options.filter((option) =>
     option.label.toLocaleLowerCase("ru").includes(
-      currentValue.toLocaleLowerCase("ru"),
+      inputValue.toLocaleLowerCase("ru"),
     ),
   );
 
   function selectOption(option: Option) {
+    setSearchQuery(null);
     onChange(option.value);
     setIsOpen(false);
     setActiveIndex(0);
@@ -62,7 +72,7 @@ function SearchableSelect({
     <div className="relative">
       <input
         className="field pr-10"
-        value={currentValue}
+        value={inputValue}
         disabled={disabled}
         autoComplete="off"
         role="combobox"
@@ -74,9 +84,16 @@ function SearchableSelect({
           event.currentTarget.select();
           setIsOpen(true);
         }}
-        onBlur={() => setIsOpen(false)}
+        onBlur={() => {
+          setIsOpen(false);
+          setSearchQuery(null);
+        }}
         onChange={(event) => {
-          onChange(event.target.value);
+          if (allowCustom) {
+            onChange(event.target.value);
+          } else {
+            setSearchQuery(event.target.value);
+          }
           setActiveIndex(0);
           setIsOpen(true);
         }}
@@ -288,11 +305,22 @@ function InlineField({
   disabled: boolean;
   onChange: (value: unknown) => void;
 }) {
+  if (column.type === "readonly") {
+    return (
+      <input
+        className="field cursor-not-allowed bg-neutral-100 font-medium text-neutral-600"
+        value={String(value || column.defaultValue || "")}
+        disabled
+        readOnly
+      />
+    );
+  }
   if (column.type === "suggest") {
     return (
       <SearchableSelect
         value={value}
         options={suggestions}
+        allowCustom={column.allowCustom}
         disabled={disabled}
         onChange={onChange}
       />
@@ -422,7 +450,16 @@ function TableField({
   }
 
   function addRow() {
-    onChange([...rows, Object.fromEntries(columns.map((column) => [column.key, ""]))]);
+    onChange([
+      ...rows,
+      Object.fromEntries(
+        columns.map((column) => [
+          column.key,
+          column.defaultValue ??
+            (column.type === "multi_suggest" ? [] : ""),
+        ]),
+      ),
+    ]);
   }
   function updateRow(index: number, key: string, cellValue: unknown) {
     onChange(
@@ -457,7 +494,11 @@ function TableField({
             {columns.map((column) => (
               <div
                 key={column.key}
-                className={column.type === "long_text" ? "lg:col-span-2" : ""}
+                className={
+                  ["long_text", "multi_suggest"].includes(column.type)
+                    ? "lg:col-span-2"
+                    : ""
+                }
               >
                 <span className="mb-1.5 block text-xs font-medium text-neutral-600">
                   {column.title}

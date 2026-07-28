@@ -15,7 +15,11 @@ describe("module definitions", () => {
       "industry_boundaries",
       "analysis_object",
     ]);
-    expect(industry.questions[0].config.columns?.[1].type).toBe("select");
+    expect(industry.questions[0].config.columns?.map((column) => column.type)).toEqual([
+      "readonly",
+      "suggest",
+      "multi_suggest",
+    ]);
   });
 
   it("supports searchable and linked table fields", async () => {
