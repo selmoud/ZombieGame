@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  matchesFieldCondition,
+  type FieldCondition,
+} from "@/lib/field-conditions";
 import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels, statusStyles } from "@/lib/status";
 import { formatSubgroups } from "@/lib/subgroups";
@@ -11,7 +15,12 @@ import { acceptSubmission, addComment, requestRevision } from "./actions";
 function displayValue(value: unknown, config: unknown) {
   const typedConfig = config as {
     options?: Array<{ value: string; label: string }>;
-    columns?: Array<{ key: string; title: string; options?: Array<{ value: string; label: string }> }>;
+    columns?: Array<{
+      key: string;
+      title: string;
+      options?: Array<{ value: string; label: string }>;
+      visibleWhen?: FieldCondition;
+    }>;
   };
   if (value === null || value === undefined || value === "") {
     return <span className="italic text-neutral-400">Не заполнено</span>;
@@ -24,7 +33,14 @@ function displayValue(value: unknown, config: unknown) {
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">Строка {index + 1}</p>
             <dl className="grid gap-3 sm:grid-cols-2">
               {typedConfig.columns?.map((column) => {
-                const raw = (row as Record<string, unknown>)[column.key];
+                const typedRow = row as Record<string, unknown>;
+                if (
+                  column.visibleWhen &&
+                  !matchesFieldCondition(typedRow, column.visibleWhen)
+                ) {
+                  return null;
+                }
+                const raw = typedRow[column.key];
                 const label = column.options?.find((option) => option.value === raw)?.label;
                 const displayed = Array.isArray(raw)
                   ? raw.join(", ")
