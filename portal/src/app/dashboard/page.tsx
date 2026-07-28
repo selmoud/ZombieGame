@@ -123,19 +123,6 @@ export default async function DashboardPage({
               <h3 className="mt-6 text-lg font-semibold text-[#000000]">
                 {module.title}
               </h3>
-              <p
-                className={`mt-5 text-sm font-semibold ${
-                  locked
-                    ? "text-neutral-400"
-                    : "text-[#0059C7] group-hover:text-[#00479F]"
-                }`}
-              >
-                {locked
-                  ? "Откроется после завершения предыдущего модуля"
-                  : status === "NOT_STARTED"
-                    ? "Начать заполнение →"
-                    : "Открыть раздел →"}
-              </p>
             </>
           );
           return locked ? (
@@ -144,15 +131,33 @@ export default async function DashboardPage({
               className="paper rounded-2xl p-6 opacity-75"
             >
               {content}
+              <p className="mt-5 text-sm font-semibold text-neutral-400">
+                Откроется после завершения предыдущего модуля
+              </p>
             </article>
           ) : (
-            <Link
+            <article
               key={id}
-              href={`/modules/${id}`}
-              className="paper group rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-[#0D78F8]/50 hover:shadow-lg"
+              className="paper rounded-2xl p-6"
             >
               {content}
-            </Link>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/modules/${id}`}
+                  className="rounded-lg bg-[#0059C7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#00479F]"
+                >
+                  {status === "NOT_STARTED"
+                    ? "Начать заполнение"
+                    : "Открыть раздел"}
+                </Link>
+                <a
+                  href={`/api/assignments/${id}/pdf`}
+                  className="rounded-lg border border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
+                >
+                  Скачать PDF
+                </a>
+              </div>
+            </article>
           );
         })}
       </section>

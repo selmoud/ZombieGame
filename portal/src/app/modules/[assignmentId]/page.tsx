@@ -180,6 +180,23 @@ export default async function ModulePage({
               initialStatus={status}
             />
           </div>
+          <section className="paper mt-5 flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-[#000000]">
+                Предварительный просмотр для модератора
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-neutral-500">
+                Скачайте PDF с ответами в том порядке, в котором их увидит
+                модератор.
+              </p>
+            </div>
+            <a
+              href={`/api/assignments/${assignment.id}/pdf`}
+              className="shrink-0 rounded-xl bg-[#0059C7] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#00479F]"
+            >
+              Скачать PDF
+            </a>
+          </section>
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
