@@ -335,9 +335,9 @@ export function DynamicForm({
           <button
             type="button"
             onClick={() => saveDraft().catch(() => undefined)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-[#000000] hover:bg-neutral-50"
+            className="ml-auto shrink-0 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-[#000000] hover:bg-neutral-50"
           >
-            Сохранить
+            Сохранить черновик
           </button>
         )}
       </div>
