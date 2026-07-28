@@ -57,6 +57,14 @@ describe("module definitions", () => {
       "long_text",
     ]);
     expect(
+      segments?.config.columns?.find(
+        (column) => column.key === "assessmentRationale",
+      ),
+    ).toMatchObject({
+      required: true,
+      fullWidth: true,
+    });
+    expect(
       industry.questions.find(
         (question) => question.key === "segment_assessment_file",
       ),
