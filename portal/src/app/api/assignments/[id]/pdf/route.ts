@@ -2,7 +2,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
-import { statusLabels } from "@/lib/status";
+import {
+  canDownloadSubmissionResults,
+  statusLabels,
+} from "@/lib/status";
 import { createSubmissionPdf } from "@/lib/submission-pdf";
 
 export const runtime = "nodejs";
@@ -39,6 +42,15 @@ export async function GET(
     !(await isModuleUnlocked(currentUser.id, assignment.module.order))
   ) {
     return Response.json({ error: "MODULE_LOCKED" }, { status: 403 });
+  }
+  if (
+    currentUser.role !== "ADMIN" &&
+    !canDownloadSubmissionResults(assignment.submission.status)
+  ) {
+    return Response.json(
+      { error: "RESULTS_NOT_AVAILABLE" },
+      { status: 403 },
+    );
   }
 
   const answerMap = new Map(

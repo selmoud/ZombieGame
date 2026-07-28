@@ -33,7 +33,16 @@ describe("module definitions", () => {
     expect(boundaries?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",
       "multi_suggest",
+      "long_text",
     ]);
+    expect(
+      boundaries?.config.columns?.find(
+        (column) => column.key === "intersectionAssessment",
+      ),
+    ).toMatchObject({
+      required: true,
+      fullWidth: true,
+    });
     expect(segments).toMatchObject({
       order: 2,
       title: "Сегменты отрасли",

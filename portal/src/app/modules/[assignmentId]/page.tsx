@@ -9,7 +9,11 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
-import { statusLabels, statusStyles } from "@/lib/status";
+import {
+  canDownloadSubmissionResults,
+  statusLabels,
+  statusStyles,
+} from "@/lib/status";
 
 export default async function ModulePage({
   params,
@@ -43,6 +47,7 @@ export default async function ModulePage({
     redirect("/dashboard?locked=1");
   }
   const status = assignment.submission.status;
+  const canDownload = canDownloadSubmissionResults(status);
   const answers = Object.fromEntries(
     assignment.submission.answers.map((answer) => [
       answer.questionId,
@@ -182,20 +187,27 @@ export default async function ModulePage({
           </div>
           <section className="paper mt-5 flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold text-[#000000]">
-                Предварительный просмотр для модератора
-              </h2>
+              <h2 className="font-semibold text-[#000000]">Результаты раздела</h2>
               <p className="mt-1 text-sm leading-6 text-neutral-500">
-                Скачайте PDF с ответами в том порядке, в котором их увидит
-                модератор.
+                PDF содержит ответы в том порядке, в котором их увидит
+                модератор, и станет доступен после отправки раздела.
               </p>
             </div>
-            <a
-              href={`/api/assignments/${assignment.id}/pdf`}
-              className="shrink-0 rounded-xl bg-[#0059C7] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#00479F]"
-            >
-              Скачать PDF
-            </a>
+            {canDownload ? (
+              <a
+                href={`/api/assignments/${assignment.id}/pdf`}
+                className="shrink-0 rounded-xl bg-[#0059C7] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#00479F]"
+              >
+                Скачать результаты раздела
+              </a>
+            ) : (
+              <span
+                aria-disabled="true"
+                className="cursor-not-allowed shrink-0 rounded-xl bg-neutral-200 px-5 py-3 text-center text-sm font-semibold text-neutral-500"
+              >
+                Скачать результаты раздела
+              </span>
+            )}
           </section>
         </div>
 
@@ -210,7 +222,6 @@ export default async function ModulePage({
               <li><strong className="text-[#000000]">3.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
-          <GlossaryModal />
           <section className="rounded-2xl bg-[#DDF8FB] p-5">
             <p className="text-lg text-[#000000]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
@@ -218,11 +229,8 @@ export default async function ModulePage({
               конкретными примерами.
             </p>
           </section>
-          {!["SUBMITTED", "ACCEPTED"].includes(status) && (
-            <DraftStatus
-              assignmentId={assignment.id}
-            />
-          )}
+          <DraftStatus assignmentId={assignment.id} initialStatus={status} />
+          <GlossaryModal />
         </aside>
       </div>
     </AppShell>

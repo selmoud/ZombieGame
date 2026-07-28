@@ -3,7 +3,11 @@ import { AppShell } from "@/components/app-shell";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isModuleUnlockedFromAssignments } from "@/lib/module-access";
-import { statusLabels, statusStyles } from "@/lib/status";
+import {
+  canDownloadSubmissionResults,
+  statusLabels,
+  statusStyles,
+} from "@/lib/status";
 
 export default async function DashboardPage({
   searchParams,
@@ -104,6 +108,7 @@ export default async function DashboardPage({
             assignments,
             module.order,
           );
+          const canDownload = canDownloadSubmissionResults(status);
           const content = (
             <>
               <div className="flex items-start justify-between gap-4">
@@ -150,12 +155,22 @@ export default async function DashboardPage({
                     ? "Начать заполнение"
                     : "Открыть раздел"}
                 </Link>
-                <a
-                  href={`/api/assignments/${id}/pdf`}
-                  className="rounded-lg border border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
-                >
-                  Скачать PDF
-                </a>
+                {canDownload ? (
+                  <a
+                    href={`/api/assignments/${id}/pdf`}
+                    className="rounded-lg border border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
+                  >
+                    Скачать результаты раздела
+                  </a>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    title="Станет доступно после отправки раздела модератору"
+                    className="cursor-not-allowed rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-400"
+                  >
+                    Скачать результаты раздела
+                  </span>
+                )}
               </div>
             </article>
           );

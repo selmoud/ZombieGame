@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 type Option = { value: string; label: string };
@@ -908,6 +909,7 @@ export function DynamicForm({
   initialRevision: number;
   initialStatus: string;
 }) {
+  const router = useRouter();
   const [answers, setAnswers] = useState(initialAnswers);
   const [revision, setRevision] = useState(initialRevision);
   const [status, setStatus] = useState(initialStatus);
@@ -1078,6 +1080,7 @@ export function DynamicForm({
       if (!response.ok) throw new Error(result.error);
       setStatus("SUBMITTED");
       setMessage("Ответ отправлен администратору.");
+      router.refresh();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       if (!message) setMessage("Не удалось отправить ответ.");

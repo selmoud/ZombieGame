@@ -15,3 +15,7 @@ export const statusStyles: Record<SubmissionStatus, string> = {
   NEEDS_REVISION: "bg-[#FFE0ED] text-[#C80058]",
   ACCEPTED: "bg-[#DDF8FB] text-[#00616C]",
 };
+
+export function canDownloadSubmissionResults(status: SubmissionStatus) {
+  return status === "SUBMITTED" || status === "ACCEPTED";
+}

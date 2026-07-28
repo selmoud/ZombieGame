@@ -10,12 +10,14 @@ type DraftState = {
 
 export function DraftStatus({
   assignmentId,
+  initialStatus,
 }: {
   assignmentId: string;
+  initialStatus: string;
 }) {
   const [draftState, setDraftState] = useState<DraftState>({
     saveState: "saved",
-    status: "DRAFT",
+    status: initialStatus,
   });
 
   useEffect(() => {
