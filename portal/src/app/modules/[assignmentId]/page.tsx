@@ -149,9 +149,6 @@ export default async function ModulePage({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
-          {!["SUBMITTED", "ACCEPTED"].includes(status) && (
-            <DraftSaveButton targetId={`save-draft-${assignment.id}`} />
-          )}
           <section className="paper rounded-2xl p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Как работать
@@ -169,6 +166,9 @@ export default async function ModulePage({
               конкретными примерами.
             </p>
           </section>
+          {!["SUBMITTED", "ACCEPTED"].includes(status) && (
+            <DraftSaveButton targetId={`save-draft-${assignment.id}`} />
+          )}
         </aside>
       </div>
     </AppShell>
