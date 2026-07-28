@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/app-shell";
 import { DraftSaveButton } from "@/components/draft-save-button";
 import { DynamicForm } from "@/components/dynamic-form";
+import { GlossaryModal } from "@/components/glossary-modal";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { statusLabels, statusStyles } from "@/lib/status";
@@ -159,6 +160,7 @@ export default async function ModulePage({
               <li><strong className="text-[#000000]">3.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
+          <GlossaryModal />
           <section className="rounded-2xl bg-[#DDF8FB] p-5">
             <p className="text-lg text-[#000000]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
