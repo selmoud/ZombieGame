@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type DraftState = {
   saveState: "saved" | "saving" | "dirty" | "error";
+  saveError?: string;
   status: string;
 };
 
@@ -35,6 +36,8 @@ export function DraftStatus({
     draftState.status,
   );
   const isDirty = draftState.saveState === "dirty";
+  const hasError = draftState.saveState === "error";
+  const isHighlighted = isDirty || hasError;
   const stateLabel = readOnly
     ? draftState.status === "ACCEPTED"
       ? "Ответ принят"
@@ -50,25 +53,30 @@ export function DraftStatus({
   return (
     <section
       className={`rounded-xl border bg-white px-4 py-3 transition ${
-        isDirty
+        isHighlighted
           ? "border-[#FF2F86] shadow-[0_0_0_3px_rgba(255,47,134,0.10)]"
           : "border-[#0D78F8]"
       }`}
     >
       <p
         className={`text-xs font-semibold uppercase tracking-wider ${
-          isDirty ? "text-[#FF2F86]" : "text-[#0D78F8]"
+          isHighlighted ? "text-[#FF2F86]" : "text-[#0D78F8]"
         }`}
       >
         Статус
       </p>
       <p
         className={`mt-0.5 text-sm font-semibold ${
-          isDirty ? "text-[#FF2F86]" : "text-[#0059C7]"
+          isHighlighted ? "text-[#FF2F86]" : "text-[#0059C7]"
         }`}
       >
         {stateLabel}
       </p>
+      {hasError && draftState.saveError && (
+        <p className="mt-2 text-xs leading-5 text-[#A9004A]">
+          {draftState.saveError}
+        </p>
+      )}
     </section>
   );
 }

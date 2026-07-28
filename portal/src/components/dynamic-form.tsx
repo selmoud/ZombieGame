@@ -342,6 +342,7 @@ export function DynamicForm({
   const [revision, setRevision] = useState(initialRevision);
   const [status, setStatus] = useState(initialStatus);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "dirty" | "error">("saved");
+  const [saveError, setSaveError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const revisionRef = useRef(initialRevision);
@@ -350,6 +351,7 @@ export function DynamicForm({
 
   async function saveDraft(snapshot = answers) {
     if (readOnly) return revisionRef.current;
+    setSaveError("");
     setSaveState("saving");
     const response = await fetch(`/api/assignments/${assignmentId}/draft`, {
       method: "PUT",
@@ -358,12 +360,18 @@ export function DynamicForm({
     });
     if (response.status === 409) {
       setSaveState("error");
-      setMessage("Черновик изменился в другой вкладке. Обновите страницу.");
+      const description =
+        "Черновик изменён в другой вкладке. Обновите страницу, чтобы загрузить актуальные ответы.";
+      setSaveError(description);
+      setMessage(description);
       throw new Error("Revision conflict");
     }
     if (!response.ok) {
       setSaveState("error");
-      setMessage("Не удалось сохранить. Проверьте соединение.");
+      const description =
+        "Не удалось сохранить ответы. Проверьте подключение к интернету и повторите изменение.";
+      setSaveError(description);
+      setMessage(description);
       throw new Error("Save failed");
     }
     const result = (await response.json()) as { revision: number; status: string };
@@ -371,6 +379,7 @@ export function DynamicForm({
     setRevision(result.revision);
     setStatus(result.status);
     setSaveState("saved");
+    setSaveError("");
     setMessage("");
     return result.revision;
   }
@@ -396,13 +405,15 @@ export function DynamicForm({
           assignmentId,
           revision,
           saveState,
+          saveError,
           status,
         },
       }),
     );
-  }, [assignmentId, revision, saveState, status]);
+  }, [assignmentId, revision, saveError, saveState, status]);
 
   function setAnswer(questionId: string, value: unknown) {
+    setSaveError("");
     setSaveState("dirty");
     setAnswers((current) => ({ ...current, [questionId]: value }));
     setErrors((current) => {
@@ -413,6 +424,7 @@ export function DynamicForm({
   }
 
   async function uploadFile(questionId: string, file: File) {
+    setSaveError("");
     setSaveState("saving");
     const formData = new FormData();
     formData.set("assignmentId", assignmentId);
@@ -423,20 +435,39 @@ export function DynamicForm({
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Upload failed");
-      const result = (await response.json()) as { value: unknown };
+      const result = (await response.json()) as {
+        error?: string;
+        value?: unknown;
+      };
+      if (!response.ok) {
+        const description =
+          result.error === "FILE_NOT_ALLOWED"
+            ? "Файл не загружен. Поддерживаемые форматы: PDF, DOCX, XLSX, PNG, JPG и JPEG. Максимальный размер — 20 МБ."
+            : result.error === "UNAUTHORIZED"
+              ? "Сессия завершена. Войдите в портал повторно и загрузите файл."
+              : result.error === "NOT_ALLOWED"
+                ? "Файл нельзя добавить: раздел уже отправлен или недоступен для редактирования."
+                : "Файл не загружен. Проверьте подключение и попробуйте ещё раз.";
+        setSaveState("error");
+        setSaveError(description);
+        setMessage(description);
+        return;
+      }
       setAnswer(questionId, result.value);
       setSaveState("saved");
+      setSaveError("");
       setMessage("");
     } catch {
+      const description =
+        "Файл не загружен. Проверьте подключение. Поддерживаемые форматы: PDF, DOCX, XLSX, PNG, JPG и JPEG до 20 МБ.";
       setSaveState("error");
-      setMessage(
-        "Файл не загружен. Допустимы PDF, DOCX, XLSX, PNG и JPG до 20 МБ.",
-      );
+      setSaveError(description);
+      setMessage(description);
     }
   }
 
   async function deleteFile(questionId: string, attachmentId: string) {
+    setSaveError("");
     setSaveState("saving");
     try {
       const response = await fetch(`/api/attachments/${attachmentId}`, {
@@ -444,10 +475,14 @@ export function DynamicForm({
       });
       if (!response.ok) throw new Error("Delete failed");
       setAnswer(questionId, "");
+      setSaveError("");
       setMessage("");
     } catch {
+      const description =
+        "Не удалось удалить файл. Проверьте подключение, обновите страницу и попробуйте ещё раз.";
       setSaveState("error");
-      setMessage("Не удалось удалить файл. Обновите страницу и попробуйте ещё раз.");
+      setSaveError(description);
+      setMessage(description);
     }
   }
 
