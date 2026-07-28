@@ -65,6 +65,8 @@ model User {
   fullName              String                @map("full_name")
   position              String?
   direction             String?
+  experienceSummary     String?               @map("experience_summary")
+  expertiseReason       String?               @map("expertise_reason")
   role                  UserRole              @default(EXPERT)
   isActive              Boolean               @default(false) @map("is_active")
   passwordHash          String?               @map("password_hash")
@@ -93,6 +95,8 @@ model RegistrationRequest {
   fullName            String                        @map("full_name")
   companyName         String                        @map("company_name")
   passwordHash        String                        @map("password_hash")
+  experienceSummary   String?                       @map("experience_summary")
+  expertiseReason     String?                       @map("expertise_reason")
   subgroupMemberships RegistrationRequestSubgroup[]
   status              RegistrationStatus            @default(PENDING)
   reviewedById        String?                       @map("reviewed_by_id") @db.Uuid

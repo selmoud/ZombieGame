@@ -171,6 +171,26 @@ export default async function AdminPage({
                   </button>
                 </form>
               </div>
+              {(request.experienceSummary || request.expertiseReason) && (
+                <div className="grid gap-4 rounded-xl bg-neutral-50 p-4 lg:col-span-4 lg:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-neutral-400">
+                      Опыт работы
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-neutral-700">
+                      {request.experienceSummary ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-neutral-400">
+                      Основание для включения в экспертную группу
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-neutral-700">
+                      {request.expertiseReason ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           {!registrations.length && (
@@ -228,6 +248,8 @@ export default async function AdminPage({
                 progress={`${touched}/${user.assignments.length}`}
                 isActive={user.isActive}
                 hasPassword={Boolean(user.passwordHash)}
+                experienceSummary={user.experienceSummary}
+                expertiseReason={user.expertiseReason}
               />
             );
           })}

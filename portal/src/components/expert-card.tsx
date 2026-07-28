@@ -20,6 +20,8 @@ export function ExpertCard({
   progress,
   isActive,
   hasPassword,
+  experienceSummary,
+  expertiseReason,
 }: {
   id: string;
   fullName: string;
@@ -28,6 +30,8 @@ export function ExpertCard({
   progress: string;
   isActive: boolean;
   hasPassword: boolean;
+  experienceSummary?: string | null;
+  expertiseReason?: string | null;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [state, action, pending] = useActionState(
@@ -85,6 +89,13 @@ export function ExpertCard({
         <DataItem label="Подгруппы">{subgroup}</DataItem>
         <DataItem label="Прогресс">{progress}</DataItem>
       </div>
+
+      {(experienceSummary || expertiseReason) && (
+        <div className="mt-4 grid gap-4 rounded-xl bg-neutral-50 p-4 md:grid-cols-2">
+          <DataItem label="Опыт работы">{experienceSummary ?? "—"}</DataItem>
+          <DataItem label="Экспертный профиль">{expertiseReason ?? "—"}</DataItem>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-neutral-100 pt-4">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#0059C7]">

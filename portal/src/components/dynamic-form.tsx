@@ -7,6 +7,7 @@ import {
   type FieldCondition,
 } from "@/lib/field-conditions";
 import { synchronizeAutomaticTableRows } from "@/lib/auto-table-rows";
+import { validateAnswers } from "@/lib/answer-validation";
 
 type Option = { value: string; label: string };
 type Column = {
@@ -1002,6 +1003,8 @@ export function DynamicForm({
   const revisionRef = useRef(initialRevision);
   const firstRender = useRef(true);
   const readOnly = !["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(status);
+  const canPreview =
+    Object.keys(validateAnswers(questions, answers)).length === 0;
 
   async function saveDraft(snapshot = answers) {
     if (readOnly) return revisionRef.current;
@@ -1354,12 +1357,22 @@ export function DynamicForm({
           <div className="flex shrink-0 flex-col gap-3 sm:items-end">
             <button
               type="button"
-              disabled={previewing}
+              disabled={previewing || !canPreview}
               onClick={previewPdf}
+              title={
+                canPreview
+                  ? "Открыть текущие ответы в формате PDF"
+                  : "Сначала заполните все обязательные поля"
+              }
               className="rounded-xl border border-white px-6 py-3 font-semibold text-white hover:bg-white hover:text-black disabled:opacity-60"
             >
               {previewing ? "Формируем PDF…" : "Предварительный просмотр PDF"}
             </button>
+            {!canPreview && (
+              <p className="max-w-64 text-right text-xs leading-5 text-neutral-300">
+                Станет доступен после заполнения всех обязательных полей *
+              </p>
+            )}
             <button
               type="button"
               onClick={submit}

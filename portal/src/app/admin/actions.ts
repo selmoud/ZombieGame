@@ -339,6 +339,8 @@ export async function approveRegistration(formData: FormData) {
       data: {
         fullName: request.fullName,
         companyId: company.id,
+        experienceSummary: request.experienceSummary,
+        expertiseReason: request.expertiseReason,
         subgroupMemberships: {
           create: subgroupIds.map((subgroupId) => ({ subgroupId })),
         },

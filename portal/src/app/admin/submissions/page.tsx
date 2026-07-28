@@ -14,7 +14,8 @@ export default async function SubmissionsPage({
   const query = await searchParams;
   const company = typeof query.company === "string" ? query.company : "";
   const moduleId = typeof query.module === "string" ? query.module : "";
-  const status = typeof query.status === "string" ? query.status : "";
+  const status =
+    typeof query.status === "string" ? query.status : "SUBMITTED";
   const subgroup = typeof query.subgroup === "string" ? query.subgroup : "";
   const [submissions, companies, modules, subgroups] = await Promise.all([
     db.submission.findMany({
@@ -83,9 +84,12 @@ export default async function SubmissionsPage({
         </select>
         <select className="field" name="status" defaultValue={status}>
           <option value="">Все статусы</option>
-          {Object.entries(statusLabels).map(([value, label]) => (
+          <option value="SUBMITTED">Требуют решения</option>
+          {Object.entries(statusLabels)
+            .filter(([value]) => value !== "SUBMITTED")
+            .map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
-          ))}
+            ))}
         </select>
         <select className="field" name="subgroup" defaultValue={subgroup}>
           <option value="">Все подгруппы</option>
@@ -95,6 +99,12 @@ export default async function SubmissionsPage({
           Применить
         </button>
       </form>
+      {status === "SUBMITTED" && (
+        <p className="mt-3 text-sm text-neutral-500">
+          По умолчанию показаны только ответы, по которым требуется решение
+          администратора.
+        </p>
+      )}
 
       <section className="paper mt-6 overflow-hidden rounded-2xl">
         <div className="border-b border-neutral-200 px-6 py-4 text-sm text-neutral-500">
