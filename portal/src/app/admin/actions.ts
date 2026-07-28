@@ -446,6 +446,61 @@ export async function renameSubgroup(formData: FormData) {
   redirect("/admin?subgroup=updated");
 }
 
+export async function assignSubgroupLeader(formData: FormData) {
+  await requireRole("ADMIN");
+  const subgroupId = String(formData.get("subgroupId") ?? "");
+  const leaderId = String(formData.get("leaderId") ?? "") || null;
+  const subgroup = await db.subgroup.findUnique({
+    where: { id: subgroupId },
+    select: { id: true, leaderId: true },
+  });
+  if (!subgroup) redirect("/admin?subgroup=not-found#subgroups");
+
+  if (leaderId) {
+    const membership = await db.userSubgroup.findUnique({
+      where: {
+        userId_subgroupId: { userId: leaderId, subgroupId },
+      },
+      include: { user: { select: { role: true, isActive: true } } },
+    });
+    if (
+      !membership ||
+      !membership.user.isActive ||
+      !["EXPERT", "LEAD"].includes(membership.user.role)
+    ) {
+      redirect("/admin?subgroup=invalid-leader#subgroups");
+    }
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.subgroup.update({
+      where: { id: subgroup.id },
+      data: { leaderId },
+    });
+    if (leaderId) {
+      await tx.user.update({
+        where: { id: leaderId },
+        data: { role: "LEAD" },
+      });
+    }
+    if (subgroup.leaderId && subgroup.leaderId !== leaderId) {
+      const remainingLeaderships = await tx.subgroup.count({
+        where: { leaderId: subgroup.leaderId },
+      });
+      if (!remainingLeaderships) {
+        await tx.user.updateMany({
+          where: { id: subgroup.leaderId, role: "LEAD" },
+          data: { role: "EXPERT" },
+        });
+      }
+    }
+  });
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/lead");
+  redirect("/admin?subgroup=leader-updated#subgroups");
+}
+
 export async function deleteSubgroup(formData: FormData) {
   await requireRole("ADMIN");
   const id = String(formData.get("id") ?? "");

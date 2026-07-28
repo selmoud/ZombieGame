@@ -52,11 +52,14 @@ model Company {
 model Subgroup {
   id                      String                        @id @default(uuid()) @db.Uuid
   name                    String                        @unique
+  leaderId                String?                       @map("leader_id") @db.Uuid
+  leader                  User?                         @relation("SubgroupLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   userMemberships         UserSubgroup[]
   registrationMemberships RegistrationRequestSubgroup[]
   createdAt               DateTime                      @default(now()) @map("created_at")
   updatedAt               DateTime                      @updatedAt @map("updated_at")
 
+  @@index([leaderId])
   @@map("subgroups")
 }
 
@@ -83,6 +86,7 @@ model User {
   comments              ReviewComment[]
   statusChanges         StatusHistory[]
   reviewedRegistrations RegistrationRequest[] @relation("RegistrationReviewer")
+  ledSubgroups          Subgroup[]             @relation("SubgroupLeader")
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 

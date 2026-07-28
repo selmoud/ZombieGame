@@ -47,6 +47,10 @@ export async function getCurrentUser() {
         include: {
           company: true,
           subgroupMemberships: { include: { subgroup: true } },
+          ledSubgroups: {
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          },
         },
       },
     },

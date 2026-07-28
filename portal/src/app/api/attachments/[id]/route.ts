@@ -3,6 +3,7 @@ import path from "node:path";
 import { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { leadsExpertSubgroup } from "@/lib/leader-access";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 
 export async function GET(
@@ -24,12 +25,17 @@ export async function GET(
       },
     },
   });
-  if (
-    !attachment ||
-    attachment.deletedAt ||
-    (user.role !== "ADMIN" &&
-      attachment.answer.submission.assignment.userId !== user.id)
-  ) {
+  if (!attachment || attachment.deletedAt) {
+    return new Response("Not found", { status: 404 });
+  }
+  const submission = attachment.answer.submission;
+  const isOwner = submission.assignment.userId === user.id;
+  const isLeaderViewer =
+    user.role !== "ADMIN" &&
+    !isOwner &&
+    submission.status === "ACCEPTED" &&
+    (await leadsExpertSubgroup(user.id, submission.assignment.userId));
+  if (user.role !== "ADMIN" && !isOwner && !isLeaderViewer) {
     return new Response("Not found", { status: 404 });
   }
   const data = await readFile(

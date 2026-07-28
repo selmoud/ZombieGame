@@ -37,6 +37,19 @@ export default async function AdminPage({
     }),
     db.subgroup.findMany({
       include: {
+        leader: { select: { id: true, fullName: true } },
+        userMemberships: {
+          where: {
+            user: {
+              role: { in: ["EXPERT", "LEAD"] },
+              isActive: true,
+            },
+          },
+          include: {
+            user: { select: { id: true, fullName: true } },
+          },
+          orderBy: { user: { fullName: "asc" } },
+        },
         _count: {
           select: {
             userMemberships: {
@@ -207,6 +220,8 @@ export default async function AdminPage({
           name: subgroup.name,
           experts: subgroup._count.userMemberships,
           requests: subgroup._count.registrationMemberships,
+          leaderId: subgroup.leaderId,
+          members: subgroup.userMemberships.map(({ user }) => user),
         }))}
         status={typeof query.subgroup === "string" ? query.subgroup : undefined}
       />

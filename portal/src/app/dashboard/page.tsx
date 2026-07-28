@@ -79,7 +79,12 @@ export default async function DashboardPage({
           ["ФИО", user.fullName],
           ["Компания", user.company?.name ?? "—"],
           ["Подгруппы", formatSubgroups(user.subgroupMemberships)],
-          ["Роль", user.role === "LEAD" ? "Руководитель" : "Эксперт"],
+          [
+            "Роль",
+            user.ledSubgroups.length
+              ? "Эксперт и руководитель подгруппы"
+              : "Эксперт",
+          ],
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-xs uppercase tracking-wider text-neutral-400">

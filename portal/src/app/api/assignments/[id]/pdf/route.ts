@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
+import { leadsExpertSubgroup } from "@/lib/leader-access";
 import {
   canDownloadSubmissionResults,
   statusLabels,
@@ -37,21 +38,30 @@ async function renderPdf(
       submission: { include: { answers: true } },
     },
   });
+  if (!assignment || !assignment.submission) {
+    return Response.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  const isAdmin = currentUser.role === "ADMIN";
+  const isOwner = assignment.userId === currentUser.id;
+  const isLeaderViewer =
+    !isAdmin &&
+    !isOwner &&
+    assignment.submission.status === "ACCEPTED" &&
+    (await leadsExpertSubgroup(currentUser.id, assignment.userId));
   if (
-    !assignment ||
-    !assignment.submission ||
-    (currentUser.role !== "ADMIN" && assignment.userId !== currentUser.id)
+    (!isAdmin && !isOwner && !isLeaderViewer) ||
+    (previewAnswers !== undefined && !isAdmin && !isOwner)
   ) {
     return Response.json({ error: "NOT_FOUND" }, { status: 404 });
   }
   if (
-    currentUser.role !== "ADMIN" &&
+    isOwner &&
     !(await isModuleUnlocked(currentUser.id, assignment.module.order))
   ) {
     return Response.json({ error: "MODULE_LOCKED" }, { status: 403 });
   }
   if (
-    currentUser.role !== "ADMIN" &&
+    isOwner &&
     previewAnswers === undefined &&
     new URL(request.url).searchParams.get("preview") !== "1" &&
     !canDownloadSubmissionResults(assignment.submission.status)
