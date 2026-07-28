@@ -65,8 +65,11 @@ export default async function ModulePage({
         options?: Array<{ value: string; label: string }>;
         allowCustom?: boolean;
         defaultValue?: string;
+        excludeColumnKey?: string;
+        excludeOptionValues?: string[];
         fullWidth?: boolean;
         lastOptionValue?: string;
+        optionsFromColumnKey?: string;
         requiredWhen?: { columnKey: string; equals: string };
         sortOptions?: boolean;
         sourceQuestionKey?: string;

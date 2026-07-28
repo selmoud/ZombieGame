@@ -11,8 +11,11 @@ type Column = {
   options?: Option[];
   allowCustom?: boolean;
   defaultValue?: string;
+  excludeColumnKey?: string;
+  excludeOptionValues?: string[];
   fullWidth?: boolean;
   lastOptionValue?: string;
+  optionsFromColumnKey?: string;
   requiredWhen?: { columnKey: string; equals: string };
   sortOptions?: boolean;
   sourceQuestionKey?: string;
@@ -442,40 +445,52 @@ function TableField({
     });
   }
 
-  function getSuggestions(column: Column) {
-    const staticOptions = column.options ?? [];
-    if (!column.sourceQuestionKey || !column.sourceColumnKey) {
-      return column.sortOptions
-        ? sortSuggestions(staticOptions, column)
-        : staticOptions;
+  function getSuggestions(
+    column: Column,
+    row: Record<string, unknown>,
+  ) {
+    const optionSource =
+      columns.find((item) => item.key === column.optionsFromColumnKey) ??
+      column;
+    const staticOptions = column.options ?? optionSource.options ?? [];
+    const sourceQuestionKey =
+      column.sourceQuestionKey ?? optionSource.sourceQuestionKey;
+    const sourceColumnKey =
+      column.sourceColumnKey ?? optionSource.sourceColumnKey;
+    const sourceLabelSuffix =
+      column.sourceLabelSuffix ?? optionSource.sourceLabelSuffix;
+    let combined = [...staticOptions];
+
+    if (sourceQuestionKey && sourceColumnKey) {
+      const sourceQuestion = questions.find(
+        (item) => item.key === sourceQuestionKey,
+      );
+      const sourceRows = sourceQuestion
+        ? answers[sourceQuestion.id]
+        : undefined;
+      const linkedValues = Array.isArray(sourceRows)
+        ? sourceRows.flatMap((sourceRow) => {
+            const sourceValue = (sourceRow as Record<string, unknown>)[
+              sourceColumnKey
+            ];
+            return Array.isArray(sourceValue)
+              ? sourceValue.map(String)
+              : sourceValue
+                ? [String(sourceValue)]
+                : [];
+          })
+        : [];
+      combined = [
+        ...staticOptions,
+        ...linkedValues.map((item) => ({
+          value: item,
+          label: sourceLabelSuffix
+            ? `${item} ${sourceLabelSuffix}`
+            : item,
+        })),
+      ];
     }
-    const sourceQuestion = questions.find(
-      (item) => item.key === column.sourceQuestionKey,
-    );
-    const sourceRows = sourceQuestion
-      ? answers[sourceQuestion.id]
-      : undefined;
-    const linkedValues = Array.isArray(sourceRows)
-      ? sourceRows.flatMap((row) => {
-          const sourceValue = (row as Record<string, unknown>)[
-            column.sourceColumnKey as string
-          ];
-          return Array.isArray(sourceValue)
-            ? sourceValue.map(String)
-            : sourceValue
-              ? [String(sourceValue)]
-              : [];
-        })
-      : [];
-    const combined = [
-      ...staticOptions,
-      ...linkedValues.map((item) => ({
-        value: item,
-        label: column.sourceLabelSuffix
-          ? `${item} ${column.sourceLabelSuffix}`
-          : item,
-      })),
-    ];
+
     const uniqueOptions = combined.filter(
       (option, index) =>
         combined.findIndex(
@@ -484,9 +499,21 @@ function TableField({
             option.value.toLocaleLowerCase("ru"),
         ) === index,
     );
+    const excludedValues = new Set(column.excludeOptionValues ?? []);
+    if (column.excludeColumnKey) {
+      const excludedFromRow = row[column.excludeColumnKey];
+      if (Array.isArray(excludedFromRow)) {
+        excludedFromRow.forEach((item) => excludedValues.add(String(item)));
+      } else if (excludedFromRow) {
+        excludedValues.add(String(excludedFromRow));
+      }
+    }
+    const availableOptions = uniqueOptions.filter(
+      (option) => !excludedValues.has(option.value),
+    );
     return column.sortOptions
-      ? sortSuggestions(uniqueOptions, column)
-      : uniqueOptions;
+      ? sortSuggestions(availableOptions, column)
+      : availableOptions;
   }
 
   function addRow() {
@@ -513,6 +540,24 @@ function TableField({
                     column.visibleWhen.equals
                 ) {
                   nextRow[column.key] = "";
+                }
+                if (Array.isArray(nextRow[column.key])) {
+                  const excludedValues = new Set(
+                    column.excludeOptionValues ?? [],
+                  );
+                  if (column.excludeColumnKey) {
+                    const excludedFromRow = nextRow[column.excludeColumnKey];
+                    if (Array.isArray(excludedFromRow)) {
+                      excludedFromRow.forEach((item) =>
+                        excludedValues.add(String(item)),
+                      );
+                    } else if (excludedFromRow) {
+                      excludedValues.add(String(excludedFromRow));
+                    }
+                  }
+                  nextRow[column.key] = (
+                    nextRow[column.key] as unknown[]
+                  ).filter((item) => !excludedValues.has(String(item)));
                 }
                 return nextRow;
               },
@@ -574,7 +619,7 @@ function TableField({
                 <InlineField
                   column={column}
                   value={row[column.key]}
-                  suggestions={getSuggestions(column)}
+                  suggestions={getSuggestions(column, row)}
                   disabled={disabled}
                   onChange={(cellValue) =>
                     updateRow(rowIndex, column.key, cellValue)

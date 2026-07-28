@@ -20,6 +20,7 @@ describe("module definitions", () => {
       "suggest",
       "short_text",
       "multi_suggest",
+      "multi_suggest",
     ]);
   });
 

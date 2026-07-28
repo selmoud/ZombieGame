@@ -68,6 +68,14 @@ questions:
           fullWidth: true
           visibleWhen: { columnKey: segment, equals: Другое }
           requiredWhen: { columnKey: segment, equals: Другое }
+        - key: adjacentSegments
+          title: Смежные сегменты
+          type: multi_suggest
+          fullWidth: true
+          sortOptions: true
+          optionsFromColumnKey: segment
+          excludeColumnKey: segment
+          excludeOptionValues: [Другое]
         - key: participants
           title: Участники
           type: multi_suggest
