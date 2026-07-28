@@ -30,19 +30,7 @@ export default async function Home() {
             </p>
           </div>
           <div className="flex flex-col px-8 py-12 sm:px-12">
-            <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
-              Регистрация
-            </p>
-            <h2 className="mt-3 text-3xl font-bold text-black">
-              Подать заявку
-            </h2>
-            <p className="mt-4 leading-7 text-neutral-600">
-              Заполните данные. После согласования администратором вы сможете
-              войти и приступить к работе.
-            </p>
-            <div className="mt-7">
-              <RegistrationForm subgroups={subgroups} />
-            </div>
+            <RegistrationForm subgroups={subgroups} />
           </div>
         </div>
       </section>

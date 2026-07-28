@@ -29,18 +29,23 @@ export function RegistrationForm({
           Администратор проверит данные. После согласования вы сможете войти с
           указанными именем и паролем.
         </p>
-        <Link
-          href="/login"
-          className="mt-5 inline-block font-bold text-[#0059C7]"
-        >
-          Перейти ко входу →
-        </Link>
       </div>
     );
   }
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <>
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
+          Регистрация
+        </p>
+        <h2 className="mt-3 text-3xl font-bold text-black">Подать заявку</h2>
+        <p className="mt-4 leading-7 text-neutral-600">
+          Заполните данные. После согласования администратором вы сможете войти
+          и приступить к работе.
+        </p>
+      </div>
+      <form action={action} className="mt-7 flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg bg-[#FFE0ED] p-3 text-sm text-[#A9004A]">
           {state.error}
@@ -138,6 +143,7 @@ export function RegistrationForm({
           Войти
         </Link>
       </p>
-    </form>
+      </form>
+    </>
   );
 }
