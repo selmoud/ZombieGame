@@ -85,7 +85,7 @@ questions:
             - { value: intermediary, label: Посредник }
             - { value: government, label: Государство }
         - key: role
-          title: Описание роли в сегменте
+          title: Описание участника в сегменте
           description: "Кратко укажите, что участник делает и какую ценность предоставляет или получает."
           type: long_text
           required: true
