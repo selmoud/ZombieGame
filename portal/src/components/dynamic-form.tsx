@@ -185,6 +185,101 @@ function TableField({
   );
 }
 
+function FileUploadField({
+  value,
+  disabled,
+  onUpload,
+}: {
+  value: unknown;
+  disabled: boolean;
+  onUpload: (file: File) => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const uploadedFile =
+    typeof value === "object" && value && "id" in value
+      ? (value as { id: unknown; name?: unknown })
+      : null;
+
+  async function selectFile(file?: File) {
+    if (!file || uploading) return;
+    setUploading(true);
+    try {
+      await onUpload(file);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {uploadedFile && (
+        <a
+          href={`/api/attachments/${String(uploadedFile.id)}`}
+          className="flex items-center justify-between gap-3 rounded-xl bg-[#DDF8FB] px-4 py-3 text-sm font-semibold text-[#00616C]"
+        >
+          <span className="truncate">
+            Прикреплён: {String(uploadedFile.name ?? "Скачать файл")}
+          </span>
+          <span className="shrink-0">Скачать ↓</span>
+        </a>
+      )}
+      {!disabled && (
+        <div
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+            setDragging(true);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+              setDragging(false);
+            }
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void selectFile(event.dataTransfer.files?.[0]);
+          }}
+          className={`rounded-2xl border-2 border-dashed p-6 text-center transition ${
+            dragging
+              ? "border-[#0D78F8] bg-[#E0EEFF]"
+              : "border-neutral-300 bg-neutral-50 hover:border-[#0D78F8]"
+          }`}
+        >
+          <p className="font-semibold text-black">
+            {uploading ? "Загружаем материал…" : "Перетащите файл сюда"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-neutral-500">
+            PDF, DOCX, XLSX, PNG или JPG до 20 МБ
+          </p>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+            className="mt-4 rounded-xl bg-[#0059C7] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00479F] disabled:opacity-60"
+          >
+            Добавить материал
+          </button>
+          <input
+            ref={inputRef}
+            className="sr-only"
+            type="file"
+            accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+            onChange={(event) => void selectFile(event.target.files?.[0])}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DynamicForm({
   assignmentId,
   questions,
@@ -265,18 +360,22 @@ export function DynamicForm({
     formData.set("assignmentId", assignmentId);
     formData.set("questionId", questionId);
     formData.set("file", file);
-    const response = await fetch("/api/attachments", {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) {
+    try {
+      const response = await fetch("/api/attachments", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error("Upload failed");
+      const result = (await response.json()) as { value: unknown };
+      setAnswer(questionId, result.value);
+      setSaveState("saved");
+      setMessage("");
+    } catch {
       setSaveState("error");
-      setMessage("Файл не загружен. Допустимы PDF, DOCX, XLSX, PNG и JPG.");
-      return;
+      setMessage(
+        "Файл не загружен. Допустимы PDF, DOCX, XLSX, PNG и JPG до 20 МБ.",
+      );
     }
-    const result = (await response.json()) as { value: unknown };
-    setAnswer(questionId, result.value);
-    setSaveState("saved");
   }
 
   async function submit() {
@@ -441,27 +540,11 @@ export function DynamicForm({
                   ))}
                 </div>
               ) : question.type === "FILE" ? (
-                <div>
-                  {typeof value === "object" && value && "id" in value ? (
-                    <a
-                      href={`/api/attachments/${String((value as { id: unknown }).id)}`}
-                      className="inline-flex rounded-lg bg-neutral-100 px-4 py-2.5 text-sm font-semibold text-[#000000]"
-                    >
-                      ↓ {String((value as { name?: unknown }).name ?? "Скачать файл")}
-                    </a>
-                  ) : null}
-                  {!readOnly && (
-                    <input
-                      className="mt-3 block text-sm text-neutral-600"
-                      type="file"
-                      accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) uploadFile(question.id, file);
-                      }}
-                    />
-                  )}
-                </div>
+                <FileUploadField
+                  value={value}
+                  disabled={readOnly}
+                  onUpload={(file) => uploadFile(question.id, file)}
+                />
               ) : (
                 <input
                   className="field"
