@@ -33,6 +33,7 @@ questions:
     config:
       minRows: 1
       maxRows: 12
+      rowLabel: Сегмент
       columns:
         - key: industry
           title: Отрасль

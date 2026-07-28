@@ -70,6 +70,7 @@ const questionSchema = z.object({
       max: z.number().optional(),
       minRows: z.number().int().min(0).optional(),
       maxRows: z.number().int().positive().optional(),
+      rowLabel: z.string().optional(),
       columns: z.array(columnSchema).optional(),
     })
     .passthrough()

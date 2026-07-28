@@ -57,6 +57,7 @@ export default async function ModulePage({
       max?: number;
       minRows?: number;
       maxRows?: number;
+      rowLabel?: string;
       columns?: Array<{
         key: string;
         title: string;

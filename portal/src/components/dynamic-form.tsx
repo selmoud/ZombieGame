@@ -38,6 +38,7 @@ type Question = {
     max?: number;
     minRows?: number;
     maxRows?: number;
+    rowLabel?: string;
     columns?: Column[];
   };
 };
@@ -577,7 +578,7 @@ function TableField({
         >
           <div className="mb-4 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Строка {rowIndex + 1}
+              {question.config.rowLabel ?? "Строка"} {rowIndex + 1}
             </span>
             {!disabled && (
               <button
