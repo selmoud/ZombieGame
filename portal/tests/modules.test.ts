@@ -56,8 +56,9 @@ describe("module definitions", () => {
         (question) => question.key === "segment_assessment_file",
       ),
     ).toMatchObject({
-      order: 3,
+      order: 5,
       type: "file",
+      title: "Материалы к экспертной оценке отрасли и сегментов",
       required: false,
     });
   });
