@@ -3,20 +3,16 @@
 import { useEffect, useState } from "react";
 
 type DraftState = {
-  revision: number;
   saveState: "saved" | "saving" | "dirty" | "error";
   status: string;
 };
 
 export function DraftStatus({
   assignmentId,
-  initialRevision,
 }: {
   assignmentId: string;
-  initialRevision: number;
 }) {
   const [draftState, setDraftState] = useState<DraftState>({
-    revision: initialRevision,
     saveState: "saved",
     status: "DRAFT",
   });
@@ -49,7 +45,7 @@ export function DraftStatus({
         ? "Есть изменения"
         : draftState.saveState === "error"
           ? "Ошибка сохранения"
-          : "Все изменения сохранены";
+          : "Изменения сохранены";
 
   return (
     <section
@@ -64,7 +60,7 @@ export function DraftStatus({
           isDirty ? "text-[#FF2F86]" : "text-[#0D78F8]"
         }`}
       >
-        Состояние черновика
+        Статус
       </p>
       <p
         className={`mt-0.5 text-sm font-semibold ${
@@ -72,13 +68,6 @@ export function DraftStatus({
         }`}
       >
         {stateLabel}
-        <span
-          className={`ml-2 text-xs font-normal ${
-            isDirty ? "text-[#FF2F86]" : "text-[#0D78F8]"
-          }`}
-        >
-          версия {draftState.revision}
-        </span>
       </p>
     </section>
   );

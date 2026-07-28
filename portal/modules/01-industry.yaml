@@ -25,19 +25,39 @@ theory: |
   ситуацию в отрасли или её сегменте. Конкретные компании и продукты можно
   приводить как подтверждающие примеры.
 questions:
-  - key: analysis_object
+  - key: industry_boundaries
     type: table
-    title: Границы и сегменты отрасли
-    description: "Добавьте основные сегменты и участников отрасли. Пример: сегмент «онлайн-видео», группа участников «онлайн-кинотеатры», продукт «подписка на видеоконтент»."
+    title: Границы отрасли
+    description: "Зафиксируйте, какие виды деятельности относятся к отрасли, какие являются смежными, а какие остаются за её пределами. Пример: «Телеком-инфраструктура — смежная область — учитывается только в части распространения контента»."
     required: true
     config:
       minRows: 1
-      maxRows: 5
+      maxRows: 10
       columns:
-        - { key: company, title: Участник или группа участников, type: short_text, required: true }
-        - { key: product, title: Продукт или услуга, type: short_text }
-        - { key: platform, title: Цифровая платформа, type: short_text }
+        - { key: object, title: Вид деятельности или объект, type: short_text, required: true }
+        - key: status
+          title: Отношение к отрасли
+          type: select
+          required: true
+          options:
+            - { value: included, label: Входит в отрасль }
+            - { value: adjacent, label: Смежная область }
+            - { value: excluded, label: Не входит в отрасль }
+        - { key: rationale, title: Обоснование границы, type: long_text, required: true }
+  - key: analysis_object
+    type: table
+    title: Сегменты отрасли
+    description: "Разделите отрасль на устойчивые сегменты. Одна строка — один сегмент. Пример: «Онлайн-видео — стриминговые сервисы и онлайн-кинотеатры — подписка и рекламная модель — платформы, правообладатели, зрители»."
+    required: true
+    config:
+      minRows: 1
+      maxRows: 12
+      columns:
         - { key: segment, title: Сегмент, type: short_text, required: true }
+        - { key: scope, title: Что входит в сегмент, type: long_text, required: true }
+        - { key: product, title: Ключевые продукты и услуги, type: short_text }
+        - { key: company, title: Основные группы участников, type: short_text }
+        - { key: intersection, title: Пересечения с другими сегментами, type: short_text }
   - key: current_state
     type: long_text
     title: Каково текущее состояние отрасли?

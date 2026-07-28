@@ -8,4 +8,13 @@ describe("module definitions", () => {
     expect(modules.map((item) => item.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(modules.every((item) => item.questions.length > 0)).toBe(true);
   });
+
+  it("separates industry boundaries from industry segments", async () => {
+    const [industry] = await loadModuleDefinitions();
+    expect(industry.questions.slice(0, 2).map((question) => question.key)).toEqual([
+      "industry_boundaries",
+      "analysis_object",
+    ]);
+    expect(industry.questions[0].config.columns?.[1].type).toBe("select");
+  });
 });

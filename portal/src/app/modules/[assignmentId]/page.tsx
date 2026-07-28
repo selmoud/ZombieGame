@@ -172,7 +172,6 @@ export default async function ModulePage({
           {!["SUBMITTED", "ACCEPTED"].includes(status) && (
             <DraftStatus
               assignmentId={assignment.id}
-              initialRevision={assignment.submission.revision}
             />
           )}
         </aside>
