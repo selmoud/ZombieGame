@@ -11,6 +11,13 @@ describe("module definitions", () => {
 
   it("separates industry boundaries from industry segments", async () => {
     const [industry] = await loadModuleDefinitions();
+    expect(industry.questions.map((question) => question.key)).toEqual([
+      "industry_boundaries",
+      "segment_assessment_file",
+      "analysis_object",
+      "current_state",
+      "key_metrics",
+    ]);
     const boundaries = industry.questions.find((question) => question.key === "analysis_object");
     const segments = industry.questions.find(
       (question) => question.key === "industry_boundaries",

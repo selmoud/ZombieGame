@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels, statusStyles } from "@/lib/status";
 import { acceptSubmission, addComment, requestRevision } from "./actions";
 
@@ -103,13 +104,15 @@ export default async function SubmissionPage({
           </section>
 
           <section className="mt-5 space-y-4">
-            {submission.assignment.moduleVersion.questions.map((question, index) => (
-              <article key={question.id} className="paper rounded-2xl p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Вопрос {index + 1}</p>
-                <h2 className="mt-2 font-semibold text-[#000000]">{question.title}</h2>
-                <div className="mt-4">{displayValue(answerMap.get(question.id), question.config)}</div>
-              </article>
-            ))}
+            {submission.assignment.moduleVersion.questions
+              .filter((question) => !isQuestionHidden(question.config))
+              .map((question, index) => (
+                <article key={question.id} className="paper rounded-2xl p-6">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Вопрос {index + 1}</p>
+                  <h2 className="mt-2 font-semibold text-[#000000]">{question.title}</h2>
+                  <div className="mt-4">{displayValue(answerMap.get(question.id), question.config)}</div>
+                </article>
+              ))}
           </section>
         </div>
 

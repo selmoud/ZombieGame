@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels } from "@/lib/status";
 import { createXlsx } from "@/lib/xlsx";
 
@@ -55,6 +56,7 @@ export async function GET() {
         Статус: statusLabels[submission.status],
       };
       for (const question of submission.assignment.moduleVersion.questions) {
+        if (isQuestionHidden(question.config)) continue;
         row[question.title] = simpleValue(answerMap.get(question.id));
       }
       rows.push(row);

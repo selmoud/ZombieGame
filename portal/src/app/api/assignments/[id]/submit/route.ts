@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { validateAnswers } from "@/lib/answer-validation";
 import { db } from "@/lib/db";
+import { isQuestionHidden } from "@/lib/questions";
 
 export async function POST(
   _request: Request,
@@ -29,7 +30,10 @@ export async function POST(
       answer.value,
     ]),
   );
-  const errors = validateAnswers(assignment.moduleVersion.questions, answers);
+  const visibleQuestions = assignment.moduleVersion.questions.filter(
+    (question) => !isQuestionHidden(question.config),
+  );
+  const errors = validateAnswers(visibleQuestions, answers);
   if (Object.keys(errors).length) {
     return Response.json({ error: "VALIDATION_ERROR", fields: errors }, { status: 422 });
   }

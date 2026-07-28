@@ -153,6 +153,32 @@ async function main() {
         },
       });
     }
+    const activeQuestionKeys = definition.questions.map(
+      (question) => question.key,
+    );
+    const removedQuestions = await db.question.findMany({
+      where: {
+        moduleVersionId: version.id,
+        key: { notIn: activeQuestionKeys },
+      },
+    });
+    for (const question of removedQuestions) {
+      const currentConfig =
+        typeof question.config === "object" &&
+        question.config !== null &&
+        !Array.isArray(question.config)
+          ? question.config
+          : {};
+      await db.question.update({
+        where: { id: question.id },
+        data: {
+          config: {
+            ...currentConfig,
+            hidden: true,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
     const assignment = await db.moduleAssignment.upsert({
       where: { userId_moduleId: { userId: expert.id, moduleId: moduleRecord.id } },
       update: { moduleVersionId: version.id },

@@ -7,6 +7,7 @@ import { DynamicForm } from "@/components/dynamic-form";
 import { GlossaryModal } from "@/components/glossary-modal";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels, statusStyles } from "@/lib/status";
 
 export default async function ModulePage({
@@ -44,14 +45,16 @@ export default async function ModulePage({
       answer.value,
     ]),
   );
-  const questions = assignment.moduleVersion.questions.map((question) => ({
-    id: question.id,
-    key: question.key,
-    type: question.type,
-    title: question.title,
-    description: question.description,
-    required: question.required,
-    config: question.config as {
+  const questions = assignment.moduleVersion.questions
+    .filter((question) => !isQuestionHidden(question.config))
+    .map((question) => ({
+      id: question.id,
+      key: question.key,
+      type: question.type,
+      title: question.title,
+      description: question.description,
+      required: question.required,
+      config: question.config as {
       options?: Array<{ value: string; label: string }>;
       min?: number;
       max?: number;
@@ -84,8 +87,8 @@ export default async function ModulePage({
         max?: number;
         step?: number;
       }>;
-    },
-  }));
+      },
+    }));
 
   return (
     <AppShell user={user}>
