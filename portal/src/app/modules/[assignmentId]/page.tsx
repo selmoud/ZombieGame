@@ -65,6 +65,8 @@ export default async function ModulePage({
         options?: Array<{ value: string; label: string }>;
         allowCustom?: boolean;
         defaultValue?: string;
+        fullWidth?: boolean;
+        sortOptions?: boolean;
         sourceQuestionKey?: string;
         sourceColumnKey?: string;
         min?: number;

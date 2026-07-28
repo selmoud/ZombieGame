@@ -11,6 +11,8 @@ type Column = {
   options?: Option[];
   allowCustom?: boolean;
   defaultValue?: string;
+  fullWidth?: boolean;
+  sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
   min?: number;
@@ -415,7 +417,11 @@ function TableField({
   function getSuggestions(column: Column) {
     const staticOptions = column.options ?? [];
     if (!column.sourceQuestionKey || !column.sourceColumnKey) {
-      return staticOptions;
+      return column.sortOptions
+        ? [...staticOptions].sort((left, right) =>
+            left.label.localeCompare(right.label, "ru"),
+          )
+        : staticOptions;
     }
     const sourceQuestion = questions.find(
       (item) => item.key === column.sourceQuestionKey,
@@ -439,7 +445,7 @@ function TableField({
       ...staticOptions,
       ...linkedValues.map((item) => ({ value: item, label: item })),
     ];
-    return combined.filter(
+    const uniqueOptions = combined.filter(
       (option, index) =>
         combined.findIndex(
           (candidate) =>
@@ -447,6 +453,11 @@ function TableField({
             option.value.toLocaleLowerCase("ru"),
         ) === index,
     );
+    return column.sortOptions
+      ? uniqueOptions.sort((left, right) =>
+          left.label.localeCompare(right.label, "ru"),
+        )
+      : uniqueOptions;
   }
 
   function addRow() {
@@ -495,6 +506,7 @@ function TableField({
               <div
                 key={column.key}
                 className={
+                  column.fullWidth ||
                   ["long_text", "multi_suggest"].includes(column.type)
                     ? "lg:col-span-2"
                     : ""

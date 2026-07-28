@@ -38,11 +38,14 @@ questions:
           title: Отрасль
           type: readonly
           defaultValue: Коммуникации, медиа и развлечения
+          fullWidth: true
         - key: segment
           title: Сегмент
           type: suggest
           required: true
           allowCustom: false
+          fullWidth: true
+          sortOptions: true
           options:
             - { value: Мессенджеры и коммуникационные сервисы, label: Мессенджеры и коммуникационные сервисы }
             - { value: Социальные сети и сообщества, label: Социальные сети и сообщества }
@@ -59,6 +62,7 @@ questions:
           title: Участники
           type: multi_suggest
           required: true
+          sortOptions: true
           options:
             - { value: Частные пользователи и аудитория, label: Частные пользователи и аудитория }
             - { value: Корпоративные пользователи и заказчики, label: Корпоративные пользователи и заказчики }

@@ -27,6 +27,8 @@ const columnSchema = z.object({
   options: z.array(optionSchema).optional(),
   allowCustom: z.boolean().optional(),
   defaultValue: z.string().optional(),
+  fullWidth: z.boolean().optional(),
+  sortOptions: z.boolean().optional(),
   sourceQuestionKey: z.string().optional(),
   sourceColumnKey: z.string().optional(),
   min: z.number().optional(),
