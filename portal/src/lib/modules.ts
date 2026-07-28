@@ -44,6 +44,7 @@ const columnSchema = z.object({
   sourceQuestionKey: z.string().optional(),
   sourceColumnKey: z.string().optional(),
   sourceLabelSuffix: z.string().optional(),
+  uniqueAcrossRows: z.boolean().optional(),
   visibleWhen: conditionSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),

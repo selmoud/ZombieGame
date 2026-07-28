@@ -276,6 +276,7 @@ questions:
           allowCustom: true
           fullWidth: true
           sortOptions: true
+          uniqueAcrossRows: true
           options:
             - { value: Объём рынка и темпы его роста, label: Объём рынка и темпы его роста }
             - { value: Вклад в ВВП или ВДС, label: Вклад в ВВП или ВДС }

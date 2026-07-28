@@ -24,6 +24,7 @@ type Column = {
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
   sourceLabelSuffix?: string;
+  uniqueAcrossRows?: boolean;
   visibleWhen?: { columnKey: string; equals: string };
   min?: number;
   max?: number;
@@ -485,6 +486,7 @@ function TableField({
   function getSuggestions(
     column: Column,
     row: Record<string, unknown>,
+    rowIndex: number,
   ) {
     const optionSource =
       columns.find((item) => item.key === column.optionsFromColumnKey) ??
@@ -544,6 +546,13 @@ function TableField({
       } else if (excludedFromRow) {
         excludedValues.add(String(excludedFromRow));
       }
+    }
+    if (column.uniqueAcrossRows) {
+      rows.forEach((otherRow, otherRowIndex) => {
+        if (otherRowIndex === rowIndex) return;
+        const selectedValue = otherRow[column.key];
+        if (selectedValue) excludedValues.add(String(selectedValue));
+      });
     }
     const availableOptions = uniqueOptions.filter(
       (option) => !excludedValues.has(option.value),
@@ -720,7 +729,7 @@ function TableField({
                 <InlineField
                   column={column}
                   value={row[column.key]}
-                  suggestions={getSuggestions(column, row)}
+                  suggestions={getSuggestions(column, row, rowIndex)}
                   disabled={disabled}
                   onChange={(cellValue) =>
                     updateRow(rowIndex, column.key, cellValue)

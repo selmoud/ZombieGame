@@ -110,6 +110,14 @@ describe("module definitions", () => {
     expect(
       industry.questions
         .find((question) => question.key === "key_metrics")
+        ?.config.columns?.find((column) => column.key === "metric"),
+    ).toMatchObject({
+      uniqueAcrossRows: true,
+      options: expect.any(Array),
+    });
+    expect(
+      industry.questions
+        .find((question) => question.key === "key_metrics")
         ?.config.columns?.find((column) => column.key === "metric")?.options,
     ).toHaveLength(10);
   });

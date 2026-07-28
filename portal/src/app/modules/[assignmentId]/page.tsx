@@ -94,6 +94,7 @@ export default async function ModulePage({
         sourceQuestionKey?: string;
         sourceColumnKey?: string;
         sourceLabelSuffix?: string;
+        uniqueAcrossRows?: boolean;
         visibleWhen?: { columnKey: string; equals: string };
         min?: number;
         max?: number;
