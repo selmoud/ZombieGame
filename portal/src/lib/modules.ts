@@ -49,6 +49,7 @@ const columnSchema = z.object({
 
 const questionSchema = z.object({
   key: z.string().min(1),
+  order: z.number().int().positive().optional(),
   type: z.enum([
     "short_text",
     "long_text",
@@ -70,6 +71,8 @@ const questionSchema = z.object({
       max: z.number().optional(),
       minRows: z.number().int().min(0).optional(),
       maxRows: z.number().int().positive().optional(),
+      addRowLabel: z.string().optional(),
+      numberRows: z.boolean().optional(),
       rowLabel: z.string().optional(),
       columns: z.array(columnSchema).optional(),
     })

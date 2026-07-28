@@ -38,6 +38,8 @@ type Question = {
     max?: number;
     minRows?: number;
     maxRows?: number;
+    addRowLabel?: string;
+    numberRows?: boolean;
     rowLabel?: string;
     columns?: Column[];
   };
@@ -176,11 +178,13 @@ function SearchableSelect({
 function MultiSearchableSelect({
   value,
   options,
+  allowCustom = true,
   disabled,
   onChange,
 }: {
   value: unknown;
   options: Option[];
+  allowCustom?: boolean;
   disabled: boolean;
   onChange: (value: string[]) => void;
 }) {
@@ -277,7 +281,7 @@ function MultiSearchableSelect({
                   addValue(
                     (filteredOptions[activeIndex] ?? filteredOptions[0]).value,
                   );
-                } else {
+                } else if (allowCustom) {
                   addValue(query);
                 }
               } else if (event.key === "Backspace" && !query && selected.length) {
@@ -357,6 +361,7 @@ function InlineField({
       <MultiSearchableSelect
         value={value}
         options={suggestions}
+        allowCustom={column.allowCustom}
         disabled={disabled}
         onChange={onChange}
       />
@@ -578,7 +583,8 @@ function TableField({
         >
           <div className="mb-4 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              {question.config.rowLabel ?? "Строка"} {rowIndex + 1}
+              {question.config.rowLabel ?? "Строка"}
+              {question.config.numberRows === false ? "" : ` ${rowIndex + 1}`}
             </span>
             {!disabled && (
               <button
@@ -640,7 +646,7 @@ function TableField({
             onClick={addRow}
             className="rounded-lg border border-dashed border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#DDF8FB]"
           >
-            + Добавить строку
+            + {question.config.addRowLabel ?? "Добавить строку"}
           </button>
         )}
       {!rows.length && disabled && (

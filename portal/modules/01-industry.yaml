@@ -26,9 +26,10 @@ theory: |
   приводить как подтверждающие примеры.
 questions:
   - key: industry_boundaries
+    order: 2
     type: table
-    title: Границы отрасли
-    description: "Добавьте рассматриваемые сегменты отрасли и выберите группы участников, работающих в каждом сегменте. Одна строка — один сегмент."
+    title: Сегменты отрасли
+    description: "Добавьте рассматриваемые сегменты отрасли, укажите пересечения и выберите группы участников. Одна карточка — один сегмент."
     required: true
     config:
       minRows: 1
@@ -107,34 +108,43 @@ questions:
             - { value: Государственные учреждения и заказчики, label: Государственные учреждения и заказчики }
             - { value: Отраслевые ассоциации и саморегулируемые организации, label: Отраслевые ассоциации и саморегулируемые организации }
   - key: analysis_object
+    order: 1
     type: table
-    title: Сегменты отрасли
-    description: "Разделите отрасль на устойчивые сегменты. Одна строка — один сегмент. Пример: «Онлайн-видео — стриминговые сервисы и онлайн-кинотеатры — подписка и рекламная модель — платформы, правообладатели, зрители»."
+    title: Границы отрасли
+    description: "Укажите отрасли, с которыми пересекаются коммуникации, медиа и развлечения."
     required: true
     config:
       minRows: 1
-      maxRows: 12
+      maxRows: 1
+      rowLabel: Параметры границ
+      numberRows: false
+      addRowLabel: Заполнить границы отрасли
       columns:
-        - key: segment
-          title: Сегмент
-          type: suggest
+        - key: industry
+          title: Отрасль
+          type: readonly
+          defaultValue: Коммуникации, медиа и развлечения
+          fullWidth: true
+        - key: adjacentIndustries
+          title: Смежные отрасли
+          type: multi_suggest
           required: true
+          allowCustom: false
+          fullWidth: true
+          sortOptions: true
           options:
-            - { value: Онлайн-видео, label: Онлайн-видео }
-            - { value: Телевидение, label: Телевидение }
-            - { value: Радио и подкасты, label: Радио и подкасты }
-            - { value: Печатные и онлайн-СМИ, label: Печатные и онлайн-СМИ }
-            - { value: Социальные сети, label: Социальные сети }
-            - { value: Мессенджеры, label: Мессенджеры }
-            - { value: Цифровая реклама, label: Цифровая реклама }
-            - { value: Музыка и аудио, label: Музыка и аудио }
-            - { value: Игры и киберспорт, label: Игры и киберспорт }
-            - { value: Авторский контент, label: Авторский контент }
-            - { value: Развлекательные мероприятия, label: Развлекательные мероприятия }
-        - { key: scope, title: Что входит в сегмент, type: long_text, required: true }
-        - { key: product, title: Ключевые продукты и услуги, type: short_text }
-        - { key: company, title: Основные группы участников, type: short_text }
-        - { key: intersection, title: Пересечения с другими сегментами, type: short_text }
+            - { value: Торговля, label: Торговля }
+            - { value: Финансы, label: Финансы }
+            - { value: Городская среда, label: Городская среда }
+            - { value: Транспорт и логистика, label: Транспорт и логистика }
+            - { value: Здравоохранение, label: Здравоохранение }
+            - { value: Образование, label: Образование }
+            - { value: Занятость, label: Занятость }
+            - { value: Строительство и недвижимость, label: Строительство и недвижимость }
+            - { value: Энергетика, label: Энергетика }
+            - { value: Промышленность, label: Промышленность }
+            - { value: Сельское хозяйство, label: Сельское хозяйство }
+            - { value: Туризм, label: Туризм }
   - key: current_state
     type: long_text
     title: Каково текущее состояние отрасли?

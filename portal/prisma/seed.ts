@@ -135,7 +135,7 @@ async function main() {
         title: question.title,
         description: question.description,
         required: question.required,
-        order: index + 1,
+        order: question.order ?? index + 1,
         config: question.config as Prisma.InputJsonValue,
       };
       await db.question.upsert({

@@ -11,11 +11,24 @@ describe("module definitions", () => {
 
   it("separates industry boundaries from industry segments", async () => {
     const [industry] = await loadModuleDefinitions();
-    expect(industry.questions.slice(0, 2).map((question) => question.key)).toEqual([
-      "industry_boundaries",
-      "analysis_object",
+    const boundaries = industry.questions.find((question) => question.key === "analysis_object");
+    const segments = industry.questions.find(
+      (question) => question.key === "industry_boundaries",
+    );
+
+    expect(boundaries).toMatchObject({
+      order: 1,
+      title: "Границы отрасли",
+    });
+    expect(boundaries?.config.columns?.map((column) => column.type)).toEqual([
+      "readonly",
+      "multi_suggest",
     ]);
-    expect(industry.questions[0].config.columns?.map((column) => column.type)).toEqual([
+    expect(segments).toMatchObject({
+      order: 2,
+      title: "Сегменты отрасли",
+    });
+    expect(segments?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",
       "suggest",
       "short_text",
