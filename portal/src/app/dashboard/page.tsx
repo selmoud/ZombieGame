@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       <div className="mt-9 flex items-end justify-between">
         <div>
           <h2 className="text-3xl text-[#000000]">
-            Разделы доклада
+            Экспертные модули
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
             Горизонт целевого состояния — 2036 год

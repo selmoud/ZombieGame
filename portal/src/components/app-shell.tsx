@@ -23,7 +23,7 @@ export function AppShell({
                 Коммуникации, медиа и развлечения
               </span>
               <span className="block text-xs text-neutral-300">
-                Экспертная группа · 2036
+                Экспертная группа
               </span>
             </span>
           </Link>
