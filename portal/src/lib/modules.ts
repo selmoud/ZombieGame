@@ -17,6 +17,7 @@ const conditionSchema = z.object({
 const columnSchema = z.object({
   key: z.string().min(1),
   title: z.string().min(1),
+  description: z.string().optional(),
   type: z.enum([
     "short_text",
     "long_text",

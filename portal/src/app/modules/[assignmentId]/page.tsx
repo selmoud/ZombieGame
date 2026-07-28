@@ -63,6 +63,7 @@ export default async function ModulePage({
       columns?: Array<{
         key: string;
         title: string;
+        description?: string;
         type: string;
         required?: boolean;
         options?: Array<{ value: string; label: string }>;

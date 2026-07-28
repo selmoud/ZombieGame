@@ -6,6 +6,7 @@ type Option = { value: string; label: string };
 type Column = {
   key: string;
   title: string;
+  description?: string;
   type: string;
   required?: boolean;
   options?: Option[];
@@ -623,6 +624,11 @@ function TableField({
                   {column.title}
                   {isRequired && <span className="text-[#C80058]"> *</span>}
                 </span>
+                {column.description && (
+                  <p className="mb-2 text-xs leading-5 text-neutral-500">
+                    {column.description}
+                  </p>
+                )}
                 <InlineField
                   column={column}
                   value={row[column.key]}

@@ -34,7 +34,19 @@ describe("module definitions", () => {
       "short_text",
       "multi_suggest",
       "multi_suggest",
+      "select",
+      "select",
+      "long_text",
     ]);
+    expect(
+      industry.questions.find(
+        (question) => question.key === "segment_assessment_file",
+      ),
+    ).toMatchObject({
+      order: 3,
+      type: "file",
+      required: false,
+    });
   });
 
   it("supports searchable and linked table fields", async () => {
