@@ -228,7 +228,7 @@ function FileUploadField({
               href={`/api/attachments/${String(uploadedFile.id)}`}
               className="text-sm font-bold text-[#0059C7]"
             >
-              Скачать ↓
+              Скачать
             </a>
             {!disabled && (
               <button
@@ -452,12 +452,12 @@ export function DynamicForm({
 
   return (
     <div>
-      <div className="sticky top-3 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+      <div className="sticky top-3 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#0D78F8] bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#0D78F8]">
             Состояние черновика
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-neutral-700">
+          <p className="mt-0.5 text-sm font-semibold text-[#0059C7]">
             {readOnly
               ? status === "ACCEPTED"
                 ? "Ответ принят"
@@ -469,7 +469,7 @@ export function DynamicForm({
                   : saveState === "error"
                     ? "Ошибка сохранения"
                     : "Все изменения сохранены"}
-            <span className="ml-2 text-xs font-normal text-neutral-400">
+            <span className="ml-2 text-xs font-normal text-[#0D78F8]">
               версия {revision}
             </span>
           </p>

@@ -69,7 +69,7 @@ export function SubgroupManager({
                 maxLength={80}
                 required
               />
-              <button className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-bold text-black hover:bg-neutral-50">
+              <button className="w-28 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-black hover:bg-neutral-50">
                 Сохранить
               </button>
             </form>
@@ -91,7 +91,7 @@ export function SubgroupManager({
               }}
             >
               <input type="hidden" name="id" value={subgroup.id} />
-              <button className="rounded-xl border border-[#FF9BC5] px-4 py-2.5 text-sm font-bold text-[#A9004A] hover:bg-[#FFE0ED]">
+              <button className="w-28 rounded-xl border border-[#FF9BC5] px-4 py-2.5 text-sm font-semibold text-[#A9004A] hover:bg-[#FFE0ED]">
                 Удалить
               </button>
             </form>
