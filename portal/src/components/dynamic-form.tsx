@@ -216,6 +216,23 @@ function FileUploadField({
     }
   }
 
+  async function deleteUploadedFile() {
+    if (
+      !uploadedFile ||
+      deleting ||
+      !window.confirm("Удалить файл без возможности восстановления?")
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await onDelete(String(uploadedFile.id));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       {uploadedFile && (
@@ -234,22 +251,10 @@ function FileUploadField({
               <button
                 type="button"
                 disabled={deleting}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      "Удалить файл без возможности восстановления?",
-                    )
-                  ) {
-                    return;
-                  }
-                  setDeleting(true);
-                  void onDelete(String(uploadedFile.id)).finally(() =>
-                    setDeleting(false),
-                  );
-                }}
-                className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-1.5 text-xs font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
+                onClick={() => void deleteUploadedFile()}
+                className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
               >
-                {deleting ? "Удаляем…" : "Удалить"}
+                Удалить
               </button>
             )}
           </div>
