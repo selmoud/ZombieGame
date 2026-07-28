@@ -47,15 +47,6 @@ questions:
           required: true
           fullWidth: true
           sortOptions: true
-        - key: kind
-          title: Тип участника
-          type: select
-          required: true
-          options:
-            - { value: demand, label: Сторона спроса }
-            - { value: supply, label: Сторона предложения }
-            - { value: intermediary, label: Посредник }
-            - { value: government, label: Государство }
         - key: name
           title: Группа участников
           description: "Выберите подходящую группу из списка или впишите свою."
@@ -78,8 +69,17 @@ questions:
             - { value: Рекламные агентства и посредники, label: Рекламные агентства и посредники }
             - { value: Рекламодатели, label: Рекламодатели }
             - { value: Телеканалы и радиостанции, label: Телеканалы и радиостанции }
+        - key: kind
+          title: Роль участника
+          type: select
+          required: true
+          options:
+            - { value: demand, label: Сторона спроса }
+            - { value: supply, label: Сторона предложения }
+            - { value: intermediary, label: Посредник }
+            - { value: government, label: Государство }
         - key: role
-          title: Роль в сегменте
+          title: Описание роли в сегменте
           description: "Кратко укажите, что участник делает и какую ценность предоставляет или получает."
           type: long_text
           required: true
