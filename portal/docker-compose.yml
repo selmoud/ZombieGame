@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://portal:portal@db:5432/portal?schema=public
       APP_URL: http://localhost:3000
@@ -18,6 +19,7 @@ services:
 
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: portal
       POSTGRES_USER: portal
