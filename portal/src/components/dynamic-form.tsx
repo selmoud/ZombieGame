@@ -226,7 +226,7 @@ function FileUploadField({
           <div className="flex shrink-0 items-center gap-3">
             <a
               href={`/api/attachments/${String(uploadedFile.id)}`}
-              className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#0059C7] transition hover:bg-white/70"
+              className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#0059C7] transition hover:bg-white/70"
             >
               Скачать
             </a>
@@ -247,7 +247,7 @@ function FileUploadField({
                     setDeleting(false),
                   );
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-md px-1.5 text-xs font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
+                className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-1.5 text-xs font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
               >
                 {deleting ? "Удаляем…" : "Удалить"}
               </button>
