@@ -45,6 +45,7 @@ type Question = {
     addRowLabel?: string;
     numberRows?: boolean;
     rowLabel?: string;
+    sortableRows?: boolean;
     columns?: Column[];
   };
 };
@@ -448,6 +449,8 @@ function TableField({
   onChange: (value: unknown) => void;
 }) {
   const columns = question.config.columns ?? [];
+  const [draggedRowIndex, setDraggedRowIndex] = useState<number | null>(null);
+  const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null);
 
   function createDefaultRow() {
     return Object.fromEntries(
@@ -592,18 +595,73 @@ function TableField({
     );
   }
 
+  function moveRow(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const nextRows = [...rows];
+    const [movedRow] = nextRows.splice(fromIndex, 1);
+    nextRows.splice(toIndex, 0, movedRow);
+    onChange(nextRows);
+  }
+
   return (
     <div className="space-y-3">
       {rows.map((row, rowIndex) => (
         <div
           key={rowIndex}
-          className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-4"
+          onDragOver={(event) => {
+            if (
+              disabled ||
+              !question.config.sortableRows ||
+              draggedRowIndex === null
+            ) {
+              return;
+            }
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            setDragOverRowIndex(rowIndex);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (draggedRowIndex !== null) {
+              moveRow(draggedRowIndex, rowIndex);
+            }
+            setDraggedRowIndex(null);
+            setDragOverRowIndex(null);
+          }}
+          className={`rounded-xl border bg-neutral-50/70 p-4 transition ${
+            dragOverRowIndex === rowIndex && draggedRowIndex !== rowIndex
+              ? "border-[#0D78F8] ring-2 ring-[#E0EEFF]"
+              : "border-neutral-200"
+          }`}
         >
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              {question.config.rowLabel ?? "Строка"}
-              {question.config.numberRows === false ? "" : ` ${rowIndex + 1}`}
-            </span>
+            <div className="flex items-center gap-3">
+              {!disabled && question.config.sortableRows && (
+                <span
+                  draggable
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Перетащить ${question.config.rowLabel ?? "строку"} ${rowIndex + 1}`}
+                  title="Перетащите, чтобы изменить порядок"
+                  onDragStart={(event) => {
+                    setDraggedRowIndex(rowIndex);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(rowIndex));
+                  }}
+                  onDragEnd={() => {
+                    setDraggedRowIndex(null);
+                    setDragOverRowIndex(null);
+                  }}
+                  className="cursor-grab select-none rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm leading-none text-neutral-400 active:cursor-grabbing"
+                >
+                  ⋮⋮
+                </span>
+              )}
+              <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                {question.config.rowLabel ?? "Строка"}
+                {question.config.numberRows === false ? "" : ` ${rowIndex + 1}`}
+              </span>
+            </div>
             {!disabled && !question.config.fixedRows && (
               <button
                 type="button"

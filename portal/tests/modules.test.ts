@@ -87,8 +87,21 @@ describe("module definitions", () => {
         ?.filter((column) => ["startYear", "endYear"].includes(column.key))
         .every((column) =>
           column.options?.some((option) => option.value === "2026"),
-        ),
+      ),
     ).toBe(true);
+    expect(
+      industry.questions.find((question) => question.key === "key_metrics"),
+    ).toMatchObject({
+      order: 4,
+      title: "Ключевые показатели развития отрасли до 2036 года",
+      required: true,
+      config: {
+        minRows: 3,
+        maxRows: 5,
+        addRowLabel: "Добавить показатель",
+        sortableRows: true,
+      },
+    });
   });
 
   it("supports searchable and linked table fields", async () => {

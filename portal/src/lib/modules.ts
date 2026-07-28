@@ -78,6 +78,7 @@ const questionSchema = z.object({
       addRowLabel: z.string().optional(),
       numberRows: z.boolean().optional(),
       rowLabel: z.string().optional(),
+      sortableRows: z.boolean().optional(),
       columns: z.array(columnSchema).optional(),
     })
     .passthrough()

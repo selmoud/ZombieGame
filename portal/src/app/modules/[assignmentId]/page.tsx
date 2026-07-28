@@ -64,6 +64,7 @@ export default async function ModulePage({
       addRowLabel?: string;
       numberRows?: boolean;
       rowLabel?: string;
+      sortableRows?: boolean;
       columns?: Array<{
         key: string;
         title: string;
