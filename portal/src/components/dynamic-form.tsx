@@ -25,6 +25,7 @@ type Column = {
   visibleWhen?: { columnKey: string; equals: string };
   min?: number;
   max?: number;
+  step?: number;
 };
 type Question = {
   id: string;
@@ -419,6 +420,9 @@ function InlineField({
     <input
       className="field"
       type={column.type === "number" ? "number" : column.type === "link" ? "url" : "text"}
+      min={column.type === "number" ? column.min : undefined}
+      max={column.type === "number" ? column.max : undefined}
+      step={column.type === "number" ? column.step ?? "any" : undefined}
       value={String(value ?? "")}
       disabled={disabled}
       onChange={(event) => onChange(event.target.value)}

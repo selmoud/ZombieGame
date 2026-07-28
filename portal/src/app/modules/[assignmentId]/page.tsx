@@ -82,6 +82,7 @@ export default async function ModulePage({
         visibleWhen?: { columnKey: string; equals: string };
         min?: number;
         max?: number;
+        step?: number;
       }>;
     },
   }));

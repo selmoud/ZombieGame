@@ -17,6 +17,8 @@ type Config = {
     title: string;
     type: string;
     required?: boolean;
+    min?: number;
+    max?: number;
     requiredWhen?: { columnKey: string; equals: string };
     visibleWhen?: { columnKey: string; equals: string };
   }>;
@@ -98,6 +100,34 @@ export function validateAnswers(
       );
       if (missing) {
         errors[question.id] = "Заполните обязательные ячейки таблицы";
+        continue;
+      }
+      const invalidNumber = value.some((row) =>
+        config.columns?.some((column) => {
+          const typedRow = row as Record<string, unknown>;
+          const cellValue = typedRow[column.key];
+          const isVisible =
+            !column.visibleWhen ||
+            typedRow[column.visibleWhen.columnKey] ===
+              column.visibleWhen.equals;
+          if (
+            !isVisible ||
+            column.type !== "number" ||
+            isEmpty(cellValue)
+          ) {
+            return false;
+          }
+          const number = Number(cellValue);
+          return (
+            !Number.isFinite(number) ||
+            (column.min !== undefined && number < column.min) ||
+            (column.max !== undefined && number > column.max)
+          );
+        }),
+      );
+      if (invalidNumber) {
+        errors[question.id] =
+          "Проверьте числовые значения и допустимый диапазон";
       }
     }
   }

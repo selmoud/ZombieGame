@@ -183,6 +183,56 @@ questions:
             - { value: Промышленность, label: Промышленность }
             - { value: Сельское хозяйство, label: Сельское хозяйство }
             - { value: Туризм, label: Туризм }
+        - key: gdpShare
+          title: Доля отрасли в ВВП страны, %
+          description: "Введите экспертную оценку от 0 до 100. Можно использовать десятичное значение."
+          type: number
+          required: true
+          min: 0
+          max: 100
+          step: 0.1
+        - key: employmentShare
+          title: Доля отрасли в общей структуре занятости, %
+          description: "Введите экспертную оценку от 0 до 100. Можно использовать десятичное значение."
+          type: number
+          required: true
+          min: 0
+          max: 100
+          step: 0.1
+        - key: investmentActivity
+          title: Инвестиционная активность в отрасли
+          description: "Оцените фактическую динамику и регулярность инвестиций в отрасль."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: "Высокая — инвестиции активно растут", label: "Высокая — инвестиции активно растут" }
+            - { value: "Средняя — инвестиции стабильны или растут умеренно", label: "Средняя — инвестиции стабильны или растут умеренно" }
+            - { value: "Низкая — инвестиции сокращаются или носят единичный характер", label: "Низкая — инвестиции сокращаются или носят единичный характер" }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: investmentActivityRationale
+          title: Обоснование оценки инвестиционной активности
+          description: "Необязательно. Укажите динамику инвестиций, сделки, государственное финансирование или другой показатель."
+          type: long_text
+          fullWidth: true
+        - key: investmentAttractiveness
+          title: Инвестиционная привлекательность отрасли
+          description: "Оцените потенциал отрасли для привлечения новых инвестиций."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Высокая, label: Высокая }
+            - { value: Выше средней, label: Выше средней }
+            - { value: Средняя, label: Средняя }
+            - { value: Ниже средней, label: Ниже средней }
+            - { value: Низкая, label: Низкая }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: investmentAttractivenessRationale
+          title: Обоснование оценки инвестиционной привлекательности
+          description: "Необязательно. Кратко укажите факторы привлекательности, риски или источник оценки."
+          type: long_text
+          fullWidth: true
   - key: current_state
     type: long_text
     title: Каково текущее состояние отрасли?

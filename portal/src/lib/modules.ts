@@ -46,6 +46,7 @@ const columnSchema = z.object({
   visibleWhen: conditionSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
+  step: z.number().positive().optional(),
 });
 
 const questionSchema = z.object({

@@ -88,4 +88,40 @@ describe("validateAnswers", () => {
       }),
     ).toEqual({});
   });
+
+  it("checks number ranges inside table rows", () => {
+    const percentageQuestion = {
+      id: "boundaries",
+      key: "boundaries",
+      type: "TABLE",
+      title: "Границы отрасли",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          {
+            key: "gdpShare",
+            title: "Доля в ВВП",
+            type: "number",
+            required: true,
+            min: 0,
+            max: 100,
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([percentageQuestion], {
+        boundaries: [{ gdpShare: "100.1" }],
+      }),
+    ).toEqual({
+      boundaries: "Проверьте числовые значения и допустимый диапазон",
+    });
+    expect(
+      validateAnswers([percentageQuestion], {
+        boundaries: [{ gdpShare: "4.7" }],
+      }),
+    ).toEqual({});
+  });
 });

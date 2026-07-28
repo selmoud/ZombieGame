@@ -23,6 +23,12 @@ describe("module definitions", () => {
     expect(boundaries?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",
       "multi_suggest",
+      "number",
+      "number",
+      "select",
+      "long_text",
+      "select",
+      "long_text",
     ]);
     expect(segments).toMatchObject({
       order: 2,
