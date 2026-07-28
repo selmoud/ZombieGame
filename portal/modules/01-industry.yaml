@@ -47,6 +47,9 @@ questions:
           fullWidth: true
           lastOptionValue: Другое
           sortOptions: true
+          sourceQuestionKey: industry_boundaries
+          sourceColumnKey: customSegment
+          sourceLabelSuffix: (добавлено пользователем)
           options:
             - { value: Мессенджеры и коммуникационные сервисы, label: Мессенджеры и коммуникационные сервисы }
             - { value: Социальные сети и сообщества, label: Социальные сети и сообщества }
@@ -59,6 +62,12 @@ questions:
             - { value: Развлекательные мероприятия и билетные сервисы, label: Развлекательные мероприятия и билетные сервисы }
             - { value: "Реклама, продвижение и монетизация контента", label: "Реклама, продвижение и монетизация контента" }
             - { value: Другое, label: Другое }
+        - key: customSegment
+          title: Название сегмента
+          type: short_text
+          fullWidth: true
+          visibleWhen: { columnKey: segment, equals: Другое }
+          requiredWhen: { columnKey: segment, equals: Другое }
         - key: participants
           title: Участники
           type: multi_suggest

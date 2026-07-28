@@ -13,9 +13,12 @@ type Column = {
   defaultValue?: string;
   fullWidth?: boolean;
   lastOptionValue?: string;
+  requiredWhen?: { columnKey: string; equals: string };
   sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
+  sourceLabelSuffix?: string;
+  visibleWhen?: { columnKey: string; equals: string };
   min?: number;
   max?: number;
 };
@@ -74,7 +77,7 @@ function SearchableSelect({
   return (
     <div className="relative">
       <input
-        className="field pr-10"
+        className={`field ${currentValue && !disabled ? "pr-16" : "pr-10"}`}
         value={inputValue}
         disabled={disabled}
         autoComplete="off"
@@ -96,6 +99,7 @@ function SearchableSelect({
             onChange(event.target.value);
           } else {
             setSearchQuery(event.target.value);
+            if (!event.target.value) onChange("");
           }
           setActiveIndex(0);
           setIsOpen(true);
@@ -118,6 +122,21 @@ function SearchableSelect({
           }
         }}
       />
+      {currentValue && !disabled && (
+        <button
+          type="button"
+          aria-label="Очистить поле"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setSearchQuery(null);
+            setIsOpen(false);
+            onChange("");
+          }}
+          className="absolute right-8 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center text-lg leading-none text-neutral-400 hover:text-[#FF2F86]"
+        >
+          ×
+        </button>
+      )}
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
         ▾
       </span>
@@ -450,7 +469,12 @@ function TableField({
       : [];
     const combined = [
       ...staticOptions,
-      ...linkedValues.map((item) => ({ value: item, label: item })),
+      ...linkedValues.map((item) => ({
+        value: item,
+        label: column.sourceLabelSuffix
+          ? `${item} ${column.sourceLabelSuffix}`
+          : item,
+      })),
     ];
     const uniqueOptions = combined.filter(
       (option, index) =>
@@ -480,7 +504,21 @@ function TableField({
   function updateRow(index: number, key: string, cellValue: unknown) {
     onChange(
       rows.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, [key]: cellValue } : row,
+        rowIndex === index
+          ? columns.reduce(
+              (nextRow, column) => {
+                if (
+                  column.visibleWhen &&
+                  nextRow[column.visibleWhen.columnKey] !==
+                    column.visibleWhen.equals
+                ) {
+                  nextRow[column.key] = "";
+                }
+                return nextRow;
+              },
+              { ...row, [key]: cellValue },
+            )
+          : row,
       ),
     );
   }
@@ -507,7 +545,19 @@ function TableField({
             )}
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            {columns.map((column) => (
+            {columns.map((column) => {
+              if (
+                column.visibleWhen &&
+                row[column.visibleWhen.columnKey] !== column.visibleWhen.equals
+              ) {
+                return null;
+              }
+              const isRequired =
+                column.required ||
+                (column.requiredWhen &&
+                  row[column.requiredWhen.columnKey] ===
+                    column.requiredWhen.equals);
+              return (
               <div
                 key={column.key}
                 className={
@@ -519,7 +569,7 @@ function TableField({
               >
                 <span className="mb-1.5 block text-xs font-medium text-neutral-600">
                   {column.title}
-                  {column.required && <span className="text-[#C80058]"> *</span>}
+                  {isRequired && <span className="text-[#C80058]"> *</span>}
                 </span>
                 <InlineField
                   column={column}
@@ -531,7 +581,8 @@ function TableField({
                   }
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}

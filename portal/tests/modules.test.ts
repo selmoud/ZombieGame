@@ -18,6 +18,7 @@ describe("module definitions", () => {
     expect(industry.questions[0].config.columns?.map((column) => column.type)).toEqual([
       "readonly",
       "suggest",
+      "short_text",
       "multi_suggest",
     ]);
   });

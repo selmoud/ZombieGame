@@ -9,6 +9,11 @@ const optionSchema = z.object({
   label: z.string(),
 });
 
+const conditionSchema = z.object({
+  columnKey: z.string().min(1),
+  equals: z.string(),
+});
+
 const columnSchema = z.object({
   key: z.string().min(1),
   title: z.string().min(1),
@@ -29,9 +34,12 @@ const columnSchema = z.object({
   defaultValue: z.string().optional(),
   fullWidth: z.boolean().optional(),
   lastOptionValue: z.string().optional(),
+  requiredWhen: conditionSchema.optional(),
   sortOptions: z.boolean().optional(),
   sourceQuestionKey: z.string().optional(),
   sourceColumnKey: z.string().optional(),
+  sourceLabelSuffix: z.string().optional(),
+  visibleWhen: conditionSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
 });

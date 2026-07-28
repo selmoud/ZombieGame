@@ -52,4 +52,40 @@ describe("validateAnswers", () => {
       }),
     ).toEqual({});
   });
+
+  it("requires a conditional table cell only when its option is selected", () => {
+    const conditionalQuestion = {
+      id: "boundaries",
+      key: "boundaries",
+      type: "TABLE",
+      title: "Границы отрасли",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          { key: "segment", title: "Сегмент", type: "suggest", required: true },
+          {
+            key: "customSegment",
+            title: "Название сегмента",
+            type: "short_text",
+            requiredWhen: { columnKey: "segment", equals: "Другое" },
+            visibleWhen: { columnKey: "segment", equals: "Другое" },
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([conditionalQuestion], {
+        boundaries: [{ segment: "Другое", customSegment: "" }],
+      }),
+    ).toEqual({
+      boundaries: "Заполните обязательные ячейки таблицы",
+    });
+    expect(
+      validateAnswers([conditionalQuestion], {
+        boundaries: [{ segment: "Онлайн-видео", customSegment: "" }],
+      }),
+    ).toEqual({});
+  });
 });

@@ -67,9 +67,12 @@ export default async function ModulePage({
         defaultValue?: string;
         fullWidth?: boolean;
         lastOptionValue?: string;
+        requiredWhen?: { columnKey: string; equals: string };
         sortOptions?: boolean;
         sourceQuestionKey?: string;
         sourceColumnKey?: string;
+        sourceLabelSuffix?: string;
+        visibleWhen?: { columnKey: string; equals: string };
         min?: number;
         max?: number;
       }>;

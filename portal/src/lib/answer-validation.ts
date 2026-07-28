@@ -17,6 +17,8 @@ type Config = {
     title: string;
     type: string;
     required?: boolean;
+    requiredWhen?: { columnKey: string; equals: string };
+    visibleWhen?: { columnKey: string; equals: string };
   }>;
 };
 
@@ -79,9 +81,19 @@ export function validateAnswers(
       }
       const missing = value.some((row) =>
         config.columns?.some(
-          (column) =>
-            column.required &&
-            isEmpty((row as Record<string, unknown>)?.[column.key]),
+          (column) => {
+            const typedRow = row as Record<string, unknown>;
+            const isVisible =
+              !column.visibleWhen ||
+              typedRow[column.visibleWhen.columnKey] ===
+                column.visibleWhen.equals;
+            const isRequired =
+              column.required ||
+              (column.requiredWhen &&
+                typedRow[column.requiredWhen.columnKey] ===
+                  column.requiredWhen.equals);
+            return isVisible && isRequired && isEmpty(typedRow?.[column.key]);
+          },
         ),
       );
       if (missing) {
