@@ -135,7 +135,7 @@ questions:
           sourceColumnKey: name
           excludeColumnKey: initiator
         - key: value
-          title: Основной предмет обмена
+          title: Предмет транзакции
           type: select
           required: true
           options:
