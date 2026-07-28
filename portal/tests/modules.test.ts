@@ -102,6 +102,11 @@ describe("module definitions", () => {
         sortableRows: true,
       },
     });
+    expect(
+      industry.questions
+        .find((question) => question.key === "key_metrics")
+        ?.config.columns?.find((column) => column.key === "metric")?.options,
+    ).toHaveLength(10);
   });
 
   it("supports searchable and linked table fields", async () => {
