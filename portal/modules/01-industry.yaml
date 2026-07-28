@@ -45,6 +45,7 @@ questions:
           required: true
           allowCustom: false
           fullWidth: true
+          lastOptionValue: Другое
           sortOptions: true
           options:
             - { value: Мессенджеры и коммуникационные сервисы, label: Мессенджеры и коммуникационные сервисы }

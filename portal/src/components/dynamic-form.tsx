@@ -12,6 +12,7 @@ type Column = {
   allowCustom?: boolean;
   defaultValue?: string;
   fullWidth?: boolean;
+  lastOptionValue?: string;
   sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
@@ -414,13 +415,19 @@ function TableField({
   const rows = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
   const columns = question.config.columns ?? [];
 
+  function sortSuggestions(options: Option[], column: Column) {
+    return [...options].sort((left, right) => {
+      if (left.value === column.lastOptionValue) return 1;
+      if (right.value === column.lastOptionValue) return -1;
+      return left.label.localeCompare(right.label, "ru");
+    });
+  }
+
   function getSuggestions(column: Column) {
     const staticOptions = column.options ?? [];
     if (!column.sourceQuestionKey || !column.sourceColumnKey) {
       return column.sortOptions
-        ? [...staticOptions].sort((left, right) =>
-            left.label.localeCompare(right.label, "ru"),
-          )
+        ? sortSuggestions(staticOptions, column)
         : staticOptions;
     }
     const sourceQuestion = questions.find(
@@ -454,9 +461,7 @@ function TableField({
         ) === index,
     );
     return column.sortOptions
-      ? uniqueOptions.sort((left, right) =>
-          left.label.localeCompare(right.label, "ru"),
-        )
+      ? sortSuggestions(uniqueOptions, column)
       : uniqueOptions;
   }
 
