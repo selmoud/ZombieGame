@@ -346,7 +346,8 @@ export default async function ModulePage({
             <ol className="mt-4 space-y-4 text-sm leading-6 text-neutral-600">
               <li><strong className="text-[#000000]">1.</strong> Изучите методические материалы.</li>
               <li><strong className="text-[#000000]">2.</strong> Заполните вопросы и таблицы.</li>
-              <li><strong className="text-[#000000]">3.</strong> Отправьте раздел на проверку.</li>
+              <li><strong className="text-[#000000]">3.</strong> Проверьте ответы в предварительном PDF.</li>
+              <li><strong className="text-[#000000]">4.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
           <GlossaryModal />

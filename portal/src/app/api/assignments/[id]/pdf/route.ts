@@ -11,9 +11,10 @@ import { formatSubgroups } from "@/lib/subgroups";
 
 export const runtime = "nodejs";
 
-export async function GET(
+async function renderPdf(
   request: Request,
   context: RouteContext<"/api/assignments/[id]/pdf">,
+  previewAnswers?: Record<string, unknown>,
 ) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
@@ -51,6 +52,8 @@ export async function GET(
   }
   if (
     currentUser.role !== "ADMIN" &&
+    previewAnswers === undefined &&
+    new URL(request.url).searchParams.get("preview") !== "1" &&
     !canDownloadSubmissionResults(assignment.submission.status)
   ) {
     return Response.json(
@@ -59,25 +62,40 @@ export async function GET(
     );
   }
 
-  const answerMap = new Map(
+  const answerMap = new Map<string, unknown>(
     assignment.submission.answers.map((answer) => [
       answer.questionId,
       answer.value,
     ]),
   );
+  if (previewAnswers) {
+    const questionIds = new Set(
+      assignment.moduleVersion.questions.map((question) => question.id),
+    );
+    Object.entries(previewAnswers).forEach(([questionId, value]) => {
+      if (questionIds.has(questionId)) answerMap.set(questionId, value);
+    });
+  }
+  const isPreview =
+    previewAnswers !== undefined ||
+    new URL(request.url).searchParams.get("preview") === "1";
   const pdf = await createSubmissionPdf({
     moduleOrder: assignment.module.order,
     moduleTitle: assignment.module.title,
     expertName: assignment.user.fullName,
     companyName: assignment.user.company?.name ?? "",
     subgroupName: formatSubgroups(assignment.user.subgroupMemberships),
-    statusLabel: statusLabels[assignment.submission.status],
+    statusLabel: isPreview
+      ? `Предварительный просмотр · ${statusLabels[assignment.submission.status]}`
+      : statusLabels[assignment.submission.status],
+    isPreview,
     attachmentBaseUrl: `${(
       process.env.APP_URL ?? new URL(request.url).origin
     ).replace(/\/$/, "")}/api/attachments`,
     questions: assignment.moduleVersion.questions
       .filter((question) => !isQuestionHidden(question.config))
       .map((question) => ({
+        key: question.key,
         title: question.title,
         config: question.config as {
           options?: Array<{ value: string; label: string }>;
@@ -102,8 +120,30 @@ export async function GET(
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Content-Disposition": `${
+        isPreview ? "inline" : "attachment"
+      }; filename="${fileName}"`,
       "Cache-Control": "private, no-store",
     },
   });
+}
+
+export async function GET(
+  request: Request,
+  context: RouteContext<"/api/assignments/[id]/pdf">,
+) {
+  return renderPdf(request, context);
+}
+
+export async function POST(
+  request: Request,
+  context: RouteContext<"/api/assignments/[id]/pdf">,
+) {
+  const body = (await request.json().catch(() => null)) as {
+    answers?: Record<string, unknown>;
+  } | null;
+  if (!body?.answers || typeof body.answers !== "object") {
+    return Response.json({ error: "INVALID_BODY" }, { status: 400 });
+  }
+  return renderPdf(request, context, body.answers);
 }

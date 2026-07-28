@@ -14,6 +14,7 @@ type Column = {
   visibleWhen?: FieldCondition;
 };
 type Question = {
+  key: string;
   title: string;
   config: {
     options?: Option[];
@@ -31,6 +32,7 @@ export type SubmissionPdfData = {
   subgroupName: string;
   statusLabel: string;
   attachmentBaseUrl: string;
+  isPreview?: boolean;
   questions: Question[];
 };
 
@@ -133,12 +135,253 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       .stroke();
     document.moveDown(0.8);
   };
+  const tableText = (value: unknown, column?: Column) =>
+    printableValue(value, column?.options);
+  const renderReportTable = ({
+    title,
+    headers,
+    rows,
+    weights,
+  }: {
+    title: string;
+    headers: string[];
+    rows: string[][];
+    weights: number[];
+  }) => {
+    const margin = 36;
+    const headerHeight = 32;
+    const pageWidth = 841.89;
+    const usableWidth = pageWidth - margin * 2;
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const widths = weights.map((weight) => (usableWidth * weight) / totalWeight);
+
+    const addTablePage = () => {
+      document.addPage({ size: "A4", layout: "landscape", margin });
+      document
+        .font("RobotoLikeBold")
+        .fontSize(13)
+        .fillColor("#000000")
+        .text(title, margin, margin, { width: usableWidth });
+      document.y += 10;
+      let x = margin;
+      const y = document.y;
+      headers.forEach((header, index) => {
+        document
+          .rect(x, y, widths[index], headerHeight)
+          .fillAndStroke("#E0EEFF", "#9CBCE3");
+        document
+          .font("RobotoLikeBold")
+          .fontSize(7.5)
+          .fillColor("#003F8F")
+          .text(header, x + 5, y + 7, {
+            width: widths[index] - 10,
+            height: headerHeight - 10,
+          });
+        x += widths[index];
+      });
+      document.y = y + headerHeight;
+    };
+
+    addTablePage();
+    if (!rows.length) {
+      document
+        .font("RobotoLike")
+        .fontSize(9)
+        .fillColor("#777777")
+        .text("Не заполнено", margin, document.y + 10);
+      return;
+    }
+
+    rows.forEach((row) => {
+      const rowHeight = Math.max(
+        28,
+        ...row.map((cell, index) =>
+          document
+            .font("RobotoLike")
+            .fontSize(7.5)
+            .heightOfString(cell || "—", {
+              width: widths[index] - 10,
+              lineGap: 1,
+            }) + 12,
+        ),
+      );
+      if (document.y + rowHeight > document.page.height - margin) {
+        addTablePage();
+      }
+      let x = margin;
+      const y = document.y;
+      row.forEach((cell, index) => {
+        document.rect(x, y, widths[index], rowHeight).strokeColor("#D9D9D9").stroke();
+        document
+          .font("RobotoLike")
+          .fontSize(7.5)
+          .fillColor("#222222")
+          .text(cell || "—", x + 5, y + 6, {
+            width: widths[index] - 10,
+            height: rowHeight - 10,
+            lineGap: 1,
+          });
+        x += widths[index];
+      });
+      document.y = y + rowHeight;
+    });
+  };
+  const renderTransactionTables = (question: Question) => {
+    if (!Array.isArray(question.value)) return false;
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+
+    if (question.key === "participants") {
+      renderReportTable({
+        title: "Структура участников отрасли",
+        headers: ["Сегменты", "Группа участников", "Роль", "Описание участника"],
+        rows: rows.map((row) => [
+          cell(row, "segments"),
+          cell(row, "name"),
+          cell(row, "kind"),
+          cell(row, "role"),
+        ]),
+        weights: [1.5, 1.5, 1, 2.4],
+      });
+      return true;
+    }
+    if (question.key === "macrotransactions") {
+      renderReportTable({
+        title: "Ключевые сценарии взаимодействия (макротранзакции)",
+        headers: [
+          "Сегменты",
+          "Макротранзакция",
+          "Инициатор",
+          "Получатель",
+          "Предмет транзакции",
+          "Тип",
+          "Суть и результат",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "segments"),
+          cell(row, "name"),
+          cell(row, "initiator"),
+          cell(row, "recipient"),
+          cell(row, "value"),
+          cell(row, "transactionType"),
+          cell(row, "description"),
+        ]),
+        weights: [1.2, 1.5, 1.2, 1.2, 1.5, 0.8, 2],
+      });
+      return true;
+    }
+    if (question.key === "microtransactions") {
+      const macros = Array.from(
+        new Set(rows.map((row) => String(row.macro ?? "")).filter(Boolean)),
+      );
+      const actions = Array.from(
+        new Set(rows.map((row) => String(row.name ?? "")).filter(Boolean)),
+      );
+      renderReportTable({
+        title: "Матрица транзакций отрасли",
+        headers: ["Микротранзакция", ...macros],
+        rows: actions.map((action) => [
+          action,
+          ...macros.map((macro) =>
+            rows.some(
+              (row) => String(row.name ?? "") === action && String(row.macro ?? "") === macro,
+            )
+              ? "✓"
+              : "—",
+          ),
+        ]),
+        weights: [2.4, ...macros.map(() => 1)],
+      });
+      renderReportTable({
+        title: "Последовательность действий внутри макротранзакций",
+        headers: [
+          "Макротранзакция",
+          "Микротранзакция",
+          "Исполнитель",
+          "Описание и результат",
+          "Выполнение сейчас",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macro"),
+          cell(row, "name"),
+          cell(row, "actor"),
+          cell(row, "result"),
+          cell(row, "executionMode"),
+        ]),
+        weights: [1.5, 1.5, 1.3, 2.5, 1.2],
+      });
+      return true;
+    }
+    if (question.key === "transaction_assessments") {
+      renderReportTable({
+        title: "Оценка ключевых микротранзакций",
+        headers: [
+          "Макротранзакция",
+          "Микротранзакция",
+          "Массовость",
+          "Повторяемость",
+          "Стандартизированность",
+          "Комментарий",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macro"),
+          cell(row, "micro"),
+          cell(row, "frequency"),
+          cell(row, "repeatability"),
+          cell(row, "standardization"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.5, 1.5, 1, 1, 1.2, 2.2],
+      });
+      renderReportTable({
+        title: "Оценка транзакционных издержек",
+        headers: [
+          "Макротранзакция",
+          "Микротранзакция",
+          "Удельная ресурсоёмкость",
+          "Совокупный уровень издержек",
+          "Основные источники издержек",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macro"),
+          cell(row, "micro"),
+          cell(row, "resourceIntensity"),
+          cell(row, "costLevel"),
+          [
+            Array.isArray(row.costSources)
+              ? row.costSources
+                  .filter((source) => String(source) !== "Другое")
+                  .map((source) => optionLabel(source, columns.get("costSources")?.options))
+                  .join(", ")
+              : cell(row, "costSources"),
+            row.customCostSource ? String(row.customCostSource) : "",
+          ]
+            .filter(Boolean)
+            .join(", "),
+        ]),
+        weights: [1.5, 1.5, 1.1, 1.2, 2.7],
+      });
+      return true;
+    }
+    return false;
+  };
 
   document
     .font("RobotoLikeBold")
     .fontSize(10)
     .fillColor("#0059C7")
     .text(`ЭКСПЕРТНЫЙ МОДУЛЬ ${String(data.moduleOrder).padStart(2, "0")}`);
+  if (data.isPreview) {
+    document
+      .font("RobotoLikeBold")
+      .fontSize(9)
+      .fillColor("#8125C8")
+      .text("ПРЕДВАРИТЕЛЬНЫЙ ПРОСМОТР");
+  }
   document
     .fontSize(22)
     .fillColor("#000000")
@@ -156,6 +399,9 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
   divider();
 
   data.questions.forEach((question, questionIndex) => {
+    if (data.moduleOrder === 2 && renderTransactionTables(question)) {
+      return;
+    }
     ensureSpace(90);
     document
       .font("RobotoLikeBold")

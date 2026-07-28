@@ -998,6 +998,7 @@ export function DynamicForm({
   const [saveError, setSaveError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  const [previewing, setPreviewing] = useState(false);
   const revisionRef = useRef(initialRevision);
   const firstRender = useRef(true);
   const readOnly = !["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(status);
@@ -1177,6 +1178,41 @@ export function DynamicForm({
     }
   }
 
+  async function previewPdf() {
+    setMessage("");
+    const previewWindow = window.open("about:blank", "_blank");
+    setPreviewing(true);
+    try {
+      const response = await fetch(
+        `/api/assignments/${assignmentId}/pdf?preview=1`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers }),
+        },
+      );
+      if (!response.ok) throw new Error("Preview failed");
+      const objectUrl = URL.createObjectURL(await response.blob());
+      if (previewWindow) {
+        previewWindow.location.replace(objectUrl);
+      } else {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch {
+      previewWindow?.close();
+      setMessage(
+        "Не удалось сформировать предварительный просмотр. Проверьте подключение и попробуйте ещё раз.",
+      );
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
   return (
     <div>
       {message && (
@@ -1315,13 +1351,23 @@ export function DynamicForm({
               После отправки редактирование будет недоступно до возврата на доработку.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={submit}
-            className="shrink-0 rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7]"
-          >
-            Отправить на проверку
-          </button>
+          <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+            <button
+              type="button"
+              disabled={previewing}
+              onClick={previewPdf}
+              className="rounded-xl border border-white px-6 py-3 font-semibold text-white hover:bg-white hover:text-black disabled:opacity-60"
+            >
+              {previewing ? "Формируем PDF…" : "Предварительный просмотр PDF"}
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              className="rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7]"
+            >
+              Отправить на проверку
+            </button>
+          </div>
         </div>
       )}
     </div>
