@@ -164,6 +164,52 @@ describe("validateAnswers", () => {
     });
   });
 
+  it("requires an assessment for every source table row", () => {
+    const chainQuestion = {
+      id: "chain",
+      key: "microtransactions",
+      type: "TABLE",
+      title: "Действия",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          { key: "macro", title: "Сценарий", type: "suggest", required: true },
+          { key: "name", title: "Действие", type: "suggest", required: true },
+        ],
+      },
+    };
+    const assessmentQuestion = {
+      id: "assessment",
+      key: "transaction_assessments",
+      type: "TABLE",
+      title: "Оценки",
+      required: true,
+      config: {
+        minRows: 1,
+        coverSourceQuestionKey: "microtransactions",
+        coverSourceColumns: ["macro", "name"],
+        coverTargetColumns: ["macro", "micro"],
+        columns: [
+          { key: "macro", title: "Сценарий", type: "suggest", required: true },
+          { key: "micro", title: "Действие", type: "suggest", required: true },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([chainQuestion, assessmentQuestion], {
+        chain: [
+          { macro: "Публикация", name: "Проверка прав" },
+          { macro: "Публикация", name: "Проведение расчётов" },
+        ],
+        assessment: [{ macro: "Публикация", micro: "Проверка прав" }],
+      }),
+    ).toEqual({
+      assessment: "Оцените каждое добавленное действие",
+    });
+  });
+
   it("checks number ranges inside table rows", () => {
     const percentageQuestion = {
       id: "boundaries",

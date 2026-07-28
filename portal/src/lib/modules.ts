@@ -53,6 +53,8 @@ const columnSchema = z.object({
   sortOptions: z.boolean().optional(),
   sourceQuestionKey: z.string().optional(),
   sourceColumnKey: z.string().optional(),
+  sourceFilterColumnKey: z.string().optional(),
+  sourceFilterValueFromColumnKey: z.string().optional(),
   sourceLabelSuffix: z.string().optional(),
   uniqueAcrossRows: z.boolean().optional(),
   visibleWhen: conditionSchema.optional(),
@@ -90,6 +92,10 @@ const questionSchema = z.object({
       numberRows: z.boolean().optional(),
       rowLabel: z.string().optional(),
       sortableRows: z.boolean().optional(),
+      groupByColumnKey: z.string().optional(),
+      coverSourceQuestionKey: z.string().optional(),
+      coverSourceColumns: z.array(z.string().min(1)).optional(),
+      coverTargetColumns: z.array(z.string().min(1)).optional(),
       columns: z.array(columnSchema).optional(),
     })
     .passthrough()

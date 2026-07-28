@@ -17,6 +17,9 @@ type Config = {
   max?: number;
   minRows?: number;
   maxRows?: number;
+  coverSourceQuestionKey?: string;
+  coverSourceColumns?: string[];
+  coverTargetColumns?: string[];
   columns?: Array<{
     key: string;
     title: string;
@@ -123,6 +126,50 @@ export function validateAnswers(
         errors[question.id] =
           `Значения в поле «${duplicateColumn.title}» не должны повторяться`;
         continue;
+      }
+      if (
+        config.coverSourceQuestionKey &&
+        config.coverSourceColumns?.length &&
+        config.coverTargetColumns?.length === config.coverSourceColumns.length
+      ) {
+        const sourceQuestion = questions.find(
+          (candidate) => candidate.key === config.coverSourceQuestionKey,
+        );
+        const sourceRows = sourceQuestion
+          ? answers[sourceQuestion.id]
+          : undefined;
+        if (Array.isArray(sourceRows)) {
+          const compositeKey = (
+            row: Record<string, unknown>,
+            columns: string[],
+          ) =>
+            columns
+              .map((column) =>
+                String(row[column] ?? "").trim().toLocaleLowerCase("ru"),
+              )
+              .join("\u0000");
+          const covered = new Set(
+            value.map((row) =>
+              compositeKey(
+                row as Record<string, unknown>,
+                config.coverTargetColumns!,
+              ),
+            ),
+          );
+          const hasUncoveredSource = sourceRows.some(
+            (row) =>
+              !covered.has(
+                compositeKey(
+                  row as Record<string, unknown>,
+                  config.coverSourceColumns!,
+                ),
+              ),
+          );
+          if (hasUncoveredSource) {
+            errors[question.id] = "Оцените каждое добавленное действие";
+            continue;
+          }
+        }
       }
       const invalidNumber = value.some((row) =>
         config.columns?.some((column) => {

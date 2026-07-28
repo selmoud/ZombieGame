@@ -28,6 +28,8 @@ type Column = {
   sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
+  sourceFilterColumnKey?: string;
+  sourceFilterValueFromColumnKey?: string;
   sourceLabelSuffix?: string;
   uniqueAcrossRows?: boolean;
   visibleWhen?: FieldCondition;
@@ -53,6 +55,7 @@ type Question = {
     numberRows?: boolean;
     rowLabel?: string;
     sortableRows?: boolean;
+    groupByColumnKey?: string;
     columns?: Column[];
   };
 };
@@ -520,8 +523,22 @@ function TableField({
       const sourceRows = sourceQuestion
         ? answers[sourceQuestion.id]
         : undefined;
-      const linkedValues = Array.isArray(sourceRows)
-        ? sourceRows.flatMap((sourceRow) => {
+      const filteredSourceRows = Array.isArray(sourceRows)
+        ? sourceRows.filter((sourceRow) => {
+            if (
+              !column.sourceFilterColumnKey ||
+              !column.sourceFilterValueFromColumnKey
+            ) {
+              return true;
+            }
+            return (
+              (sourceRow as Record<string, unknown>)[
+                column.sourceFilterColumnKey
+              ] === row[column.sourceFilterValueFromColumnKey]
+            );
+          })
+        : [];
+      const linkedValues = filteredSourceRows.flatMap((sourceRow) => {
             const sourceValue = (sourceRow as Record<string, unknown>)[
               sourceColumnKey
             ];
@@ -530,8 +547,7 @@ function TableField({
               : sourceValue
                 ? [String(sourceValue)]
                 : [];
-          })
-        : [];
+          });
       combined = [
         ...staticOptions,
         ...linkedValues.map((item) => ({
@@ -619,6 +635,13 @@ function TableField({
 
   function moveRow(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return;
+    const groupByColumnKey = question.config.groupByColumnKey;
+    if (
+      groupByColumnKey &&
+      rows[fromIndex]?.[groupByColumnKey] !== rows[toIndex]?.[groupByColumnKey]
+    ) {
+      return;
+    }
     const nextRows = [...rows];
     const [movedRow] = nextRows.splice(fromIndex, 1);
     nextRows.splice(toIndex, 0, movedRow);

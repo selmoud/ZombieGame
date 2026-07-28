@@ -179,13 +179,14 @@ questions:
   - key: microtransactions
     order: 3
     type: table
-    title: Действия и транзакционные издержки
-    description: "Разложите сценарии на последовательные действия. Одна карточка — одно конкретное действие. Перетащите карточки, чтобы установить порядок."
+    title: Действия внутри сценария (микротранзакции)
+    description: "Сначала соберите цепочку действий для каждого сценария. Одна карточка — одно конкретное действие. Карточки можно переставлять внутри одного сценария."
     required: true
     config:
       minRows: 2
       maxRows: 40
       sortableRows: true
+      groupByColumnKey: macro
       rowLabel: Действие
       addRowLabel: Добавить действие
       columns:
@@ -216,18 +217,76 @@ questions:
             - { value: Мониторинг исполнения, label: Мониторинг исполнения }
         - key: actor
           title: Кто выполняет
+          description: "Выбирается из перечня групп участников в пункте 1."
           type: suggest
           allowCustom: false
           required: true
           sourceQuestionKey: participants
           sourceColumnKey: name
+        - key: counterparty
+          title: С кем взаимодействует
+          description: "Выбирается из перечня групп участников в пункте 1."
+          type: suggest
+          allowCustom: false
+          required: true
+          sourceQuestionKey: participants
+          sourceColumnKey: name
+          excludeColumnKey: actor
         - key: result
-          title: Что происходит и какой результат
+          title: Описание и результат действия
+          description: "Кратко опишите действие и укажите, какой результат получает следующая сторона цепочки."
           type: long_text
           required: true
           fullWidth: true
+        - key: executionMode
+          title: Как действие выполняется сейчас
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Полностью вручную, label: Полностью вручную }
+            - { value: Преимущественно вручную, label: Преимущественно вручную }
+            - { value: Частично автоматизировано, label: Частично автоматизировано }
+            - { value: Преимущественно автоматизировано, label: Преимущественно автоматизировано }
+            - { value: Полностью автоматизировано, label: Полностью автоматизировано }
+
+  - key: transaction_assessments
+    order: 4
+    type: table
+    title: Оценка действий и транзакционных издержек
+    description: "Оцените каждое действие из собранных выше цепочек. Для всех показателей используется единая шкала: от «очень низкой» до «очень высокой»."
+    required: true
+    config:
+      minRows: 2
+      maxRows: 40
+      rowLabel: Оценка
+      addRowLabel: Добавить оценку действия
+      coverSourceQuestionKey: microtransactions
+      coverSourceColumns: [macro, name]
+      coverTargetColumns: [macro, micro]
+      columns:
+        - key: macro
+          title: Сценарий
+          type: suggest
+          allowCustom: false
+          required: true
+          sourceQuestionKey: macrotransactions
+          sourceColumnKey: name
+          fullWidth: true
+        - key: micro
+          title: Действие
+          description: "Предлагаются только действия, добавленные для выбранного сценария."
+          type: suggest
+          allowCustom: false
+          required: true
+          sourceQuestionKey: microtransactions
+          sourceColumnKey: name
+          sourceFilterColumnKey: macro
+          sourceFilterValueFromColumnKey: macro
+          fullWidth: true
         - key: frequency
           title: Массовость
+          description: "Количество участников и частота совершения действия в отрасли."
           type: select
           required: true
           options:
@@ -238,6 +297,7 @@ questions:
             - { value: Очень высокая, label: Очень высокая }
         - key: repeatability
           title: Повторяемость
+          description: "Регулярность выполнения действия в отрасли."
           type: select
           required: true
           options:
@@ -248,6 +308,7 @@ questions:
             - { value: Очень высокая, label: Очень высокая }
         - key: standardization
           title: Стандартизированность
+          description: "Наличие единых правил, процедур, документов, данных и процессов."
           type: select
           required: true
           options:
@@ -258,6 +319,7 @@ questions:
             - { value: Очень высокая, label: Очень высокая }
         - key: resourceIntensity
           title: Ресурсоёмкость
+          description: "Объём времени, труда и других ресурсов на одно выполнение действия."
           type: select
           required: true
           options:
@@ -266,6 +328,17 @@ questions:
             - { value: Средняя, label: Средняя }
             - { value: Высокая, label: Высокая }
             - { value: Очень высокая, label: Очень высокая }
+        - key: costLevel
+          title: Совокупный уровень издержек
+          description: "Общий масштаб издержек с учётом массовости и затрат на одно выполнение."
+          type: select
+          required: true
+          options:
+            - { value: Очень низкий, label: Очень низкий }
+            - { value: Низкий, label: Низкий }
+            - { value: Средний, label: Средний }
+            - { value: Высокий, label: Высокий }
+            - { value: Очень высокий, label: Очень высокий }
         - key: costSources
           title: Основные источники издержек
           type: multi_suggest
@@ -289,14 +362,14 @@ questions:
           fullWidth: true
 
   - key: priorities
-    order: 4
+    order: 5
     type: long_text
     title: Приоритетные действия для цифровизации и платформизации
     description: "Назовите микротранзакции, которые в первую очередь следует унифицировать, цифровизировать или перенести на платформы, и кратко объясните почему."
     required: true
 
   - key: transaction_materials
-    order: 5
+    order: 6
     type: file
     title: Подтверждающие материалы
     description: "Необязательно. Приложите схему, исследование, расчёт или другой материал, подтверждающий описание транзакций и издержек."

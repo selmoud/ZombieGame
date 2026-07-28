@@ -157,6 +157,7 @@ export default async function ModulePage({
       numberRows?: boolean;
       rowLabel?: string;
       sortableRows?: boolean;
+      groupByColumnKey?: string;
       columns?: Array<{
         key: string;
         title: string;
@@ -181,6 +182,8 @@ export default async function ModulePage({
         sortOptions?: boolean;
         sourceQuestionKey?: string;
         sourceColumnKey?: string;
+        sourceFilterColumnKey?: string;
+        sourceFilterValueFromColumnKey?: string;
         sourceLabelSuffix?: string;
         uniqueAcrossRows?: boolean;
         visibleWhen?: {

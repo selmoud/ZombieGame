@@ -180,4 +180,31 @@ describe("module definitions", () => {
       fullWidth: true,
     });
   });
+
+  it("separates transaction chains from their assessments", async () => {
+    const modules = await loadModuleDefinitions();
+    const transactions = modules.find((module) => module.slug === "transactions");
+    const chain = transactions?.questions.find(
+      (question) => question.key === "microtransactions",
+    );
+    const assessments = transactions?.questions.find(
+      (question) => question.key === "transaction_assessments",
+    );
+    const actionColumn = assessments?.config.columns?.find(
+      (column) => column.key === "micro",
+    );
+
+    expect(chain?.config.groupByColumnKey).toBe("macro");
+    expect(assessments?.config).toMatchObject({
+      coverSourceQuestionKey: "microtransactions",
+      coverSourceColumns: ["macro", "name"],
+      coverTargetColumns: ["macro", "micro"],
+    });
+    expect(actionColumn).toMatchObject({
+      sourceQuestionKey: "microtransactions",
+      sourceColumnKey: "name",
+      sourceFilterColumnKey: "macro",
+      sourceFilterValueFromColumnKey: "macro",
+    });
+  });
 });
