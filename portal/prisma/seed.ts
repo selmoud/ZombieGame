@@ -21,11 +21,6 @@ function tokenHash(token: string) {
 async function main() {
   const timofeyPasswordHash = await hashPassword("Admin007");
   const vitaliyPasswordHash = await hashPassword("Admin008");
-  const company = await db.company.upsert({
-    where: { name: "АО «Медиаплатформа»" },
-    update: {},
-    create: { name: "АО «Медиаплатформа»" },
-  });
   const subgroup = await db.subgroup.upsert({
     where: { name: "Коммуникации" },
     update: {},
@@ -81,21 +76,6 @@ async function main() {
       subgroupId: subgroup.id,
     },
   });
-  const expert = await db.user.upsert({
-    where: { id: "00000000-0000-4000-8000-000000000002" },
-    update: { isActive: false },
-    create: {
-      id: "00000000-0000-4000-8000-000000000002",
-      fullName: "Алексей Волков",
-      position: "Директор по цифровым продуктам",
-      direction: "Медиа и контент",
-      role: "EXPERT",
-      isActive: false,
-      companyId: company.id,
-      subgroupId: subgroup.id,
-    },
-  });
-
   const modules = await loadModuleDefinitions();
   for (const definition of modules) {
     const moduleRecord = await db.module.upsert({
@@ -179,27 +159,9 @@ async function main() {
         },
       });
     }
-    const assignment = await db.moduleAssignment.upsert({
-      where: { userId_moduleId: { userId: expert.id, moduleId: moduleRecord.id } },
-      update: { moduleVersionId: version.id },
-      create: {
-        userId: expert.id,
-        moduleId: moduleRecord.id,
-        moduleVersionId: version.id,
-        assignedById: admin.id,
-      },
-    });
-    await db.submission.upsert({
-      where: { assignmentId: assignment.id },
-      update: {},
-      create: { assignmentId: assignment.id },
-    });
   }
 
-  for (const [user, rawToken] of [
-    [admin, "demo-admin"],
-    [expert, "demo-expert"],
-  ] as const) {
+  for (const [user, rawToken] of [[admin, "demo-admin"]] as const) {
     await db.invitationToken.upsert({
       where: { tokenHash: tokenHash(rawToken) },
       update: {
@@ -218,7 +180,6 @@ async function main() {
   }
 
   console.log("Seed complete");
-  console.log("Expert: http://localhost:3000/invite/demo-expert");
   console.log("Admin invitation: http://localhost:3000/invite/demo-admin");
   console.log("Admins: Тимофей Мальцев / Admin007; Киселев Виталий / Admin008");
 }
