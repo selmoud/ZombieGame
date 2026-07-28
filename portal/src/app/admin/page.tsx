@@ -37,7 +37,7 @@ export default async function AdminPage() {
           <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
             Административная панель
           </p>
-          <h1 className="mt-2 font-serif text-4xl text-[#183a4a]">
+          <h1 className="mt-2 text-4xl text-[#183a4a]">
             Рабочая группа
           </h1>
           <p className="mt-2 text-slate-600">
@@ -68,7 +68,7 @@ export default async function AdminPage() {
         ].map(([label, value]) => (
           <div key={label} className="paper rounded-2xl p-6">
             <p className="text-sm text-slate-500">{label}</p>
-            <p className="mt-2 font-serif text-4xl text-[#183a4a]">{value}</p>
+            <p className="mt-2 text-4xl text-[#183a4a]">{value}</p>
           </div>
         ))}
       </section>
@@ -77,7 +77,7 @@ export default async function AdminPage() {
         <section className="paper overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
             <div>
-              <h2 className="font-serif text-2xl text-[#183a4a]">Эксперты</h2>
+              <h2 className="text-2xl text-[#183a4a]">Эксперты</h2>
               <p className="mt-1 text-sm text-slate-500">Участники и прогресс</p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default async function AdminPage() {
         </section>
 
         <section className="paper rounded-2xl p-6">
-          <h2 className="font-serif text-2xl text-[#183a4a]">
+          <h2 className="text-2xl text-[#183a4a]">
             Добавить эксперта
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -132,7 +132,7 @@ export default async function AdminPage() {
 
       <section className="paper mt-7 rounded-2xl p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-serif text-2xl text-[#183a4a]">Последние ответы</h2>
+          <h2 className="text-2xl text-[#183a4a]">Последние ответы</h2>
           <Link href="/admin/submissions" className="text-sm font-semibold text-[#16877c]">
             Смотреть все →
           </Link>

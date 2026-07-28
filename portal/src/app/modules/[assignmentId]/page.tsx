@@ -81,7 +81,7 @@ export default async function ModulePage({
                   Раздел {String(assignment.module.order).padStart(2, "0")} · версия{" "}
                   {assignment.moduleVersion.version}
                 </p>
-                <h1 className="mt-2 font-serif text-3xl text-[#183a4a] sm:text-4xl">
+                <h1 className="mt-2 text-3xl text-[#183a4a] sm:text-4xl">
                   {assignment.module.title}
                 </h1>
                 <p className="mt-3 max-w-2xl leading-7 text-slate-600">
@@ -139,7 +139,7 @@ export default async function ModulePage({
             </ol>
           </section>
           <section className="rounded-2xl bg-[#f0eadc] p-5">
-            <p className="font-serif text-lg text-[#183a4a]">Важно</p>
+            <p className="text-lg text-[#183a4a]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Подкрепляйте выводы измеримыми показателями, источниками и
               конкретными примерами.

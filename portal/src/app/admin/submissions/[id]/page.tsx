@@ -86,7 +86,7 @@ export default async function SubmissionPage({
                 <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
                   {submission.assignment.module.order}. {submission.assignment.module.title}
                 </p>
-                <h1 className="mt-2 font-serif text-3xl text-[#183a4a]">
+                <h1 className="mt-2 text-3xl text-[#183a4a]">
                   {submission.assignment.user.fullName}
                 </h1>
                 <p className="mt-2 text-slate-500">
@@ -118,7 +118,7 @@ export default async function SubmissionPage({
           )}
           {submission.status === "SUBMITTED" && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="font-serif text-xl text-[#183a4a]">Решение</h2>
+              <h2 className="text-xl text-[#183a4a]">Решение</h2>
               <form action={acceptSubmission} className="mt-4">
                 <input type="hidden" name="submissionId" value={submission.id} />
                 <button className="w-full rounded-xl bg-[#16877c] px-4 py-3 font-semibold text-white">
@@ -139,7 +139,7 @@ export default async function SubmissionPage({
           )}
 
           <section className="paper rounded-2xl p-5">
-            <h2 className="font-serif text-xl text-[#183a4a]">Комментарий</h2>
+            <h2 className="text-xl text-[#183a4a]">Комментарий</h2>
             <form action={addComment} className="mt-4">
               <input type="hidden" name="submissionId" value={submission.id} />
               <textarea className="field min-h-24" name="body" placeholder="Общее замечание к разделу" required />
@@ -159,7 +159,7 @@ export default async function SubmissionPage({
 
           {submission.history.length > 0 && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="font-serif text-xl text-[#183a4a]">История</h2>
+              <h2 className="text-xl text-[#183a4a]">История</h2>
               <div className="mt-4 space-y-3">
                 {submission.history.map((entry) => (
                   <div key={entry.id} className="border-l-2 border-[#16877c]/30 pl-3 text-xs text-slate-500">

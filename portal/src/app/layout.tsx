@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Roboto } from "next/font/google";
 import "./globals.css";
+
+const roboto = Roboto({
+  subsets: ["cyrillic", "latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+  variable: "--font-roboto",
+});
 
 export const metadata: Metadata = {
   title: "Стратегия платформ — экспертный портал",
@@ -10,7 +18,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" className={roboto.variable}>
       <body>{children}</body>
     </html>
   );

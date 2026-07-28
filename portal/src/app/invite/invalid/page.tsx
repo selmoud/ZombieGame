@@ -5,7 +5,7 @@ export default function InvalidInvitationPage() {
     <main className="grid min-h-screen place-items-center px-5">
       <section className="paper w-full max-w-lg rounded-3xl p-10 text-center">
         <p className="text-5xl">↗</p>
-        <h1 className="mt-5 font-serif text-3xl text-[#183a4a]">
+        <h1 className="mt-5 text-3xl text-[#183a4a]">
           Ссылка больше не действует
         </h1>
         <p className="mt-4 leading-7 text-slate-600">

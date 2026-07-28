@@ -31,7 +31,7 @@ export default async function DashboardPage() {
           <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
             Личный кабинет
           </p>
-          <h1 className="mt-2 font-serif text-4xl text-[#183a4a]">
+          <h1 className="mt-2 text-4xl text-[#183a4a]">
             Добрый день, {user.fullName.split(" ")[0]}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-slate-600">
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
 
       <div className="mt-9 flex items-end justify-between">
         <div>
-          <h2 className="font-serif text-3xl text-[#183a4a]">
+          <h2 className="text-3xl text-[#183a4a]">
             Разделы доклада
           </h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
               className="paper group rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-[#16877c]/50 hover:shadow-lg"
             >
               <div className="flex items-start justify-between gap-4">
-                <span className="font-serif text-4xl text-[#b6c6c6]">
+                <span className="text-4xl text-[#b6c6c6]">
                   {String(module.order).padStart(2, "0")}
                 </span>
                 <span

@@ -10,13 +10,13 @@ export default async function InvitationPage({
   return (
     <main className="grid min-h-screen place-items-center px-5">
       <section className="paper w-full max-w-lg rounded-3xl p-8 text-center sm:p-12">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#16877c] font-serif text-2xl font-bold text-white">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#16877c] text-2xl font-bold text-white">
           36
         </span>
         <p className="mt-7 text-sm font-semibold uppercase tracking-wider text-[#16877c]">
           Персональное приглашение
         </p>
-        <h1 className="mt-3 font-serif text-3xl text-[#183a4a]">
+        <h1 className="mt-3 text-3xl text-[#183a4a]">
           Добро пожаловать в рабочую группу
         </h1>
         <p className="mt-4 leading-7 text-slate-600">

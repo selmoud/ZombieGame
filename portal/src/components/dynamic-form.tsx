@@ -483,7 +483,7 @@ export function DynamicForm({
       {!readOnly && (
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#173b4b] p-6 text-white sm:flex-row sm:items-center">
           <div>
-            <h3 className="font-serif text-xl">Раздел заполнен?</h3>
+            <h3 className="text-xl">Раздел заполнен?</h3>
             <p className="mt-1 text-sm text-slate-300">
               После отправки редактирование будет недоступно до возврата на доработку.
             </p>

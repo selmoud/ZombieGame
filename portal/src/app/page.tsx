@@ -15,7 +15,7 @@ export default async function Home() {
             <span className="inline-flex rounded-full border border-white/20 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-100">
               Рабочая группа
             </span>
-            <h1 className="mt-8 max-w-xl font-serif text-4xl leading-tight sm:text-5xl">
+            <h1 className="mt-8 max-w-xl text-4xl leading-tight sm:text-5xl">
               Стратегия развития цифровых платформ
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-slate-300">
@@ -37,7 +37,7 @@ export default async function Home() {
             <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
               Вход на портал
             </p>
-            <h2 className="mt-3 font-serif text-3xl text-[#183a4a]">
+            <h2 className="mt-3 text-3xl text-[#183a4a]">
               Используйте персональную ссылку
             </h2>
             <p className="mt-4 leading-7 text-slate-600">

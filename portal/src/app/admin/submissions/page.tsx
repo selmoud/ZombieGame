@@ -46,7 +46,7 @@ export default async function SubmissionsPage({
       </Link>
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-4xl text-[#183a4a]">Ответы экспертов</h1>
+          <h1 className="text-4xl text-[#183a4a]">Ответы экспертов</h1>
           <p className="mt-2 text-slate-600">Проверка и согласование материалов</p>
         </div>
         <Link

@@ -18,7 +18,7 @@ export function AppShell({
       <header className="border-b border-white/10 bg-[#173b4b] text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 lg:px-8">
           <Link href={user.role === "ADMIN" ? "/admin" : "/dashboard"} className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-[#16877c] font-serif text-xl font-bold">
+            <span className="grid size-10 place-items-center rounded-xl bg-[#16877c] text-xl font-bold">
               36
             </span>
             <span>
