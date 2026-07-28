@@ -4,10 +4,13 @@ import { useActionState, useState } from "react";
 import {
   deleteExpert,
   resetExpertPassword,
+  updateExpertCompany,
   type ResetExpertPasswordState,
+  type UpdateExpertCompanyState,
 } from "@/app/admin/actions";
 
 const initialPasswordState: ResetExpertPasswordState = {};
+const initialCompanyState: UpdateExpertCompanyState = {};
 
 export function ExpertCard({
   id,
@@ -31,17 +34,49 @@ export function ExpertCard({
     resetExpertPassword,
     initialPasswordState,
   );
+  const [companyState, companyAction, companyPending] = useActionState(
+    updateExpertCompany,
+    initialCompanyState,
+  );
 
   return (
     <article className="px-6 py-5">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_1.8fr_1fr_1.2fr_0.7fr]">
         <DataItem label="ФИО">
           <span className="font-bold text-black">{fullName}</span>
           <span className="mt-1 block text-xs text-neutral-400">
             {isActive ? "Доступ активен" : "Ожидает входа"}
           </span>
         </DataItem>
-        <DataItem label="Компания">{company}</DataItem>
+        <DataItem label="Компания">
+          <form action={companyAction} className="flex items-center gap-2">
+            <input type="hidden" name="userId" value={id} />
+            <input
+              className="field min-w-0 py-2"
+              name="company"
+              defaultValue={company === "—" ? "" : company}
+              maxLength={160}
+              aria-label={`Компания эксперта ${fullName}`}
+              required
+            />
+            <button
+              disabled={companyPending}
+              className="shrink-0 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold text-black hover:bg-neutral-50 disabled:opacity-60"
+            >
+              {companyPending ? "…" : "Сохранить"}
+            </button>
+          </form>
+          {companyState.error && (
+            <span className="mt-1 block text-xs text-[#A9004A]">
+              {companyState.error}
+            </span>
+          )}
+          {companyState.success && (
+            <span className="mt-1 block text-xs text-[#00616C]">
+              Компания сохранена
+            </span>
+          )}
+        </DataItem>
         <DataItem label="Пароль">
           <span className="font-mono tracking-widest">
             {hasPassword ? "••••••••" : "не задан"}

@@ -116,6 +116,74 @@ export type ResetExpertPasswordState = {
   success?: boolean;
 };
 
+export type UpdateExpertCompanyState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateExpertCompany(
+  _previousState: UpdateExpertCompanyState,
+  formData: FormData,
+): Promise<UpdateExpertCompanyState> {
+  await requireRole("ADMIN");
+  const userId = String(formData.get("userId") ?? "");
+  const companyName = String(formData.get("company") ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!companyName || companyName.length > 160) {
+    return { error: "Укажите название компании длиной до 160 символов." };
+  }
+  const expert = await db.user.findFirst({
+    where: { id: userId, role: { in: ["EXPERT", "LEAD"] } },
+    include: {
+      company: { include: { _count: { select: { users: true } } } },
+    },
+  });
+  if (!expert) return { error: "Эксперт не найден." };
+  if (expert.company?.name === companyName) return { success: true };
+
+  await db.$transaction(async (tx) => {
+    const matchingCompany = await tx.company.findFirst({
+      where: {
+        id: expert.companyId ? { not: expert.companyId } : undefined,
+        name: { equals: companyName, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    let companyId = matchingCompany?.id;
+    if (!companyId && expert.company && expert.company._count.users === 1) {
+      const renamed = await tx.company.update({
+        where: { id: expert.company.id },
+        data: { name: companyName },
+        select: { id: true },
+      });
+      companyId = renamed.id;
+    }
+    if (!companyId) {
+      const created = await tx.company.create({
+        data: { name: companyName },
+        select: { id: true },
+      });
+      companyId = created.id;
+    }
+    await tx.user.update({
+      where: { id: expert.id },
+      data: { companyId },
+    });
+    if (expert.companyId && expert.companyId !== companyId) {
+      await tx.company.deleteMany({
+        where: {
+          id: expert.companyId,
+          users: { none: {} },
+        },
+      });
+    }
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/submissions");
+  return { success: true };
+}
+
 export async function resetExpertPassword(
   _previousState: ResetExpertPasswordState,
   formData: FormData,
