@@ -54,6 +54,7 @@ type Question = {
     maxRows?: number;
     fixedRows?: number;
     addRowLabel?: string;
+    addRowRequiresColumnKey?: string;
     numberRows?: boolean;
     rowLabel?: string;
     sortableRows?: boolean;
@@ -493,6 +494,15 @@ function TableField({
           { length: question.config.fixedRows },
           () => createDefaultRow(),
         );
+  const requiredBeforeAddColumn = columns.find(
+    (column) => column.key === question.config.addRowRequiresColumnKey,
+  );
+  const previousRowBlocksAdd =
+    Boolean(requiredBeforeAddColumn) &&
+    rows.length > 0 &&
+    !String(
+      rows[rows.length - 1]?.[requiredBeforeAddColumn!.key] ?? "",
+    ).trim();
 
   function sortSuggestions(options: Option[], column: Column) {
     return [...options].sort((left, right) => {
@@ -802,10 +812,19 @@ function TableField({
           <button
             type="button"
             onClick={addRow}
-            className="rounded-lg border border-dashed border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#DDF8FB]"
+            disabled={previousRowBlocksAdd}
+            className="rounded-lg border border-dashed border-[#0059C7] px-4 py-2.5 text-sm font-semibold text-[#0059C7] hover:bg-[#DDF8FB] disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-400 disabled:hover:bg-transparent"
           >
             + {question.config.addRowLabel ?? "Добавить строку"}
           </button>
+        )}
+      {!disabled &&
+        previousRowBlocksAdd &&
+        requiredBeforeAddColumn && (
+          <p className="text-xs leading-5 text-neutral-500">
+            Чтобы добавить следующее действие, заполните поле «
+            {requiredBeforeAddColumn.title}» в предыдущей карточке.
+          </p>
         )}
       {!rows.length && disabled && (
         <p className="text-sm italic text-neutral-400">Нет данных</p>

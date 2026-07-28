@@ -86,9 +86,6 @@ export default async function ModulePage({
   const industry =
     String(boundaryRows[0]?.industry ?? "") ||
     "Коммуникации, медиа и развлечения";
-  const adjacentIndustries = Array.isArray(boundaryRows[0]?.adjacentIndustries)
-    ? boundaryRows[0].adjacentIndustries.map(String)
-    : [];
   const segments = segmentRows
     .map((row) => ({
       name:
@@ -154,6 +151,7 @@ export default async function ModulePage({
       maxRows?: number;
       fixedRows?: number;
       addRowLabel?: string;
+      addRowRequiresColumnKey?: string;
       numberRows?: boolean;
       rowLabel?: string;
       sortableRows?: boolean;
@@ -275,7 +273,7 @@ export default async function ModulePage({
                 Основа из раздела 1
               </p>
               <h2 className="mt-2 text-2xl font-bold text-black">
-                Принятые границы и сегменты
+                Принятые сегменты
               </h2>
               <p className="mt-2 text-sm leading-6 text-neutral-500">
                 Эти данные уже согласованы модератором и используются в полях
@@ -309,14 +307,6 @@ export default async function ModulePage({
                     </div>
                   ))}
                 </div>
-              )}
-              {adjacentIndustries.length > 0 && (
-                <p className="mt-4 text-sm leading-6 text-neutral-500">
-                  <span className="font-semibold text-black">
-                    Смежные отрасли:
-                  </span>{" "}
-                  {adjacentIndustries.join(", ")}
-                </p>
               )}
             </section>
           )}

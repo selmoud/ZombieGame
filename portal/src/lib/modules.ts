@@ -90,6 +90,7 @@ const questionSchema = z.object({
       maxRows: z.number().int().positive().optional(),
       fixedRows: z.number().int().positive().optional(),
       addRowLabel: z.string().optional(),
+      addRowRequiresColumnKey: z.string().optional(),
       numberRows: z.boolean().optional(),
       rowLabel: z.string().optional(),
       sortableRows: z.boolean().optional(),

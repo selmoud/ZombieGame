@@ -195,6 +195,7 @@ describe("module definitions", () => {
     );
 
     expect(chain?.config.groupByColumnKey).toBe("macro");
+    expect(chain?.config.addRowRequiresColumnKey).toBe("result");
     expect(assessments?.config).toMatchObject({
       lockRows: true,
       autoRowsFromQuestionKey: "microtransactions",
