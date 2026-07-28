@@ -79,6 +79,16 @@ describe("module definitions", () => {
         addRowLabel: "Добавить этап",
       },
     });
+    const retrospective = industry.questions.find(
+      (question) => question.key === "current_state",
+    );
+    expect(
+      retrospective?.config.columns
+        ?.filter((column) => ["startYear", "endYear"].includes(column.key))
+        .every((column) =>
+          column.options?.some((option) => option.value === "2026"),
+        ),
+    ).toBe(true);
   });
 
   it("supports searchable and linked table fields", async () => {
