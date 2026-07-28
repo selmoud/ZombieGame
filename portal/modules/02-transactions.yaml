@@ -148,7 +148,7 @@ questions:
             - { value: Рекламный инвентарь, label: Рекламный инвентарь }
             - { value: Другое, label: Другое }
         - key: transactionType
-          title: Тип транзакции
+          title: Тип транзакции (см. Глоссарий)
           type: select
           required: true
           options:
