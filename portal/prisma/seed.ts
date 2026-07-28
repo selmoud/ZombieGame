@@ -41,7 +41,6 @@ async function main() {
       isActive: true,
       passwordHash: timofeyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: null,
     },
     create: {
       id: "00000000-0000-4000-8000-000000000001",
@@ -51,7 +50,6 @@ async function main() {
       isActive: true,
       passwordHash: timofeyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: null,
     },
   });
   await db.user.upsert({
@@ -63,7 +61,6 @@ async function main() {
       isActive: true,
       passwordHash: vitaliyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: null,
     },
     create: {
       id: "00000000-0000-4000-8000-000000000003",
@@ -73,7 +70,6 @@ async function main() {
       isActive: true,
       passwordHash: vitaliyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: null,
     },
   });
   const modules = await loadModuleDefinitions();

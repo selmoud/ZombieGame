@@ -43,7 +43,12 @@ export async function getCurrentUser() {
   const session = await db.session.findUnique({
     where: { id: sessionId },
     include: {
-      user: { include: { company: true, subgroup: true } },
+      user: {
+        include: {
+          company: true,
+          subgroupMemberships: { include: { subgroup: true } },
+        },
+      },
     },
   });
 

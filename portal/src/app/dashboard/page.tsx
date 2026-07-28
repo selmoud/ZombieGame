@@ -8,6 +8,7 @@ import {
   statusLabels,
   statusStyles,
 } from "@/lib/status";
+import { formatSubgroups } from "@/lib/subgroups";
 
 export default async function DashboardPage({
   searchParams,
@@ -77,7 +78,7 @@ export default async function DashboardPage({
         {[
           ["ФИО", user.fullName],
           ["Компания", user.company?.name ?? "—"],
-          ["Подгруппа", user.subgroup?.name ?? "—"],
+          ["Подгруппы", formatSubgroups(user.subgroupMemberships)],
           ["Роль", user.role === "LEAD" ? "Руководитель" : "Эксперт"],
         ].map(([label, value]) => (
           <div key={label}>

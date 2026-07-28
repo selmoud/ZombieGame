@@ -47,7 +47,7 @@ export function ExpertCard({
             {hasPassword ? "••••••••" : "не задан"}
           </span>
         </DataItem>
-        <DataItem label="Подгруппа">{subgroup}</DataItem>
+        <DataItem label="Подгруппы">{subgroup}</DataItem>
         <DataItem label="Прогресс">{progress}</DataItem>
       </div>
 

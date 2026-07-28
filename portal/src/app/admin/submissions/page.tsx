@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { statusLabels, statusStyles } from "@/lib/status";
+import { formatSubgroups } from "@/lib/subgroups";
 
 export default async function SubmissionsPage({
   searchParams,
@@ -23,13 +24,27 @@ export default async function SubmissionsPage({
           ...(moduleId ? { moduleId } : {}),
           user: {
             ...(company ? { companyId: company } : {}),
-            ...(subgroup ? { subgroupId: subgroup } : {}),
+            ...(subgroup
+              ? {
+                  subgroupMemberships: {
+                    some: { subgroupId: subgroup },
+                  },
+                }
+              : {}),
           },
         },
       },
       include: {
         assignment: {
-          include: { user: { include: { company: true, subgroup: true } }, module: true },
+          include: {
+            user: {
+              include: {
+                company: true,
+                subgroupMemberships: { include: { subgroup: true } },
+              },
+            },
+            module: true,
+          },
         },
       },
       orderBy: { updatedAt: "desc" },
@@ -92,7 +107,7 @@ export default async function SubmissionsPage({
                 <th className="px-6 py-3">Эксперт</th>
                 <th className="px-6 py-3">Компания</th>
                 <th className="px-6 py-3">Раздел</th>
-                <th className="px-6 py-3">Подгруппа</th>
+                <th className="px-6 py-3">Подгруппы</th>
                 <th className="px-6 py-3">Статус</th>
                 <th className="px-6 py-3"></th>
               </tr>
@@ -110,7 +125,9 @@ export default async function SubmissionsPage({
                     {submission.assignment.module.order}. {submission.assignment.module.title}
                   </td>
                   <td className="px-6 py-4 text-neutral-600">
-                    {submission.assignment.user.subgroup?.name}
+                    {formatSubgroups(
+                      submission.assignment.user.subgroupMemberships,
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[submission.status]}`}>

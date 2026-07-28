@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels, statusStyles } from "@/lib/status";
+import { formatSubgroups } from "@/lib/subgroups";
 import { acceptSubmission, addComment, requestRevision } from "./actions";
 
 function displayValue(value: unknown, config: unknown) {
@@ -64,7 +65,12 @@ export default async function SubmissionPage({
     include: {
       assignment: {
         include: {
-          user: { include: { company: true, subgroup: true } },
+          user: {
+            include: {
+              company: true,
+              subgroupMemberships: { include: { subgroup: true } },
+            },
+          },
           module: true,
           moduleVersion: { include: { questions: { orderBy: { order: "asc" } } } },
         },
@@ -94,7 +100,10 @@ export default async function SubmissionPage({
                   {submission.assignment.user.fullName}
                 </h1>
                 <p className="mt-2 text-neutral-500">
-                  {submission.assignment.user.company?.name} · {submission.assignment.user.subgroup?.name}
+                  {submission.assignment.user.company?.name} ·{" "}
+                  {formatSubgroups(
+                    submission.assignment.user.subgroupMemberships,
+                  )}
                 </p>
               </div>
               <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${statusStyles[submission.status]}`}>

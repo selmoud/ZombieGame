@@ -70,26 +70,30 @@ export function RegistrationForm({
           required
         />
       </label>
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-          Подгруппа
-        </span>
-        <select
-          className="field"
-          name="subgroupId"
-          defaultValue=""
-          required
-        >
-          <option value="" disabled>
-            Выберите подгруппу
-          </option>
+      <fieldset>
+        <legend className="text-xs font-medium text-neutral-600">
+          Подгруппы
+        </legend>
+        <p className="mt-1 text-xs text-neutral-500">
+          Можно выбрать несколько вариантов
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {subgroups.map((subgroup) => (
-            <option key={subgroup.id} value={subgroup.id}>
+            <label
+              key={subgroup.id}
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-300 px-3 py-2.5 text-sm text-neutral-700 has-checked:border-[#0D78F8] has-checked:bg-[#E0EEFF] has-checked:text-[#0059C7]"
+            >
+              <input
+                type="checkbox"
+                name="subgroupIds"
+                value={subgroup.id}
+                className="size-4 accent-[#0059C7]"
+              />
               {subgroup.name}
-            </option>
+            </label>
           ))}
-        </select>
-      </label>
+        </div>
+      </fieldset>
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">
           Пароль

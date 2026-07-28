@@ -5,6 +5,7 @@ import { ExpertCard } from "@/components/expert-card";
 import { SubgroupManager } from "@/components/subgroup-manager";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatSubgroups } from "@/lib/subgroups";
 import { approveRegistration, rejectRegistration } from "./actions";
 
 export default async function AdminPage({
@@ -19,7 +20,7 @@ export default async function AdminPage({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
         company: true,
-        subgroup: true,
+        subgroupMemberships: { include: { subgroup: true } },
         assignments: { include: { submission: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -29,18 +30,20 @@ export default async function AdminPage({
     }),
     db.registrationRequest.findMany({
       where: { status: "PENDING" },
-      include: { subgroup: true },
+      include: {
+        subgroupMemberships: { include: { subgroup: true } },
+      },
       orderBy: { createdAt: "asc" },
     }),
     db.subgroup.findMany({
       include: {
         _count: {
           select: {
-            users: {
-              where: { role: { in: ["EXPERT", "LEAD"] } },
+            userMemberships: {
+              where: { user: { role: { in: ["EXPERT", "LEAD"] } } },
             },
-            registrationRequests: {
-              where: { status: "PENDING" },
+            registrationMemberships: {
+              where: { registrationRequest: { status: "PENDING" } },
             },
           },
         },
@@ -148,10 +151,10 @@ export default async function AdminPage({
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
-                  Подгруппа
+                  Подгруппы
                 </p>
                 <p className="mt-1 font-medium text-neutral-700">
-                  {request.subgroup?.name ?? "Коммуникации"}
+                  {formatSubgroups(request.subgroupMemberships)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -179,7 +182,12 @@ export default async function AdminPage({
       </section>
 
       <SubgroupManager
-        subgroups={subgroups}
+        subgroups={subgroups.map((subgroup) => ({
+          id: subgroup.id,
+          name: subgroup.name,
+          experts: subgroup._count.userMemberships,
+          requests: subgroup._count.registrationMemberships,
+        }))}
         status={typeof query.subgroup === "string" ? query.subgroup : undefined}
       />
 
@@ -216,7 +224,7 @@ export default async function AdminPage({
                 id={user.id}
                 fullName={user.fullName}
                 company={user.company?.name ?? "—"}
-                subgroup={user.subgroup?.name ?? "—"}
+                subgroup={formatSubgroups(user.subgroupMemberships)}
                 progress={`${touched}/${user.assignments.length}`}
                 isActive={user.isActive}
                 hasPassword={Boolean(user.passwordHash)}

@@ -18,14 +18,16 @@ export async function submitRegistration(
     .trim()
     .replace(/\s+/g, " ");
   const companyName = String(formData.get("company") ?? "").trim();
-  const subgroupId = String(formData.get("subgroupId") ?? "");
+  const subgroupIds = [
+    ...new Set(formData.getAll("subgroupIds").map(String).filter(Boolean)),
+  ];
   const password = String(formData.get("password") ?? "");
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
 
-  if (fullName.split(" ").length < 2 || !companyName || !subgroupId) {
-    return { error: "Укажите фамилию, имя, компанию и подгруппу." };
+  if (fullName.split(" ").length < 2 || !companyName || !subgroupIds.length) {
+    return { error: "Укажите фамилию, имя, компанию и хотя бы одну подгруппу." };
   }
   if (password.length < 8) {
     return { error: "Пароль должен содержать не менее 8 символов." };
@@ -34,7 +36,7 @@ export async function submitRegistration(
     return { error: "Пароли не совпадают." };
   }
 
-  const [existingUser, pendingRequest, subgroup] = await Promise.all([
+  const [existingUser, pendingRequest, subgroups] = await Promise.all([
     db.user.findFirst({
       where: { fullName: { equals: fullName, mode: "insensitive" } },
       select: { id: true },
@@ -46,8 +48,8 @@ export async function submitRegistration(
       },
       select: { id: true },
     }),
-    db.subgroup.findUnique({
-      where: { id: subgroupId },
+    db.subgroup.findMany({
+      where: { id: { in: subgroupIds } },
       select: { id: true },
     }),
   ]);
@@ -57,16 +59,18 @@ export async function submitRegistration(
   if (pendingRequest) {
     return { error: "Заявка с таким именем уже ожидает согласования." };
   }
-  if (!subgroup) {
-    return { error: "Выбранная подгруппа больше недоступна." };
+  if (subgroups.length !== subgroupIds.length) {
+    return { error: "Одна из выбранных подгрупп больше недоступна." };
   }
 
   await db.registrationRequest.create({
     data: {
       fullName,
       companyName,
-      subgroupId: subgroup.id,
       passwordHash: await hashPassword(password),
+      subgroupMemberships: {
+        create: subgroups.map((subgroup) => ({ subgroupId: subgroup.id })),
+      },
     },
   });
   return { success: true };

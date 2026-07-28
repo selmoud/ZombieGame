@@ -7,6 +7,7 @@ import {
   statusLabels,
 } from "@/lib/status";
 import { createSubmissionPdf } from "@/lib/submission-pdf";
+import { formatSubgroups } from "@/lib/subgroups";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,12 @@ export async function GET(
   const assignment = await db.moduleAssignment.findUnique({
     where: { id },
     include: {
-      user: { include: { company: true, subgroup: true } },
+      user: {
+        include: {
+          company: true,
+          subgroupMemberships: { include: { subgroup: true } },
+        },
+      },
       module: true,
       moduleVersion: {
         include: { questions: { orderBy: { order: "asc" } } },
@@ -64,7 +70,7 @@ export async function GET(
     moduleTitle: assignment.module.title,
     expertName: assignment.user.fullName,
     companyName: assignment.user.company?.name ?? "",
-    subgroupName: assignment.user.subgroup?.name ?? "",
+    subgroupName: formatSubgroups(assignment.user.subgroupMemberships),
     statusLabel: statusLabels[assignment.submission.status],
     attachmentBaseUrl: `${(
       process.env.APP_URL ?? new URL(request.url).origin

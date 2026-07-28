@@ -21,13 +21,17 @@ export async function createExpert(
   const admin = await requireRole("ADMIN");
   const fullName = String(formData.get("fullName") ?? "").trim();
   const companyName = String(formData.get("company") ?? "").trim();
-  const subgroupId = String(formData.get("subgroupId") ?? "");
+  const subgroupIds = [
+    ...new Set(formData.getAll("subgroupIds").map(String).filter(Boolean)),
+  ];
   const password = String(formData.get("password") ?? "");
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
-  if (fullName.split(/\s+/).length < 2 || !companyName || !subgroupId) {
-    return { error: "Укажите фамилию, имя, компанию и подгруппу." };
+  if (fullName.split(/\s+/).length < 2 || !companyName || !subgroupIds.length) {
+    return {
+      error: "Укажите фамилию, имя, компанию и хотя бы одну подгруппу.",
+    };
   }
   if (password.length < 8) {
     return { error: "Пароль должен содержать не менее 8 символов." };
@@ -35,21 +39,21 @@ export async function createExpert(
   if (password !== passwordConfirmation) {
     return { error: "Пароли не совпадают." };
   }
-  const [existingUser, selectedSubgroup] = await Promise.all([
+  const [existingUser, selectedSubgroups] = await Promise.all([
     db.user.findFirst({
       where: { fullName: { equals: fullName, mode: "insensitive" } },
       select: { id: true },
     }),
-    db.subgroup.findUnique({
-      where: { id: subgroupId },
+    db.subgroup.findMany({
+      where: { id: { in: subgroupIds } },
       select: { id: true },
     }),
   ]);
   if (existingUser) {
     return { error: "Пользователь с таким именем уже существует." };
   }
-  if (!selectedSubgroup) {
-    return { error: "Выбранная подгруппа больше недоступна." };
+  if (selectedSubgroups.length !== subgroupIds.length) {
+    return { error: "Одна из выбранных подгрупп больше недоступна." };
   }
 
   await db.$transaction(async (tx) => {
@@ -76,7 +80,11 @@ export async function createExpert(
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         companyId: company.id,
-        subgroupId: selectedSubgroup.id,
+        subgroupMemberships: {
+          create: selectedSubgroups.map((subgroup) => ({
+            subgroupId: subgroup.id,
+          })),
+        },
         isActive: true,
         activatedAt: new Date(),
         passwordHash: await hashPassword(password),
@@ -227,6 +235,7 @@ export async function approveRegistration(formData: FormData) {
   const requestId = String(formData.get("requestId") ?? "");
   const request = await db.registrationRequest.findUnique({
     where: { id: requestId },
+    include: { subgroupMemberships: true },
   });
   if (!request || request.status !== "PENDING") {
     redirect("/admin?registration=unavailable");
@@ -244,20 +253,27 @@ export async function approveRegistration(formData: FormData) {
       update: {},
       create: { name: request.companyName },
     });
-    const subgroupId =
-      request.subgroupId ??
-      (
-        await tx.subgroup.upsert({
-          where: { name: "Коммуникации" },
-          update: {},
-          create: { name: "Коммуникации" },
-        })
-      ).id;
+    let subgroupIds = request.subgroupMemberships.map(
+      (membership) => membership.subgroupId,
+    );
+    if (!subgroupIds.length) {
+      subgroupIds = [
+        (
+          await tx.subgroup.upsert({
+            where: { name: "Коммуникации" },
+            update: {},
+            create: { name: "Коммуникации" },
+          })
+        ).id,
+      ];
+    }
     const expert = await tx.user.create({
       data: {
         fullName: request.fullName,
         companyId: company.id,
-        subgroupId,
+        subgroupMemberships: {
+          create: subgroupIds.map((subgroupId) => ({ subgroupId })),
+        },
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         isActive: true,
@@ -369,11 +385,11 @@ export async function deleteSubgroup(formData: FormData) {
       id: true,
       _count: {
         select: {
-          users: {
-            where: { role: { in: ["EXPERT", "LEAD"] } },
+          userMemberships: {
+            where: { user: { role: { in: ["EXPERT", "LEAD"] } } },
           },
-          registrationRequests: {
-            where: { status: "PENDING" },
+          registrationMemberships: {
+            where: { registrationRequest: { status: "PENDING" } },
           },
         },
       },
@@ -381,8 +397,8 @@ export async function deleteSubgroup(formData: FormData) {
   });
   if (!subgroup) redirect("/admin?subgroup=not-found");
   if (
-    subgroup._count.users > 0 ||
-    subgroup._count.registrationRequests > 0
+    subgroup._count.userMemberships > 0 ||
+    subgroup._count.registrationMemberships > 0
   ) {
     redirect("/admin?subgroup=in-use");
   }

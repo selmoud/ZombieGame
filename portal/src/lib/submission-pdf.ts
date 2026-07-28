@@ -146,7 +146,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     .fillColor("#555555")
     .text(`Эксперт: ${data.expertName}`)
     .text(`Компания: ${data.companyName || "—"}`)
-    .text(`Подгруппа: ${data.subgroupName || "—"}`)
+    .text(`Подгруппы: ${data.subgroupName || "—"}`)
     .text(`Статус: ${data.statusLabel}`);
   document.moveDown(1);
   divider();

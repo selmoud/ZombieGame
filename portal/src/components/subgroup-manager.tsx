@@ -24,7 +24,8 @@ export function SubgroupManager({
   subgroups: Array<{
     id: string;
     name: string;
-    _count: { users: number; registrationRequests: number };
+    experts: number;
+    requests: number;
   }>;
   status?: string;
 }) {
@@ -74,9 +75,9 @@ export function SubgroupManager({
               </button>
             </form>
             <p className="text-xs text-neutral-500 lg:w-48">
-              Экспертов: {subgroup._count.users}
+              Экспертов: {subgroup.experts}
               <br />
-              Заявок: {subgroup._count.registrationRequests}
+              Заявок: {subgroup.requests}
             </p>
             <form
               action={deleteSubgroup}

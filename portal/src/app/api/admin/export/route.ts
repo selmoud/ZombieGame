@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels } from "@/lib/status";
+import { formatSubgroups } from "@/lib/subgroups";
 import { createXlsx } from "@/lib/xlsx";
 
 function simpleValue(value: unknown) {
@@ -19,7 +20,12 @@ export async function GET() {
     include: {
       assignment: {
         include: {
-          user: { include: { company: true, subgroup: true } },
+          user: {
+            include: {
+              company: true,
+              subgroupMemberships: { include: { subgroup: true } },
+            },
+          },
           module: true,
           moduleVersion: { include: { questions: true } },
         },
@@ -33,7 +39,9 @@ export async function GET() {
   const overview = submissions.map((submission) => ({
     Эксперт: submission.assignment.user.fullName,
     Компания: submission.assignment.user.company?.name ?? "",
-    Подгруппа: submission.assignment.user.subgroup?.name ?? "",
+    Подгруппы: formatSubgroups(
+      submission.assignment.user.subgroupMemberships,
+    ),
     Раздел: submission.assignment.module.title,
     Статус: statusLabels[submission.status],
     "Дата отправки": submission.submittedAt?.toISOString() ?? "",
