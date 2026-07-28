@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { CreateExpertForm } from "@/components/create-expert-form";
+import { ExpertCard } from "@/components/expert-card";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { statusLabels, statusStyles } from "@/lib/status";
@@ -154,62 +155,68 @@ export default async function AdminPage({
         </div>
       </section>
 
-      <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_23rem]">
-        <section className="paper overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-5">
-            <div>
-              <h2 className="text-2xl text-[#000000]">Эксперты</h2>
-              <p className="mt-1 text-sm text-neutral-500">Участники и прогресс</p>
-            </div>
+      <section className="paper mt-7 overflow-hidden rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-6 py-5">
+          <div>
+            <h2 className="text-2xl text-[#000000]">Эксперты</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Данные, доступ и прогресс участников
+            </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[42rem] text-left text-sm">
-              <thead className="bg-neutral-50 text-xs uppercase tracking-wider text-neutral-400">
-                <tr>
-                  <th className="px-6 py-3 font-semibold">ФИО</th>
-                  <th className="px-6 py-3 font-semibold">Компания</th>
-                  <th className="px-6 py-3 font-semibold">Подгруппа</th>
-                  <th className="px-6 py-3 font-semibold">Прогресс</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {users.map((user) => {
-                  const touched = user.assignments.filter(
-                    (item) => item.submission?.status !== "NOT_STARTED",
-                  ).length;
-                  return (
-                    <tr key={user.id}>
-                      <td className="px-6 py-4 font-semibold text-[#000000]">
-                        {user.fullName}
-                        <span className="mt-0.5 block text-xs font-normal text-neutral-400">
-                          {user.isActive ? "Приглашение принято" : "Ожидает входа"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-neutral-600">{user.company?.name}</td>
-                      <td className="px-6 py-4 text-neutral-600">{user.subgroup?.name}</td>
-                      <td className="px-6 py-4 text-neutral-600">
-                        {touched}/{user.assignments.length}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+          {query.expert && (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
+                query.expert === "deleted"
+                  ? "bg-[#DDF8FB] text-[#00616C]"
+                  : "bg-[#FFE0ED] text-[#A9004A]"
+              }`}
+            >
+              {query.expert === "deleted"
+                ? "Эксперт удалён"
+                : "Эксперт не найден"}
+            </span>
+          )}
+        </div>
+        <div className="divide-y divide-neutral-100">
+          {users.map((user) => {
+            const touched = user.assignments.filter(
+              (item) => item.submission?.status !== "NOT_STARTED",
+            ).length;
+            return (
+              <ExpertCard
+                key={user.id}
+                id={user.id}
+                fullName={user.fullName}
+                company={user.company?.name ?? "—"}
+                subgroup={user.subgroup?.name ?? "—"}
+                progress={`${touched}/${user.assignments.length}`}
+                isActive={user.isActive}
+                hasPassword={Boolean(user.passwordHash)}
+              />
+            );
+          })}
+          {!users.length && (
+            <p className="px-6 py-9 text-center text-sm text-neutral-500">
+              Экспертов пока нет.
+            </p>
+          )}
+        </div>
+      </section>
 
-        <section className="paper rounded-2xl p-6">
+      <section className="paper mt-7 rounded-2xl p-6">
+        <div className="max-w-3xl">
           <h2 className="text-2xl text-[#000000]">
             Добавить эксперта
           </h2>
           <p className="mt-2 text-sm leading-6 text-neutral-500">
-            Эксперту будут назначены все восемь разделов.
+            Заполните те же данные, что эксперт указывает при самостоятельной
+            регистрации. Все восемь разделов будут назначены автоматически.
           </p>
           <div className="mt-5">
             <CreateExpertForm />
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <section className="paper mt-7 rounded-2xl p-6">
         <div className="flex items-center justify-between">
