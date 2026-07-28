@@ -59,6 +59,7 @@ questions:
           sourceQuestionKey: participants
           sourceColumnKey: name
           sourceLabelSuffix: (добавлено экспертом)
+          uniqueAcrossRows: true
           options:
             - { value: Авторы и создатели контента, label: Авторы и создатели контента }
             - { value: Аудитория и пользователи, label: Аудитория и пользователи }

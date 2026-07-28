@@ -22,6 +22,7 @@ type Config = {
     title: string;
     type: string;
     required?: boolean;
+    uniqueAcrossRows?: boolean;
     min?: number;
     max?: number;
     notBeforeColumnKey?: string;
@@ -104,6 +105,23 @@ export function validateAnswers(
       );
       if (missing) {
         errors[question.id] = "Заполните обязательные ячейки таблицы";
+        continue;
+      }
+      const duplicateColumn = config.columns?.find((column) => {
+        if (!column.uniqueAcrossRows) return false;
+        const seen = new Set<string>();
+        return value.some((row) => {
+          const cellValue = (row as Record<string, unknown>)[column.key];
+          if (isEmpty(cellValue)) return false;
+          const normalized = String(cellValue).trim().toLocaleLowerCase("ru");
+          if (seen.has(normalized)) return true;
+          seen.add(normalized);
+          return false;
+        });
+      });
+      if (duplicateColumn) {
+        errors[question.id] =
+          `Значения в поле «${duplicateColumn.title}» не должны повторяться`;
         continue;
       }
       const invalidNumber = value.some((row) =>

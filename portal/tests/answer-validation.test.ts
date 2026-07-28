@@ -130,6 +130,40 @@ describe("validateAnswers", () => {
     ).toEqual({});
   });
 
+  it("rejects duplicate values in unique table columns", () => {
+    const uniqueQuestion = {
+      id: "participants",
+      key: "participants",
+      type: "TABLE",
+      title: "Участники",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          {
+            key: "name",
+            title: "Группа участников",
+            type: "suggest",
+            required: true,
+            uniqueAcrossRows: true,
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([uniqueQuestion], {
+        participants: [
+          { name: "Авторы и создатели контента" },
+          { name: " авторы и создатели контента " },
+        ],
+      }),
+    ).toEqual({
+      participants:
+        "Значения в поле «Группа участников» не должны повторяться",
+    });
+  });
+
   it("checks number ranges inside table rows", () => {
     const percentageQuestion = {
       id: "boundaries",
