@@ -35,6 +35,7 @@ questions:
       minRows: 1
       maxRows: 12
       rowLabel: Сегмент
+      addRowLabel: Добавить сегмент
       columns:
         - key: industry
           title: Отрасль
