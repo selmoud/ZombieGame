@@ -2,6 +2,7 @@ import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { shouldUseSecureCookies } from "@/lib/session-cookie";
 import type { UserRole } from "@/generated/prisma/enums";
 
 const SESSION_COOKIE = "portal_session";
@@ -29,7 +30,7 @@ export async function createSession(userId: string) {
   store.set(SESSION_COOKIE, id, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
     path: "/",
     expires: expiresAt,
   });
