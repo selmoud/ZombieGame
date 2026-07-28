@@ -233,6 +233,16 @@ function FileUploadField({
     }
   }
 
+  function downloadUploadedFile() {
+    if (!uploadedFile) return;
+
+    const link = document.createElement("a");
+    link.href = `/api/attachments/${String(uploadedFile.id)}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
   return (
     <div className="space-y-3">
       {uploadedFile && (
@@ -241,18 +251,19 @@ function FileUploadField({
             Прикреплён: {String(uploadedFile.name ?? "Материал")}
           </span>
           <div className="flex shrink-0 items-center gap-3">
-            <a
-              href={`/api/attachments/${String(uploadedFile.id)}`}
-              className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#0059C7] transition hover:bg-white/70"
+            <button
+              type="button"
+              onClick={downloadUploadedFile}
+              className="attachment-action attachment-action-download"
             >
               Скачать
-            </a>
+            </button>
             {!disabled && (
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => void deleteUploadedFile()}
-                className="attachment-action inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
+                className="attachment-action attachment-action-delete"
               >
                 Удалить
               </button>
