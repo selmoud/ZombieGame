@@ -71,6 +71,15 @@ type Question = {
   };
 };
 
+function isUnfilled(value: unknown) {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
 function SearchableSelect({
   value,
   options,
@@ -754,6 +763,8 @@ function TableField({
                 column.requiredWhenAny?.some((condition) =>
                   matchesFieldCondition(row, condition),
                 );
+              const isIncomplete =
+                !disabled && Boolean(isRequired) && isUnfilled(row[column.key]);
               const comparisonValue = column.notBeforeColumnKey
                 ? row[column.notBeforeColumnKey]
                 : undefined;
@@ -773,12 +784,21 @@ function TableField({
                     : ""} ${
                   hasPeriodError
                     ? "[&_.field]:border-[#FF2F86] [&_.field]:ring-2 [&_.field]:ring-[#FFE0ED]"
+                    : isIncomplete
+                      ? "[&_.field]:border-[#0D78F8] [&_.field]:bg-[#F5FAFF]"
                     : ""
                 }`}
               >
-                <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-                  {column.title}
-                  {isRequired && <span className="text-[#C80058]"> *</span>}
+                <span className="mb-1.5 flex items-start justify-between gap-3 text-xs font-medium text-neutral-600">
+                  <span>
+                    {column.title}
+                    {isRequired && <span className="text-[#C80058]"> *</span>}
+                  </span>
+                  {isIncomplete && (
+                    <span className="shrink-0 rounded-full bg-[#E0EEFF] px-2 py-0.5 font-semibold text-[#0059C7]">
+                      Не заполнено
+                    </span>
+                  )}
                 </span>
                 {column.description && (
                   <p className="mb-2 text-xs leading-5 text-neutral-500">
@@ -1003,8 +1023,8 @@ export function DynamicForm({
   const revisionRef = useRef(initialRevision);
   const firstRender = useRef(true);
   const readOnly = !["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(status);
-  const canPreview =
-    Object.keys(validateAnswers(questions, answers)).length === 0;
+  const liveValidationErrors = validateAnswers(questions, answers);
+  const canPreview = Object.keys(liveValidationErrors).length === 0;
 
   async function saveDraft(snapshot = answers) {
     if (readOnly) return revisionRef.current;
@@ -1234,12 +1254,21 @@ export function DynamicForm({
         {questions.map((question, index) => {
           const value = answers[question.id];
           const error = errors[question.id];
+          const liveError = liveValidationErrors[question.id];
+          const isIncomplete =
+            !readOnly &&
+            Boolean(liveError) &&
+            /Заполните|Добавьте минимум|Оцените каждое/.test(liveError);
           return (
             <section
               key={question.id}
               data-field-error={error ? "true" : undefined}
               className={`rounded-2xl border bg-white p-5 sm:p-6 ${
-                error ? "border-[#FF78B0]" : "border-neutral-200"
+                error
+                  ? "border-[#FF78B0]"
+                  : isIncomplete
+                    ? "border-[#8CC4FF]"
+                    : "border-neutral-200"
               }`}
             >
               <div className="mb-4 flex gap-3">
@@ -1247,10 +1276,17 @@ export function DynamicForm({
                   {index + 1}
                 </span>
                 <div>
-                  <h3 className="font-semibold text-[#000000]">
-                    {question.title}
-                    {question.required && <span className="text-[#C80058]"> *</span>}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-[#000000]">
+                      {question.title}
+                      {question.required && <span className="text-[#C80058]"> *</span>}
+                    </h3>
+                    {isIncomplete && (
+                      <span className="rounded-full bg-[#E0EEFF] px-2.5 py-1 text-xs font-semibold text-[#0059C7]">
+                        Не заполнено
+                      </span>
+                    )}
+                  </div>
                   {question.description && (
                     <p className="mt-1 text-sm leading-6 text-neutral-500">
                       {question.description}
