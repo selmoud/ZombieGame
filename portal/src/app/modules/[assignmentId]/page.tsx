@@ -301,7 +301,6 @@ export default async function ModulePage({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
-          <GlossaryModal />
           <section className="paper rounded-2xl p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Как работать
@@ -312,6 +311,7 @@ export default async function ModulePage({
               <li><strong className="text-[#000000]">3.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
+          <GlossaryModal />
           <section className="rounded-2xl bg-[#DDF8FB] p-5">
             <p className="text-lg text-[#000000]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
