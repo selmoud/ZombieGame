@@ -14,11 +14,11 @@ export function CreateExpertForm() {
   return (
     <>
       {state.link && (
-        <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="font-semibold text-emerald-900">
+        <div className="mb-5 rounded-xl border border-[#7EE0EC] bg-[#DDF8FB] p-4">
+          <p className="font-semibold text-[#004E57]">
             Приглашение для {state.expert} создано
           </p>
-          <p className="mt-1 text-xs leading-5 text-emerald-800">
+          <p className="mt-1 text-xs leading-5 text-[#00616C]">
             Скопируйте ссылку сейчас: после обновления страницы она скроется.
           </p>
           <input
@@ -30,7 +30,7 @@ export function CreateExpertForm() {
         </div>
       )}
       {state.error && (
-        <p className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
+        <p className="mb-4 rounded-lg bg-[#FFE0ED] p-3 text-sm text-[#A9004A]">
           {state.error}
         </p>
       )}
@@ -42,7 +42,7 @@ export function CreateExpertForm() {
           ["subgroup", "Подгруппа *", "Медиа и контент"],
         ].map(([name, label, placeholder]) => (
           <label key={name}>
-            <span className="mb-1.5 block text-xs font-medium text-slate-600">
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
               {label}
             </span>
             <input className="field" name={name} placeholder={placeholder} />
@@ -50,7 +50,7 @@ export function CreateExpertForm() {
         ))}
         <button
           disabled={pending}
-          className="w-full rounded-xl bg-[#2d6f91] px-4 py-3 font-semibold text-white hover:bg-[#255b78] disabled:opacity-60"
+          className="w-full rounded-xl bg-[#0059C7] px-4 py-3 font-semibold text-white hover:bg-[#00479F] disabled:opacity-60"
         >
           {pending ? "Создаём…" : "Создать приглашение"}
         </button>

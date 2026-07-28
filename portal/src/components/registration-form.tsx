@@ -17,17 +17,17 @@ export function RegistrationForm() {
 
   if (state.success) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-        <p className="text-lg font-bold text-emerald-900">
+      <div className="rounded-2xl border border-[#7EE0EC] bg-[#DDF8FB] p-6">
+        <p className="text-lg font-bold text-[#004E57]">
           Заявка отправлена
         </p>
-        <p className="mt-2 leading-7 text-emerald-800">
+        <p className="mt-2 leading-7 text-[#00616C]">
           Администратор проверит данные. После согласования вы сможете войти с
           указанными именем и паролем.
         </p>
         <Link
           href="/login"
-          className="mt-5 inline-block font-bold text-[#2d6f91]"
+          className="mt-5 inline-block font-bold text-[#0059C7]"
         >
           Перейти ко входу →
         </Link>
@@ -38,12 +38,12 @@ export function RegistrationForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       {state.error && (
-        <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
+        <p className="rounded-lg bg-[#FFE0ED] p-3 text-sm text-[#A9004A]">
           {state.error}
         </p>
       )}
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-slate-600">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
           Фамилия Имя
         </span>
         <input
@@ -55,7 +55,7 @@ export function RegistrationForm() {
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-slate-600">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
           Компания
         </span>
         <input
@@ -67,7 +67,7 @@ export function RegistrationForm() {
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-slate-600">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
           Пароль
         </span>
         <input
@@ -80,7 +80,7 @@ export function RegistrationForm() {
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-slate-600">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
           Повторите пароль
         </span>
         <input
@@ -94,19 +94,19 @@ export function RegistrationForm() {
       </label>
       <button
         disabled={pending}
-        className="w-full rounded-xl bg-[#2d6f91] px-5 py-3.5 font-bold text-white transition hover:bg-[#255b78] disabled:opacity-60"
+        className="w-full rounded-xl bg-[#0059C7] px-5 py-3.5 font-bold text-white transition hover:bg-[#00479F] disabled:opacity-60"
       >
         {pending ? "Отправляем…" : "Отправить"}
       </button>
       <Link
         href="/login?role=admin"
-        className="block rounded-xl border border-slate-300 px-5 py-3.5 text-center font-bold text-[#243e52] transition hover:bg-slate-50"
+        className="block rounded-xl border border-neutral-300 px-5 py-3.5 text-center font-bold text-[#000000] transition hover:bg-neutral-50"
       >
         Войти как администратор
       </Link>
-      <p className="pt-1 text-center text-sm text-slate-500">
+      <p className="pt-1 text-center text-sm text-neutral-500">
         Уже зарегистрированы?{" "}
-        <Link href="/login" className="font-bold text-[#2d6f91]">
+        <Link href="/login" className="font-bold text-[#0059C7]">
           Войти
         </Link>
       </p>

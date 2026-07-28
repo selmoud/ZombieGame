@@ -12,22 +12,22 @@ function displayValue(value: unknown, config: unknown) {
     columns?: Array<{ key: string; title: string; options?: Array<{ value: string; label: string }> }>;
   };
   if (value === null || value === undefined || value === "") {
-    return <span className="italic text-slate-400">Не заполнено</span>;
+    return <span className="italic text-neutral-400">Не заполнено</span>;
   }
   if (Array.isArray(value)) {
     return (
       <div className="space-y-3">
         {value.map((row, index) => (
-          <div key={index} className="rounded-xl bg-slate-50 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Строка {index + 1}</p>
+          <div key={index} className="rounded-xl bg-neutral-50 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">Строка {index + 1}</p>
             <dl className="grid gap-3 sm:grid-cols-2">
               {typedConfig.columns?.map((column) => {
                 const raw = (row as Record<string, unknown>)[column.key];
                 const label = column.options?.find((option) => option.value === raw)?.label;
                 return (
                   <div key={column.key}>
-                    <dt className="text-xs text-slate-400">{column.title}</dt>
-                    <dd className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{label ?? String(raw || "—")}</dd>
+                    <dt className="text-xs text-neutral-400">{column.title}</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-neutral-700">{label ?? String(raw || "—")}</dd>
                   </div>
                 );
               })}
@@ -39,10 +39,10 @@ function displayValue(value: unknown, config: unknown) {
   }
   if (typeof value === "object" && value && "id" in value) {
     const file = value as { id: unknown; name?: unknown };
-    return <a className="font-semibold text-[#2d6f91]" href={`/api/attachments/${String(file.id)}`}>↓ {String(file.name ?? "Скачать файл")}</a>;
+    return <a className="font-semibold text-[#0059C7]" href={`/api/attachments/${String(file.id)}`}>↓ {String(file.name ?? "Скачать файл")}</a>;
   }
   const option = typedConfig.options?.find((item) => item.value === value);
-  return <p className="whitespace-pre-wrap leading-7 text-slate-700">{option?.label ?? String(value)}</p>;
+  return <p className="whitespace-pre-wrap leading-7 text-neutral-700">{option?.label ?? String(value)}</p>;
 }
 
 export default async function SubmissionPage({
@@ -75,7 +75,7 @@ export default async function SubmissionPage({
 
   return (
     <AppShell user={admin}>
-      <Link href="/admin/submissions" className="text-sm font-semibold text-[#2d6f91]">
+      <Link href="/admin/submissions" className="text-sm font-semibold text-[#0059C7]">
         ← Все ответы
       </Link>
       <div className="mt-5 grid gap-7 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -83,13 +83,13 @@ export default async function SubmissionPage({
           <section className="paper rounded-2xl p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
                   {submission.assignment.module.order}. {submission.assignment.module.title}
                 </p>
-                <h1 className="mt-2 text-3xl text-[#243e52]">
+                <h1 className="mt-2 text-3xl text-[#000000]">
                   {submission.assignment.user.fullName}
                 </h1>
-                <p className="mt-2 text-slate-500">
+                <p className="mt-2 text-neutral-500">
                   {submission.assignment.user.company?.name} · {submission.assignment.user.subgroup?.name}
                 </p>
               </div>
@@ -102,8 +102,8 @@ export default async function SubmissionPage({
           <section className="mt-5 space-y-4">
             {submission.assignment.moduleVersion.questions.map((question, index) => (
               <article key={question.id} className="paper rounded-2xl p-6">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Вопрос {index + 1}</p>
-                <h2 className="mt-2 font-semibold text-[#243e52]">{question.title}</h2>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Вопрос {index + 1}</p>
+                <h2 className="mt-2 font-semibold text-[#000000]">{question.title}</h2>
                 <div className="mt-4">{displayValue(answerMap.get(question.id), question.config)}</div>
               </article>
             ))}
@@ -112,26 +112,26 @@ export default async function SubmissionPage({
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
           {query.error && (
-            <p className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
+            <p className="rounded-xl bg-[#FFE0ED] p-4 text-sm text-[#A9004A]">
               Для возврата нужен комментарий, а проверять можно только отправленный ответ.
             </p>
           )}
           {submission.status === "SUBMITTED" && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="text-xl text-[#243e52]">Решение</h2>
+              <h2 className="text-xl text-[#000000]">Решение</h2>
               <form action={acceptSubmission} className="mt-4">
                 <input type="hidden" name="submissionId" value={submission.id} />
-                <button className="w-full rounded-xl bg-[#2d6f91] px-4 py-3 font-semibold text-white">
+                <button className="w-full rounded-xl bg-[#0059C7] px-4 py-3 font-semibold text-white">
                   Принять ответ
                 </button>
               </form>
               <form action={requestRevision} className="mt-5">
                 <input type="hidden" name="submissionId" value={submission.id} />
                 <label>
-                  <span className="mb-1.5 block text-xs font-medium text-slate-600">Что нужно исправить</span>
+                  <span className="mb-1.5 block text-xs font-medium text-neutral-600">Что нужно исправить</span>
                   <textarea className="field min-h-28" name="reason" required />
                 </label>
-                <button className="mt-3 w-full rounded-xl border border-rose-300 px-4 py-3 font-semibold text-rose-700">
+                <button className="mt-3 w-full rounded-xl border border-[#FF78B0] px-4 py-3 font-semibold text-[#A9004A]">
                   Вернуть на доработку
                 </button>
               </form>
@@ -139,19 +139,19 @@ export default async function SubmissionPage({
           )}
 
           <section className="paper rounded-2xl p-5">
-            <h2 className="text-xl text-[#243e52]">Комментарий</h2>
+            <h2 className="text-xl text-[#000000]">Комментарий</h2>
             <form action={addComment} className="mt-4">
               <input type="hidden" name="submissionId" value={submission.id} />
               <textarea className="field min-h-24" name="body" placeholder="Общее замечание к разделу" required />
-              <button className="mt-3 rounded-lg bg-[#243e52] px-4 py-2.5 text-sm font-semibold text-white">
+              <button className="mt-3 rounded-lg bg-[#000000] px-4 py-2.5 text-sm font-semibold text-white">
                 Добавить
               </button>
             </form>
             <div className="mt-5 space-y-3">
               {submission.comments.map((comment) => (
-                <div key={comment.id} className="border-t border-slate-100 pt-3">
-                  <p className="text-sm leading-6 text-slate-700">{comment.body}</p>
-                  <p className="mt-1 text-xs text-slate-400">{comment.author.fullName}</p>
+                <div key={comment.id} className="border-t border-neutral-100 pt-3">
+                  <p className="text-sm leading-6 text-neutral-700">{comment.body}</p>
+                  <p className="mt-1 text-xs text-neutral-400">{comment.author.fullName}</p>
                 </div>
               ))}
             </div>
@@ -159,11 +159,11 @@ export default async function SubmissionPage({
 
           {submission.history.length > 0 && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="text-xl text-[#243e52]">История</h2>
+              <h2 className="text-xl text-[#000000]">История</h2>
               <div className="mt-4 space-y-3">
                 {submission.history.map((entry) => (
-                  <div key={entry.id} className="border-l-2 border-[#2d6f91]/30 pl-3 text-xs text-slate-500">
-                    <p className="font-semibold text-slate-700">{statusLabels[entry.toStatus]}</p>
+                  <div key={entry.id} className="border-l-2 border-[#0059C7]/30 pl-3 text-xs text-neutral-500">
+                    <p className="font-semibold text-neutral-700">{statusLabels[entry.toStatus]}</p>
                     <p>{entry.actor.fullName} · {entry.createdAt.toLocaleDateString("ru-RU")}</p>
                   </div>
                 ))}

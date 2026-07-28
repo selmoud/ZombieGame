@@ -9,9 +9,9 @@ export const statusLabels: Record<SubmissionStatus, string> = {
 };
 
 export const statusStyles: Record<SubmissionStatus, string> = {
-  NOT_STARTED: "bg-slate-100 text-slate-600",
-  DRAFT: "bg-amber-50 text-amber-700",
-  SUBMITTED: "bg-blue-50 text-blue-700",
-  NEEDS_REVISION: "bg-rose-50 text-rose-700",
-  ACCEPTED: "bg-emerald-50 text-emerald-700",
+  NOT_STARTED: "bg-[#F4F4F4] text-neutral-600",
+  DRAFT: "bg-[#F1E5FB] text-[#6815A8]",
+  SUBMITTED: "bg-[#E0EEFF] text-[#0059C7]",
+  NEEDS_REVISION: "bg-[#FFE0ED] text-[#C80058]",
+  ACCEPTED: "bg-[#DDF8FB] text-[#00616C]",
 };

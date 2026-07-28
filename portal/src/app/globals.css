@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #1f3040;
-  --muted: #647586;
-  --line: #d8e1e8;
+  --ink: #000000;
+  --muted: #5f5f5f;
+  --line: #e0e0e0;
   --paper: #ffffff;
-  --canvas: #f5f7fa;
-  --navy: #18354a;
-  --teal: #2d6f91;
-  --teal-dark: #255b78;
-  --sand: #f4ebdd;
+  --canvas: #f4f4f4;
+  --navy: #000000;
+  --teal: #0d78f8;
+  --teal-dark: #0059c7;
+  --purple: #8125c8;
+  --magenta: #ff2f86;
+  --mint: #7ee0ec;
+  --mint-soft: #ddf8fb;
+  --sand: #ddf8fb;
 }
 
 * {
@@ -23,7 +27,7 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at 80% -10%, rgba(45, 111, 145, 0.12), transparent 30rem),
+    radial-gradient(circle at 80% -10%, rgba(129, 37, 200, 0.12), transparent 30rem),
     var(--canvas);
   color: var(--ink);
   font-family: var(--font-roboto), Arial, Helvetica, sans-serif;
@@ -43,13 +47,13 @@ a {
 
 .paper {
   background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(216, 225, 232, 0.94);
-  box-shadow: 0 12px 36px rgba(24, 53, 74, 0.07);
+  border: 1px solid rgba(224, 224, 224, 0.94);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.07);
 }
 
 .field {
   width: 100%;
-  border: 1px solid #c8d4de;
+  border: 1px solid #cfcfcf;
   border-radius: 0.65rem;
   background: white;
   color: var(--ink);
@@ -60,12 +64,12 @@ a {
 
 .field:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(45, 111, 145, 0.14);
+  box-shadow: 0 0 0 3px rgba(13, 120, 248, 0.16);
 }
 
 .field:disabled {
-  background: #f0f3f6;
-  color: #748493;
+  background: #f4f4f4;
+  color: #737373;
 }
 
 .prose h1,
@@ -81,6 +85,6 @@ a {
 }
 
 .prose p {
-  color: #566a7a;
+  color: #5f5f5f;
   line-height: 1.7;
 }

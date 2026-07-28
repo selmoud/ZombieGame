@@ -69,7 +69,7 @@ export default async function ModulePage({
 
   return (
     <AppShell user={user}>
-      <Link href="/dashboard" className="text-sm font-semibold text-[#2d6f91]">
+      <Link href="/dashboard" className="text-sm font-semibold text-[#0059C7]">
         ← Все разделы
       </Link>
       <div className="mt-5 grid gap-7 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -77,14 +77,14 @@ export default async function ModulePage({
           <div className="paper rounded-2xl p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
                   Раздел {String(assignment.module.order).padStart(2, "0")} · версия{" "}
                   {assignment.moduleVersion.version}
                 </p>
-                <h1 className="mt-2 text-3xl text-[#243e52] sm:text-4xl">
+                <h1 className="mt-2 text-3xl text-[#000000] sm:text-4xl">
                   {assignment.module.title}
                 </h1>
-                <p className="mt-3 max-w-2xl leading-7 text-slate-600">
+                <p className="mt-3 max-w-2xl leading-7 text-neutral-600">
                   {assignment.moduleVersion.description}
                 </p>
               </div>
@@ -97,13 +97,13 @@ export default async function ModulePage({
           </div>
 
           {assignment.submission.comments.length > 0 && (
-            <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <h2 className="font-semibold text-amber-900">Комментарии проверки</h2>
+            <section className="mt-5 rounded-2xl border border-[#D8B1F5] bg-[#F1E5FB] p-5">
+              <h2 className="font-semibold text-[#541087]">Комментарии проверки</h2>
               <div className="mt-3 space-y-3">
                 {assignment.submission.comments.map((comment) => (
                   <div key={comment.id} className="rounded-lg bg-white/70 p-3 text-sm">
-                    <p className="text-amber-900">{comment.body}</p>
-                    <p className="mt-1 text-xs text-amber-700">
+                    <p className="text-[#541087]">{comment.body}</p>
+                    <p className="mt-1 text-xs text-[#6815A8]">
                       {comment.author.fullName}
                       {comment.question ? ` · ${comment.question.title}` : ""}
                     </p>
@@ -129,18 +129,18 @@ export default async function ModulePage({
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
           <section className="paper rounded-2xl p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Как работать
             </p>
-            <ol className="mt-4 space-y-4 text-sm leading-6 text-slate-600">
-              <li><strong className="text-[#243e52]">1.</strong> Изучите методические материалы.</li>
-              <li><strong className="text-[#243e52]">2.</strong> Заполните вопросы и таблицы.</li>
-              <li><strong className="text-[#243e52]">3.</strong> Отправьте раздел на проверку.</li>
+            <ol className="mt-4 space-y-4 text-sm leading-6 text-neutral-600">
+              <li><strong className="text-[#000000]">1.</strong> Изучите методические материалы.</li>
+              <li><strong className="text-[#000000]">2.</strong> Заполните вопросы и таблицы.</li>
+              <li><strong className="text-[#000000]">3.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
-          <section className="rounded-2xl bg-[#f4ebdd] p-5">
-            <p className="text-lg text-[#243e52]">Важно</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+          <section className="rounded-2xl bg-[#DDF8FB] p-5">
+            <p className="text-lg text-[#000000]">Важно</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
               Подкрепляйте выводы измеримыми показателями, источниками и
               конкретными примерами.
             </p>

@@ -41,17 +41,17 @@ export default async function SubmissionsPage({
 
   return (
     <AppShell user={admin}>
-      <Link href="/admin" className="text-sm font-semibold text-[#2d6f91]">
+      <Link href="/admin" className="text-sm font-semibold text-[#0059C7]">
         ← Обзор
       </Link>
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl text-[#243e52]">Ответы экспертов</h1>
-          <p className="mt-2 text-slate-600">Проверка и согласование материалов</p>
+          <h1 className="text-4xl text-[#000000]">Ответы экспертов</h1>
+          <p className="mt-2 text-neutral-600">Проверка и согласование материалов</p>
         </div>
         <Link
           href="/api/admin/export"
-          className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#243e52]"
+          className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-[#000000]"
         >
           ↓ Выгрузить XLSX
         </Link>
@@ -76,18 +76,18 @@ export default async function SubmissionsPage({
           <option value="">Все подгруппы</option>
           {subgroups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
-        <button className="rounded-xl bg-[#243e52] px-4 py-3 font-semibold text-white">
+        <button className="rounded-xl bg-[#000000] px-4 py-3 font-semibold text-white">
           Применить
         </button>
       </form>
 
       <section className="paper mt-6 overflow-hidden rounded-2xl">
-        <div className="border-b border-slate-200 px-6 py-4 text-sm text-slate-500">
+        <div className="border-b border-neutral-200 px-6 py-4 text-sm text-neutral-500">
           Найдено: {submissions.length}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[56rem] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-400">
+            <thead className="bg-neutral-50 text-xs uppercase tracking-wider text-neutral-400">
               <tr>
                 <th className="px-6 py-3">Эксперт</th>
                 <th className="px-6 py-3">Компания</th>
@@ -97,19 +97,19 @@ export default async function SubmissionsPage({
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-neutral-100">
               {submissions.map((submission) => (
-                <tr key={submission.id} className="hover:bg-slate-50/70">
-                  <td className="px-6 py-4 font-semibold text-[#243e52]">
+                <tr key={submission.id} className="hover:bg-neutral-50/70">
+                  <td className="px-6 py-4 font-semibold text-[#000000]">
                     {submission.assignment.user.fullName}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-neutral-600">
                     {submission.assignment.user.company?.name}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-neutral-600">
                     {submission.assignment.module.order}. {submission.assignment.module.title}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-neutral-600">
                     {submission.assignment.user.subgroup?.name}
                   </td>
                   <td className="px-6 py-4">
@@ -118,7 +118,7 @@ export default async function SubmissionsPage({
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#2d6f91]">
+                    <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#0059C7]">
                       Открыть →
                     </Link>
                   </td>
@@ -128,7 +128,7 @@ export default async function SubmissionsPage({
           </table>
         </div>
         {!submissions.length && (
-          <p className="p-10 text-center text-slate-500">Ответов с такими фильтрами нет.</p>
+          <p className="p-10 text-center text-neutral-500">Ответов с такими фильтрами нет.</p>
         )}
       </section>
     </AppShell>
