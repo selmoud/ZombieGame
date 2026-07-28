@@ -173,7 +173,7 @@ function TableField({
           <button
             type="button"
             onClick={addRow}
-            className="rounded-lg border border-dashed border-[#16877c] px-4 py-2.5 text-sm font-semibold text-[#16877c] hover:bg-emerald-50"
+            className="rounded-lg border border-dashed border-[#2d6f91] px-4 py-2.5 text-sm font-semibold text-[#2d6f91] hover:bg-emerald-50"
           >
             + Добавить строку
           </button>
@@ -335,7 +335,7 @@ export function DynamicForm({
           <button
             type="button"
             onClick={() => saveDraft().catch(() => undefined)}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#183a4a] hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#243e52] hover:bg-slate-50"
           >
             Сохранить
           </button>
@@ -371,7 +371,7 @@ export function DynamicForm({
                   {index + 1}
                 </span>
                 <div>
-                  <h3 className="font-semibold text-[#183a4a]">
+                  <h3 className="font-semibold text-[#243e52]">
                     {question.title}
                     {question.required && <span className="text-rose-600"> *</span>}
                   </h3>
@@ -429,7 +429,7 @@ export function DynamicForm({
                       onClick={() => setAnswer(question.id, number)}
                       className={`size-11 rounded-lg border font-semibold ${
                         Number(value) === number
-                          ? "border-[#16877c] bg-[#16877c] text-white"
+                          ? "border-[#2d6f91] bg-[#2d6f91] text-white"
                           : "border-slate-300 bg-white text-slate-600"
                       }`}
                     >
@@ -442,7 +442,7 @@ export function DynamicForm({
                   {typeof value === "object" && value && "id" in value ? (
                     <a
                       href={`/api/attachments/${String((value as { id: unknown }).id)}`}
-                      className="inline-flex rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-[#183a4a]"
+                      className="inline-flex rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-[#243e52]"
                     >
                       ↓ {String((value as { name?: unknown }).name ?? "Скачать файл")}
                     </a>
@@ -481,7 +481,7 @@ export function DynamicForm({
       </div>
 
       {!readOnly && (
-        <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#173b4b] p-6 text-white sm:flex-row sm:items-center">
+        <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#18354a] p-6 text-white sm:flex-row sm:items-center">
           <div>
             <h3 className="text-xl">Раздел заполнен?</h3>
             <p className="mt-1 text-sm text-slate-300">
@@ -491,7 +491,7 @@ export function DynamicForm({
           <button
             type="button"
             onClick={submit}
-            className="shrink-0 rounded-xl bg-[#20a697] px-6 py-3 font-semibold text-white hover:bg-[#16877c]"
+            className="shrink-0 rounded-xl bg-[#377da0] px-6 py-3 font-semibold text-white hover:bg-[#2d6f91]"
           >
             Отправить на проверку
           </button>

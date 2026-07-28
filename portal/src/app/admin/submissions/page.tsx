@@ -41,17 +41,17 @@ export default async function SubmissionsPage({
 
   return (
     <AppShell user={admin}>
-      <Link href="/admin" className="text-sm font-semibold text-[#16877c]">
+      <Link href="/admin" className="text-sm font-semibold text-[#2d6f91]">
         ← Обзор
       </Link>
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl text-[#183a4a]">Ответы экспертов</h1>
+          <h1 className="text-4xl text-[#243e52]">Ответы экспертов</h1>
           <p className="mt-2 text-slate-600">Проверка и согласование материалов</p>
         </div>
         <Link
           href="/api/admin/export"
-          className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#183a4a]"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#243e52]"
         >
           ↓ Выгрузить XLSX
         </Link>
@@ -76,7 +76,7 @@ export default async function SubmissionsPage({
           <option value="">Все подгруппы</option>
           {subgroups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
-        <button className="rounded-xl bg-[#183a4a] px-4 py-3 font-semibold text-white">
+        <button className="rounded-xl bg-[#243e52] px-4 py-3 font-semibold text-white">
           Применить
         </button>
       </form>
@@ -100,7 +100,7 @@ export default async function SubmissionsPage({
             <tbody className="divide-y divide-slate-100">
               {submissions.map((submission) => (
                 <tr key={submission.id} className="hover:bg-slate-50/70">
-                  <td className="px-6 py-4 font-semibold text-[#183a4a]">
+                  <td className="px-6 py-4 font-semibold text-[#243e52]">
                     {submission.assignment.user.fullName}
                   </td>
                   <td className="px-6 py-4 text-slate-600">
@@ -118,7 +118,7 @@ export default async function SubmissionsPage({
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#16877c]">
+                    <Link href={`/admin/submissions/${submission.id}`} className="font-semibold text-[#2d6f91]">
                       Открыть →
                     </Link>
                   </td>

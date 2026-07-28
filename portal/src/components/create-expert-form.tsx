@@ -50,7 +50,7 @@ export function CreateExpertForm() {
         ))}
         <button
           disabled={pending}
-          className="w-full rounded-xl bg-[#16877c] px-4 py-3 font-semibold text-white hover:bg-[#0e655e] disabled:opacity-60"
+          className="w-full rounded-xl bg-[#2d6f91] px-4 py-3 font-semibold text-white hover:bg-[#255b78] disabled:opacity-60"
         >
           {pending ? "Создаём…" : "Создать приглашение"}
         </button>

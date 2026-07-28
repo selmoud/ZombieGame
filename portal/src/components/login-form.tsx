@@ -11,13 +11,13 @@ export function LoginForm({ admin }: { admin: boolean }) {
     initialState,
   );
   return (
-    <form action={action} className="mt-7 space-y-4">
+    <form action={action} className="mt-7 flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
           {state.error}
         </p>
       )}
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Фамилия Имя
         </span>
@@ -29,7 +29,7 @@ export function LoginForm({ admin }: { admin: boolean }) {
           required
         />
       </label>
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Пароль
         </span>
@@ -43,7 +43,7 @@ export function LoginForm({ admin }: { admin: boolean }) {
       </label>
       <button
         disabled={pending}
-        className="w-full rounded-xl bg-[#16877c] px-5 py-3.5 font-bold text-white hover:bg-[#0e655e] disabled:opacity-60"
+        className="w-full rounded-xl bg-[#2d6f91] px-5 py-3.5 font-bold text-white hover:bg-[#255b78] disabled:opacity-60"
       >
         {pending ? "Входим…" : "Войти"}
       </button>

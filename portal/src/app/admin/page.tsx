@@ -44,10 +44,10 @@ export default async function AdminPage({
     <AppShell user={admin}>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
             Административная панель
           </p>
-          <h1 className="mt-2 text-4xl text-[#183a4a]">
+          <h1 className="mt-2 text-4xl text-[#243e52]">
             Рабочая группа
           </h1>
           <p className="mt-2 text-slate-600">
@@ -57,13 +57,13 @@ export default async function AdminPage({
         <div className="flex gap-3">
           <Link
             href="/api/admin/export"
-            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#183a4a] hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#243e52] hover:bg-slate-50"
           >
             ↓ Скачать XLSX
           </Link>
           <Link
             href="/admin/submissions"
-            className="rounded-xl bg-[#16877c] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0e655e]"
+            className="rounded-xl bg-[#2d6f91] px-4 py-3 text-sm font-semibold text-white hover:bg-[#255b78]"
           >
             Все ответы
           </Link>
@@ -78,7 +78,7 @@ export default async function AdminPage({
         ].map(([label, value]) => (
           <div key={label} className="paper rounded-2xl p-6">
             <p className="text-sm text-slate-500">{label}</p>
-            <p className="mt-2 text-4xl text-[#183a4a]">{value}</p>
+            <p className="mt-2 text-4xl text-[#243e52]">{value}</p>
           </div>
         ))}
       </section>
@@ -86,7 +86,7 @@ export default async function AdminPage({
       <section className="paper mt-7 overflow-hidden rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
           <div>
-            <h2 className="text-2xl font-bold text-[#183a4a]">
+            <h2 className="text-2xl font-bold text-[#243e52]">
               Заявки на регистрацию
             </h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -118,7 +118,7 @@ export default async function AdminPage({
                 <p className="text-xs uppercase tracking-wider text-slate-400">
                   Фамилия Имя
                 </p>
-                <p className="mt-1 font-bold text-[#183a4a]">
+                <p className="mt-1 font-bold text-[#243e52]">
                   {request.fullName}
                 </p>
               </div>
@@ -133,7 +133,7 @@ export default async function AdminPage({
               <div className="flex items-center gap-2">
                 <form action={approveRegistration}>
                   <input type="hidden" name="requestId" value={request.id} />
-                  <button className="rounded-lg bg-[#16877c] px-4 py-2.5 text-sm font-bold text-white">
+                  <button className="rounded-lg bg-[#2d6f91] px-4 py-2.5 text-sm font-bold text-white">
                     Согласовать
                   </button>
                 </form>
@@ -158,7 +158,7 @@ export default async function AdminPage({
         <section className="paper overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
             <div>
-              <h2 className="text-2xl text-[#183a4a]">Эксперты</h2>
+              <h2 className="text-2xl text-[#243e52]">Эксперты</h2>
               <p className="mt-1 text-sm text-slate-500">Участники и прогресс</p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default async function AdminPage({
                   ).length;
                   return (
                     <tr key={user.id}>
-                      <td className="px-6 py-4 font-semibold text-[#183a4a]">
+                      <td className="px-6 py-4 font-semibold text-[#243e52]">
                         {user.fullName}
                         <span className="mt-0.5 block text-xs font-normal text-slate-400">
                           {user.isActive ? "Приглашение принято" : "Ожидает входа"}
@@ -199,7 +199,7 @@ export default async function AdminPage({
         </section>
 
         <section className="paper rounded-2xl p-6">
-          <h2 className="text-2xl text-[#183a4a]">
+          <h2 className="text-2xl text-[#243e52]">
             Добавить эксперта
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -213,8 +213,8 @@ export default async function AdminPage({
 
       <section className="paper mt-7 rounded-2xl p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl text-[#183a4a]">Последние ответы</h2>
-          <Link href="/admin/submissions" className="text-sm font-semibold text-[#16877c]">
+          <h2 className="text-2xl text-[#243e52]">Последние ответы</h2>
+          <Link href="/admin/submissions" className="text-sm font-semibold text-[#2d6f91]">
             Смотреть все →
           </Link>
         </div>
@@ -223,10 +223,10 @@ export default async function AdminPage({
             <Link
               key={submission.id}
               href={`/admin/submissions/${submission.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 hover:border-[#16877c]/50"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 hover:border-[#2d6f91]/50"
             >
               <div>
-                <p className="font-semibold text-[#183a4a]">
+                <p className="font-semibold text-[#243e52]">
                   {submission.assignment.user.fullName}
                 </p>
                 <p className="mt-1 text-sm text-slate-500">

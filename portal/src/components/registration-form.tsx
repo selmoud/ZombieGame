@@ -27,7 +27,7 @@ export function RegistrationForm() {
         </p>
         <Link
           href="/login"
-          className="mt-5 inline-block font-bold text-[#16877c]"
+          className="mt-5 inline-block font-bold text-[#2d6f91]"
         >
           Перейти ко входу →
         </Link>
@@ -36,13 +36,13 @@ export function RegistrationForm() {
   }
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="flex flex-col gap-4">
       {state.error && (
         <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
           {state.error}
         </p>
       )}
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Фамилия Имя
         </span>
@@ -54,7 +54,7 @@ export function RegistrationForm() {
           required
         />
       </label>
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Компания
         </span>
@@ -66,7 +66,7 @@ export function RegistrationForm() {
           required
         />
       </label>
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Пароль
         </span>
@@ -79,7 +79,7 @@ export function RegistrationForm() {
           required
         />
       </label>
-      <label>
+      <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-600">
           Повторите пароль
         </span>
@@ -94,19 +94,19 @@ export function RegistrationForm() {
       </label>
       <button
         disabled={pending}
-        className="w-full rounded-xl bg-[#16877c] px-5 py-3.5 font-bold text-white transition hover:bg-[#0e655e] disabled:opacity-60"
+        className="w-full rounded-xl bg-[#2d6f91] px-5 py-3.5 font-bold text-white transition hover:bg-[#255b78] disabled:opacity-60"
       >
         {pending ? "Отправляем…" : "Отправить"}
       </button>
       <Link
         href="/login?role=admin"
-        className="block rounded-xl border border-slate-300 px-5 py-3.5 text-center font-bold text-[#183a4a] transition hover:bg-slate-50"
+        className="block rounded-xl border border-slate-300 px-5 py-3.5 text-center font-bold text-[#243e52] transition hover:bg-slate-50"
       >
         Войти как администратор
       </Link>
       <p className="pt-1 text-center text-sm text-slate-500">
         Уже зарегистрированы?{" "}
-        <Link href="/login" className="font-bold text-[#16877c]">
+        <Link href="/login" className="font-bold text-[#2d6f91]">
           Войти
         </Link>
       </p>

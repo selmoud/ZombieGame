@@ -39,7 +39,7 @@ function displayValue(value: unknown, config: unknown) {
   }
   if (typeof value === "object" && value && "id" in value) {
     const file = value as { id: unknown; name?: unknown };
-    return <a className="font-semibold text-[#16877c]" href={`/api/attachments/${String(file.id)}`}>↓ {String(file.name ?? "Скачать файл")}</a>;
+    return <a className="font-semibold text-[#2d6f91]" href={`/api/attachments/${String(file.id)}`}>↓ {String(file.name ?? "Скачать файл")}</a>;
   }
   const option = typedConfig.options?.find((item) => item.value === value);
   return <p className="whitespace-pre-wrap leading-7 text-slate-700">{option?.label ?? String(value)}</p>;
@@ -75,7 +75,7 @@ export default async function SubmissionPage({
 
   return (
     <AppShell user={admin}>
-      <Link href="/admin/submissions" className="text-sm font-semibold text-[#16877c]">
+      <Link href="/admin/submissions" className="text-sm font-semibold text-[#2d6f91]">
         ← Все ответы
       </Link>
       <div className="mt-5 grid gap-7 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -83,10 +83,10 @@ export default async function SubmissionPage({
           <section className="paper rounded-2xl p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
                   {submission.assignment.module.order}. {submission.assignment.module.title}
                 </p>
-                <h1 className="mt-2 text-3xl text-[#183a4a]">
+                <h1 className="mt-2 text-3xl text-[#243e52]">
                   {submission.assignment.user.fullName}
                 </h1>
                 <p className="mt-2 text-slate-500">
@@ -103,7 +103,7 @@ export default async function SubmissionPage({
             {submission.assignment.moduleVersion.questions.map((question, index) => (
               <article key={question.id} className="paper rounded-2xl p-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Вопрос {index + 1}</p>
-                <h2 className="mt-2 font-semibold text-[#183a4a]">{question.title}</h2>
+                <h2 className="mt-2 font-semibold text-[#243e52]">{question.title}</h2>
                 <div className="mt-4">{displayValue(answerMap.get(question.id), question.config)}</div>
               </article>
             ))}
@@ -118,10 +118,10 @@ export default async function SubmissionPage({
           )}
           {submission.status === "SUBMITTED" && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="text-xl text-[#183a4a]">Решение</h2>
+              <h2 className="text-xl text-[#243e52]">Решение</h2>
               <form action={acceptSubmission} className="mt-4">
                 <input type="hidden" name="submissionId" value={submission.id} />
-                <button className="w-full rounded-xl bg-[#16877c] px-4 py-3 font-semibold text-white">
+                <button className="w-full rounded-xl bg-[#2d6f91] px-4 py-3 font-semibold text-white">
                   Принять ответ
                 </button>
               </form>
@@ -139,11 +139,11 @@ export default async function SubmissionPage({
           )}
 
           <section className="paper rounded-2xl p-5">
-            <h2 className="text-xl text-[#183a4a]">Комментарий</h2>
+            <h2 className="text-xl text-[#243e52]">Комментарий</h2>
             <form action={addComment} className="mt-4">
               <input type="hidden" name="submissionId" value={submission.id} />
               <textarea className="field min-h-24" name="body" placeholder="Общее замечание к разделу" required />
-              <button className="mt-3 rounded-lg bg-[#183a4a] px-4 py-2.5 text-sm font-semibold text-white">
+              <button className="mt-3 rounded-lg bg-[#243e52] px-4 py-2.5 text-sm font-semibold text-white">
                 Добавить
               </button>
             </form>
@@ -159,10 +159,10 @@ export default async function SubmissionPage({
 
           {submission.history.length > 0 && (
             <section className="paper rounded-2xl p-5">
-              <h2 className="text-xl text-[#183a4a]">История</h2>
+              <h2 className="text-xl text-[#243e52]">История</h2>
               <div className="mt-4 space-y-3">
                 {submission.history.map((entry) => (
-                  <div key={entry.id} className="border-l-2 border-[#16877c]/30 pl-3 text-xs text-slate-500">
+                  <div key={entry.id} className="border-l-2 border-[#2d6f91]/30 pl-3 text-xs text-slate-500">
                     <p className="font-semibold text-slate-700">{statusLabels[entry.toStatus]}</p>
                     <p>{entry.actor.fullName} · {entry.createdAt.toLocaleDateString("ru-RU")}</p>
                   </div>

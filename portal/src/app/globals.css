@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #18232d;
-  --muted: #66737d;
-  --line: #dfe5e7;
+  --ink: #1f3040;
+  --muted: #647586;
+  --line: #d8e1e8;
   --paper: #ffffff;
-  --canvas: #f3f6f5;
-  --navy: #183a4a;
-  --teal: #16877c;
-  --teal-dark: #0e655e;
-  --sand: #f0eadc;
+  --canvas: #f5f7fa;
+  --navy: #18354a;
+  --teal: #2d6f91;
+  --teal-dark: #255b78;
+  --sand: #f4ebdd;
 }
 
 * {
@@ -23,7 +23,7 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at 80% -10%, rgba(22, 135, 124, 0.1), transparent 30rem),
+    radial-gradient(circle at 80% -10%, rgba(45, 111, 145, 0.12), transparent 30rem),
     var(--canvas);
   color: var(--ink);
   font-family: var(--font-roboto), Arial, Helvetica, sans-serif;
@@ -43,13 +43,13 @@ a {
 
 .paper {
   background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(213, 222, 222, 0.9);
-  box-shadow: 0 12px 36px rgba(22, 45, 54, 0.06);
+  border: 1px solid rgba(216, 225, 232, 0.94);
+  box-shadow: 0 12px 36px rgba(24, 53, 74, 0.07);
 }
 
 .field {
   width: 100%;
-  border: 1px solid #cbd5d8;
+  border: 1px solid #c8d4de;
   border-radius: 0.65rem;
   background: white;
   color: var(--ink);
@@ -60,12 +60,12 @@ a {
 
 .field:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(22, 135, 124, 0.12);
+  box-shadow: 0 0 0 3px rgba(45, 111, 145, 0.14);
 }
 
 .field:disabled {
-  background: #f1f3f3;
-  color: #798489;
+  background: #f0f3f6;
+  color: #748493;
 }
 
 .prose h1,
@@ -81,6 +81,6 @@ a {
 }
 
 .prose p {
-  color: #53626b;
+  color: #566a7a;
   line-height: 1.7;
 }

@@ -10,13 +10,13 @@ export default async function InvitationPage({
   return (
     <main className="grid min-h-screen place-items-center px-5">
       <section className="paper w-full max-w-lg rounded-3xl p-8 text-center sm:p-12">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#16877c] text-2xl font-bold text-white">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#2d6f91] text-2xl font-bold text-white">
           36
         </span>
-        <p className="mt-7 text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+        <p className="mt-7 text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
           Персональное приглашение
         </p>
-        <h1 className="mt-3 text-3xl text-[#183a4a]">
+        <h1 className="mt-3 text-3xl text-[#243e52]">
           Добро пожаловать в рабочую группу
         </h1>
         <p className="mt-4 leading-7 text-slate-600">
@@ -25,7 +25,7 @@ export default async function InvitationPage({
         </p>
         <form action={acceptInvitation} className="mt-8">
           <input type="hidden" name="token" value={token} />
-          <button className="w-full rounded-xl bg-[#16877c] px-5 py-3.5 font-semibold text-white transition hover:bg-[#0e655e]">
+          <button className="w-full rounded-xl bg-[#2d6f91] px-5 py-3.5 font-semibold text-white transition hover:bg-[#255b78]">
             Открыть личный кабинет
           </button>
         </form>

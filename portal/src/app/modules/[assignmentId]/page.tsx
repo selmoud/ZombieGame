@@ -69,7 +69,7 @@ export default async function ModulePage({
 
   return (
     <AppShell user={user}>
-      <Link href="/dashboard" className="text-sm font-semibold text-[#16877c]">
+      <Link href="/dashboard" className="text-sm font-semibold text-[#2d6f91]">
         ← Все разделы
       </Link>
       <div className="mt-5 grid gap-7 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -77,11 +77,11 @@ export default async function ModulePage({
           <div className="paper rounded-2xl p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
                   Раздел {String(assignment.module.order).padStart(2, "0")} · версия{" "}
                   {assignment.moduleVersion.version}
                 </p>
-                <h1 className="mt-2 text-3xl text-[#183a4a] sm:text-4xl">
+                <h1 className="mt-2 text-3xl text-[#243e52] sm:text-4xl">
                   {assignment.module.title}
                 </h1>
                 <p className="mt-3 max-w-2xl leading-7 text-slate-600">
@@ -133,13 +133,13 @@ export default async function ModulePage({
               Как работать
             </p>
             <ol className="mt-4 space-y-4 text-sm leading-6 text-slate-600">
-              <li><strong className="text-[#183a4a]">1.</strong> Изучите методические материалы.</li>
-              <li><strong className="text-[#183a4a]">2.</strong> Заполните вопросы и таблицы.</li>
-              <li><strong className="text-[#183a4a]">3.</strong> Отправьте раздел на проверку.</li>
+              <li><strong className="text-[#243e52]">1.</strong> Изучите методические материалы.</li>
+              <li><strong className="text-[#243e52]">2.</strong> Заполните вопросы и таблицы.</li>
+              <li><strong className="text-[#243e52]">3.</strong> Отправьте раздел на проверку.</li>
             </ol>
           </section>
-          <section className="rounded-2xl bg-[#f0eadc] p-5">
-            <p className="text-lg text-[#183a4a]">Важно</p>
+          <section className="rounded-2xl bg-[#f4ebdd] p-5">
+            <p className="text-lg text-[#243e52]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Подкрепляйте выводы измеримыми показателями, источниками и
               конкретными примерами.

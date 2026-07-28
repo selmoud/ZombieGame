@@ -8,10 +8,10 @@ export default async function Home() {
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden px-5 py-12">
-      <div className="absolute left-[-8rem] top-[-10rem] size-96 rounded-full bg-[#16877c]/10 blur-3xl" />
+      <div className="absolute left-[-8rem] top-[-10rem] size-96 rounded-full bg-[#2d6f91]/10 blur-3xl" />
       <section className="paper relative w-full max-w-5xl overflow-hidden rounded-3xl">
         <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="bg-[#173b4b] px-8 py-12 text-white sm:px-12 sm:py-16">
+          <div className="bg-[#18354a] px-8 py-12 text-white sm:px-12 sm:py-16">
             <span className="inline-flex rounded-full border border-white/20 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-100">
               Экспертная группа
             </span>
@@ -24,10 +24,10 @@ export default async function Home() {
             </p>
           </div>
           <div className="flex flex-col justify-center px-8 py-12 sm:px-12">
-            <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+            <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
               Регистрация
             </p>
-            <h2 className="mt-3 text-3xl text-[#183a4a]">
+            <h2 className="mt-3 text-3xl text-[#243e52]">
               Подать заявку
             </h2>
             <p className="mt-4 leading-7 text-slate-600">

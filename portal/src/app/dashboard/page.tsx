@@ -28,10 +28,10 @@ export default async function DashboardPage() {
     <AppShell user={user}>
       <div className="grid gap-6 lg:grid-cols-[1fr_19rem]">
         <section>
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#16877c]">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#2d6f91]">
             Личный кабинет
           </p>
-          <h1 className="mt-2 text-4xl text-[#183a4a]">
+          <h1 className="mt-2 text-4xl text-[#243e52]">
             Добрый день, {user.fullName.split(" ")[0]}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-slate-600">
@@ -42,11 +42,11 @@ export default async function DashboardPage() {
         <aside className="paper rounded-2xl p-5">
           <div className="flex items-end justify-between">
             <span className="text-sm text-slate-500">Общий прогресс</span>
-            <strong className="text-2xl text-[#183a4a]">{progress}%</strong>
+            <strong className="text-2xl text-[#243e52]">{progress}%</strong>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-[#16877c]"
+              className="h-full rounded-full bg-[#2d6f91]"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
             <p className="text-xs uppercase tracking-wider text-slate-400">
               {label}
             </p>
-            <p className="mt-1.5 text-sm font-semibold text-[#183a4a]">
+            <p className="mt-1.5 text-sm font-semibold text-[#243e52]">
               {value}
             </p>
           </div>
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
 
       <div className="mt-9 flex items-end justify-between">
         <div>
-          <h2 className="text-3xl text-[#183a4a]">
+          <h2 className="text-3xl text-[#243e52]">
             Разделы доклада
           </h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -91,10 +91,10 @@ export default async function DashboardPage() {
             <Link
               key={id}
               href={`/modules/${id}`}
-              className="paper group rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-[#16877c]/50 hover:shadow-lg"
+              className="paper group rounded-2xl p-6 transition hover:-translate-y-0.5 hover:border-[#2d6f91]/50 hover:shadow-lg"
             >
               <div className="flex items-start justify-between gap-4">
-                <span className="text-4xl text-[#b6c6c6]">
+                <span className="text-4xl text-[#b6c5d1]">
                   {String(module.order).padStart(2, "0")}
                 </span>
                 <span
@@ -103,10 +103,10 @@ export default async function DashboardPage() {
                   {statusLabels[status]}
                 </span>
               </div>
-              <h3 className="mt-6 text-lg font-semibold text-[#183a4a]">
+              <h3 className="mt-6 text-lg font-semibold text-[#243e52]">
                 {module.title}
               </h3>
-              <p className="mt-5 text-sm font-semibold text-[#16877c] group-hover:text-[#0e655e]">
+              <p className="mt-5 text-sm font-semibold text-[#2d6f91] group-hover:text-[#255b78]">
                 {status === "NOT_STARTED" ? "Начать заполнение" : "Открыть раздел"} →
               </p>
             </Link>
