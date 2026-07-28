@@ -387,6 +387,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     .fillColor("#000000")
     .text(data.moduleTitle, { lineGap: 3 });
   document.moveDown(0.7);
+  document.x = document.page.margins.left;
   document
     .font("RobotoLike")
     .fontSize(10)
@@ -398,9 +399,17 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
   document.moveDown(1);
   divider();
 
+  let transactionTablesRendered = false;
   data.questions.forEach((question, questionIndex) => {
     if (data.moduleOrder === 2 && renderTransactionTables(question)) {
+      transactionTablesRendered = true;
       return;
+    }
+    if (transactionTablesRendered) {
+      document.addPage({ size: "A4", layout: "portrait", margin: 48 });
+      document.x = 48;
+      document.y = 48;
+      transactionTablesRendered = false;
     }
     ensureSpace(90);
     document
@@ -490,6 +499,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     divider();
   });
 
+  document.x = document.page.margins.left;
   document
     .font("RobotoLike")
     .fontSize(8)
