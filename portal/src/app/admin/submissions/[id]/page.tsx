@@ -24,10 +24,13 @@ function displayValue(value: unknown, config: unknown) {
               {typedConfig.columns?.map((column) => {
                 const raw = (row as Record<string, unknown>)[column.key];
                 const label = column.options?.find((option) => option.value === raw)?.label;
+                const displayed = Array.isArray(raw)
+                  ? raw.join(", ")
+                  : label ?? String(raw || "—");
                 return (
                   <div key={column.key}>
                     <dt className="text-xs text-neutral-400">{column.title}</dt>
-                    <dd className="mt-1 whitespace-pre-wrap text-sm text-neutral-700">{label ?? String(raw || "—")}</dd>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-neutral-700">{displayed}</dd>
                   </div>
                 );
               })}

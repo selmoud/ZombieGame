@@ -53,7 +53,22 @@ questions:
       minRows: 1
       maxRows: 12
       columns:
-        - { key: segment, title: Сегмент, type: short_text, required: true }
+        - key: segment
+          title: Сегмент
+          type: suggest
+          required: true
+          options:
+            - { value: Онлайн-видео, label: Онлайн-видео }
+            - { value: Телевидение, label: Телевидение }
+            - { value: Радио и подкасты, label: Радио и подкасты }
+            - { value: Печатные и онлайн-СМИ, label: Печатные и онлайн-СМИ }
+            - { value: Социальные сети, label: Социальные сети }
+            - { value: Мессенджеры, label: Мессенджеры }
+            - { value: Цифровая реклама, label: Цифровая реклама }
+            - { value: Музыка и аудио, label: Музыка и аудио }
+            - { value: Игры и киберспорт, label: Игры и киберспорт }
+            - { value: Авторский контент, label: Авторский контент }
+            - { value: Развлекательные мероприятия, label: Развлекательные мероприятия }
         - { key: scope, title: Что входит в сегмент, type: long_text, required: true }
         - { key: product, title: Ключевые продукты и услуги, type: short_text }
         - { key: company, title: Основные группы участников, type: short_text }
@@ -75,7 +90,21 @@ questions:
     config:
       minRows: 0
       columns:
-        - { key: metric, title: Показатель, type: short_text, required: true }
+        - key: metric
+          title: Показатель
+          type: suggest
+          required: true
+          options:
+            - { value: Объём рынка, label: Объём рынка }
+            - { value: Вклад в ВВП или ВДС, label: Вклад в ВВП или ВДС }
+            - { value: Численность занятых, label: Численность занятых }
+            - { value: Объём инвестиций, label: Объём инвестиций }
+            - { value: Производительность труда, label: Производительность труда }
+            - { value: Размер аудитории, label: Размер аудитории }
+            - { value: Активные пользователи (MAU), label: Активные пользователи (MAU) }
+            - { value: Охват аудитории, label: Охват аудитории }
+            - { value: Рекламные доходы, label: Рекламные доходы }
+            - { value: Подписочная выручка, label: Подписочная выручка }
         - { key: value, title: Значение, type: short_text, required: true }
         - { key: period, title: Период, type: short_text }
         - { key: source, title: Источник, type: link }

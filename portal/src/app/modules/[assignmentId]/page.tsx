@@ -63,6 +63,8 @@ export default async function ModulePage({
         type: string;
         required?: boolean;
         options?: Array<{ value: string; label: string }>;
+        sourceQuestionKey?: string;
+        sourceColumnKey?: string;
         min?: number;
         max?: number;
       }>;

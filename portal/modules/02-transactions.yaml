@@ -57,7 +57,12 @@ questions:
       columns:
         - { key: name, title: Сценарий, type: short_text, required: true }
         - { key: description, title: Описание, type: long_text, required: true }
-        - { key: participants, title: Участники, type: short_text, required: true }
+        - key: participants
+          title: Участники
+          type: multi_suggest
+          required: true
+          sourceQuestionKey: participants
+          sourceColumnKey: name
   - key: microtransactions
     type: table
     title: Микротранзакции
@@ -66,8 +71,26 @@ questions:
     config:
       minRows: 1
       columns:
-        - { key: macro, title: Макротранзакция, type: short_text, required: true }
-        - { key: name, title: Микротранзакция, type: short_text, required: true }
+        - key: macro
+          title: Макротранзакция
+          type: suggest
+          required: true
+          sourceQuestionKey: macrotransactions
+          sourceColumnKey: name
+        - key: name
+          title: Микротранзакция
+          type: suggest
+          required: true
+          options:
+            - { value: Поиск и сопоставление информации, label: Поиск и сопоставление информации }
+            - { value: Агрегация и структурирование данных, label: Агрегация и структурирование данных }
+            - { value: Идентификация и верификация, label: Идентификация и верификация }
+            - { value: Проверка соответствия требованиям, label: Проверка соответствия требованиям }
+            - { value: Оценка рисков, label: Оценка рисков }
+            - { value: Согласование решения, label: Согласование решения }
+            - { value: Оформление документов, label: Оформление документов }
+            - { value: Проведение расчётов, label: Проведение расчётов }
+            - { value: Мониторинг исполнения, label: Мониторинг исполнения }
         - { key: frequency, title: Массовость, type: scale, min: 1, max: 4 }
         - { key: repeatability, title: Повторяемость, type: scale, min: 1, max: 5 }
         - { key: standardization, title: Стандартизированность, type: scale, min: 1, max: 5 }

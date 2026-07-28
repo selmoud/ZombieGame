@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type Option = { value: string; label: string };
 type Column = {
@@ -9,6 +9,8 @@ type Column = {
   type: string;
   required?: boolean;
   options?: Option[];
+  sourceQuestionKey?: string;
+  sourceColumnKey?: string;
   min?: number;
   max?: number;
 };
@@ -29,17 +31,283 @@ type Question = {
   };
 };
 
+function SearchableSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: unknown;
+  options: Option[];
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const currentValue = String(value ?? "");
+  const listboxId = useId();
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const filteredOptions = options.filter((option) =>
+    option.label.toLocaleLowerCase("ru").includes(
+      currentValue.toLocaleLowerCase("ru"),
+    ),
+  );
+
+  function selectOption(option: Option) {
+    onChange(option.value);
+    setIsOpen(false);
+    setActiveIndex(0);
+  }
+
+  return (
+    <div className="relative">
+      <input
+        className="field pr-10"
+        value={currentValue}
+        disabled={disabled}
+        autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-expanded={isOpen}
+        placeholder="Начните вводить"
+        onFocus={(event) => {
+          event.currentTarget.select();
+          setIsOpen(true);
+        }}
+        onBlur={() => setIsOpen(false)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setActiveIndex(0);
+          setIsOpen(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setIsOpen(true);
+            setActiveIndex((current) =>
+              Math.min(current + 1, Math.max(filteredOptions.length - 1, 0)),
+            );
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActiveIndex((current) => Math.max(current - 1, 0));
+          } else if (event.key === "Enter" && isOpen && filteredOptions.length) {
+            event.preventDefault();
+            selectOption(filteredOptions[activeIndex] ?? filteredOptions[0]);
+          } else if (event.key === "Escape") {
+            setIsOpen(false);
+          }
+        }}
+      />
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+        ▾
+      </span>
+      {isOpen && !disabled && filteredOptions.length > 0 && (
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 shadow-xl"
+        >
+          {filteredOptions.map((option, index) => (
+            <button
+              key={`${option.value}-${index}`}
+              type="button"
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => selectOption(option)}
+              className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
+                index === activeIndex
+                  ? "bg-[#E0EEFF] text-[#0059C7]"
+                  : "text-neutral-700 hover:bg-neutral-50"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MultiSearchableSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: unknown;
+  options: Option[];
+  disabled: boolean;
+  onChange: (value: string[]) => void;
+}) {
+  const selected = Array.isArray(value)
+    ? value.map(String)
+    : value
+      ? [String(value)]
+      : [];
+  const listboxId = useId();
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const filteredOptions = options.filter(
+    (option) =>
+      !selected.includes(option.value) &&
+      option.label
+        .toLocaleLowerCase("ru")
+        .includes(query.toLocaleLowerCase("ru")),
+  );
+
+  function addValue(nextValue: string) {
+    const normalized = nextValue.trim();
+    if (!normalized || selected.includes(normalized)) return;
+    onChange([...selected, normalized]);
+    setQuery("");
+    setActiveIndex(0);
+    setIsOpen(true);
+  }
+
+  return (
+    <div className="relative">
+      <div
+        className={`field flex min-h-12 flex-wrap items-center gap-2 ${
+          disabled ? "bg-[#F4F4F4]" : ""
+        }`}
+      >
+        {selected.map((item) => {
+          const label =
+            options.find((option) => option.value === item)?.label ?? item;
+          return (
+            <span
+              key={item}
+              className="inline-flex items-center gap-1 rounded-full bg-[#E0EEFF] px-2.5 py-1 text-xs font-semibold text-[#0059C7]"
+            >
+              {label}
+              {!disabled && (
+                <button
+                  type="button"
+                  aria-label={`Удалить ${label}`}
+                  onClick={() =>
+                    onChange(selected.filter((selectedItem) => selectedItem !== item))
+                  }
+                  className="text-base leading-none text-[#0059C7]"
+                >
+                  ×
+                </button>
+              )}
+            </span>
+          );
+        })}
+        {!disabled && (
+          <input
+            className="min-w-32 flex-1 border-0 bg-transparent py-1 text-sm outline-none"
+            value={query}
+            autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls={listboxId}
+            aria-expanded={isOpen}
+            placeholder={selected.length ? "Добавить ещё" : "Начните вводить"}
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setIsOpen(false)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveIndex(0);
+              setIsOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setIsOpen(true);
+                setActiveIndex((current) =>
+                  Math.min(
+                    current + 1,
+                    Math.max(filteredOptions.length - 1, 0),
+                  ),
+                );
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setActiveIndex((current) => Math.max(current - 1, 0));
+              } else if (event.key === "Enter") {
+                event.preventDefault();
+                if (isOpen && filteredOptions.length) {
+                  addValue(
+                    (filteredOptions[activeIndex] ?? filteredOptions[0]).value,
+                  );
+                } else {
+                  addValue(query);
+                }
+              } else if (event.key === "Backspace" && !query && selected.length) {
+                onChange(selected.slice(0, -1));
+              } else if (event.key === "Escape") {
+                setIsOpen(false);
+              }
+            }}
+          />
+        )}
+      </div>
+      {isOpen && !disabled && filteredOptions.length > 0 && (
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 shadow-xl"
+        >
+          {filteredOptions.map((option, index) => (
+            <button
+              key={`${option.value}-${index}`}
+              type="button"
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => addValue(option.value)}
+              className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
+                index === activeIndex
+                  ? "bg-[#E0EEFF] text-[#0059C7]"
+                  : "text-neutral-700 hover:bg-neutral-50"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InlineField({
   column,
   value,
+  suggestions,
   disabled,
   onChange,
 }: {
   column: Column;
   value: unknown;
+  suggestions: Option[];
   disabled: boolean;
   onChange: (value: unknown) => void;
 }) {
+  if (column.type === "suggest") {
+    return (
+      <SearchableSelect
+        value={value}
+        options={suggestions}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    );
+  }
+  if (column.type === "multi_suggest") {
+    return (
+      <MultiSearchableSelect
+        value={value}
+        options={suggestions}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    );
+  }
   if (column.type === "select") {
     return (
       <select
@@ -100,17 +368,58 @@ function InlineField({
 
 function TableField({
   question,
+  questions,
+  answers,
   value,
   disabled,
   onChange,
 }: {
   question: Question;
+  questions: Question[];
+  answers: Record<string, unknown>;
   value: unknown;
   disabled: boolean;
   onChange: (value: unknown) => void;
 }) {
   const rows = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
   const columns = question.config.columns ?? [];
+
+  function getSuggestions(column: Column) {
+    const staticOptions = column.options ?? [];
+    if (!column.sourceQuestionKey || !column.sourceColumnKey) {
+      return staticOptions;
+    }
+    const sourceQuestion = questions.find(
+      (item) => item.key === column.sourceQuestionKey,
+    );
+    const sourceRows = sourceQuestion
+      ? answers[sourceQuestion.id]
+      : undefined;
+    const linkedValues = Array.isArray(sourceRows)
+      ? sourceRows.flatMap((row) => {
+          const sourceValue = (row as Record<string, unknown>)[
+            column.sourceColumnKey as string
+          ];
+          return Array.isArray(sourceValue)
+            ? sourceValue.map(String)
+            : sourceValue
+              ? [String(sourceValue)]
+              : [];
+        })
+      : [];
+    const combined = [
+      ...staticOptions,
+      ...linkedValues.map((item) => ({ value: item, label: item })),
+    ];
+    return combined.filter(
+      (option, index) =>
+        combined.findIndex(
+          (candidate) =>
+            candidate.value.toLocaleLowerCase("ru") ===
+            option.value.toLocaleLowerCase("ru"),
+        ) === index,
+    );
+  }
 
   function addRow() {
     onChange([...rows, Object.fromEntries(columns.map((column) => [column.key, ""]))]);
@@ -146,7 +455,7 @@ function TableField({
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             {columns.map((column) => (
-              <label
+              <div
                 key={column.key}
                 className={column.type === "long_text" ? "lg:col-span-2" : ""}
               >
@@ -157,12 +466,13 @@ function TableField({
                 <InlineField
                   column={column}
                   value={row[column.key]}
+                  suggestions={getSuggestions(column)}
                   disabled={disabled}
                   onChange={(cellValue) =>
                     updateRow(rowIndex, column.key, cellValue)
                   }
                 />
-              </label>
+              </div>
             ))}
           </div>
         </div>
@@ -560,6 +870,8 @@ export function DynamicForm({
               {question.type === "TABLE" ? (
                 <TableField
                   question={question}
+                  questions={questions}
+                  answers={answers}
                   value={value}
                   disabled={readOnly}
                   onChange={(next) => setAnswer(question.id, next)}

@@ -17,4 +17,21 @@ describe("module definitions", () => {
     ]);
     expect(industry.questions[0].config.columns?.[1].type).toBe("select");
   });
+
+  it("supports searchable and linked table fields", async () => {
+    const modules = await loadModuleDefinitions();
+    const transactions = modules.find((module) => module.slug === "transactions");
+    const microtransactions = transactions?.questions.find(
+      (question) => question.key === "microtransactions",
+    );
+    const macroColumn = microtransactions?.config.columns?.find(
+      (column) => column.key === "macro",
+    );
+
+    expect(macroColumn).toMatchObject({
+      type: "suggest",
+      sourceQuestionKey: "macrotransactions",
+      sourceColumnKey: "name",
+    });
+  });
 });

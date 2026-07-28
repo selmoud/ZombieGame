@@ -37,7 +37,30 @@ questions:
           options:
             - { value: yes, label: Да }
             - { value: no, label: Нет }
-        - { key: countries, title: Страны, type: short_text }
+        - key: countries
+          title: Страны
+          type: multi_suggest
+          options:
+            - { value: Армения, label: Армения }
+            - { value: Азербайджан, label: Азербайджан }
+            - { value: Беларусь, label: Беларусь }
+            - { value: Грузия, label: Грузия }
+            - { value: Казахстан, label: Казахстан }
+            - { value: Кыргызстан, label: Кыргызстан }
+            - { value: Молдова, label: Молдова }
+            - { value: Таджикистан, label: Таджикистан }
+            - { value: Узбекистан, label: Узбекистан }
+            - { value: Туркменистан, label: Туркменистан }
+            - { value: Китай, label: Китай }
+            - { value: Индия, label: Индия }
+            - { value: Индонезия, label: Индонезия }
+            - { value: Вьетнам, label: Вьетнам }
+            - { value: ОАЭ, label: ОАЭ }
+            - { value: Саудовская Аравия, label: Саудовская Аравия }
+            - { value: Турция, label: Турция }
+            - { value: Сербия, label: Сербия }
+            - { value: Бразилия, label: Бразилия }
+            - { value: ЮАР, label: ЮАР }
         - key: potential
           title: Потенциал
           type: select
