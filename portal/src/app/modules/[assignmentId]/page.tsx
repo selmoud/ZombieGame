@@ -113,10 +113,30 @@ export default async function ModulePage({
             </section>
           )}
 
-          <section className="paper prose mt-5 rounded-2xl p-6 sm:p-8">
-            <ReactMarkdown>{assignment.moduleVersion.theoryMarkdown}</ReactMarkdown>
+          <section className="paper mt-5 rounded-2xl p-6 sm:p-8">
+            <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
+              Теоретическая часть
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-black">
+              Что нужно знать перед заполнением
+            </h2>
+            <div className="prose mt-5">
+              <ReactMarkdown>{assignment.moduleVersion.theoryMarkdown}</ReactMarkdown>
+            </div>
           </section>
-          <div className="mt-5">
+          <section className="mt-5 rounded-2xl bg-[#0D78F8] p-6 text-white sm:p-8">
+            <p className="text-sm font-semibold uppercase tracking-wider text-white/80">
+              Практическая часть
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">
+              Ответьте на вопросы раздела
+            </h2>
+            <p className="mt-2 max-w-2xl leading-7 text-white/90">
+              Опирайтесь на собственную экспертизу, проверяемые данные и
+              конкретные примеры. Черновик сохраняется автоматически.
+            </p>
+          </section>
+          <div className="mt-4">
             <DynamicForm
               assignmentId={assignment.id}
               questions={questions}
