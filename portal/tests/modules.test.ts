@@ -26,6 +26,9 @@ describe("module definitions", () => {
     expect(boundaries).toMatchObject({
       order: 1,
       title: "Границы отрасли",
+      config: {
+        fixedRows: 1,
+      },
     });
     expect(boundaries?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",

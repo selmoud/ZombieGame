@@ -60,6 +60,7 @@ export default async function ModulePage({
       max?: number;
       minRows?: number;
       maxRows?: number;
+      fixedRows?: number;
       addRowLabel?: string;
       numberRows?: boolean;
       rowLabel?: string;

@@ -41,6 +41,7 @@ type Question = {
     max?: number;
     minRows?: number;
     maxRows?: number;
+    fixedRows?: number;
     addRowLabel?: string;
     numberRows?: boolean;
     rowLabel?: string;
@@ -446,8 +447,28 @@ function TableField({
   disabled: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const rows = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
   const columns = question.config.columns ?? [];
+
+  function createDefaultRow() {
+    return Object.fromEntries(
+      columns.map((column) => [
+        column.key,
+        column.defaultValue ??
+          (column.type === "multi_suggest" ? [] : ""),
+      ]),
+    );
+  }
+
+  const storedRows = Array.isArray(value)
+    ? (value as Array<Record<string, unknown>>)
+    : [];
+  const rows =
+    storedRows.length || !question.config.fixedRows
+      ? storedRows
+      : Array.from(
+          { length: question.config.fixedRows },
+          () => createDefaultRow(),
+        );
 
   function sortSuggestions(options: Option[], column: Column) {
     return [...options].sort((left, right) => {
@@ -529,16 +550,7 @@ function TableField({
   }
 
   function addRow() {
-    onChange([
-      ...rows,
-      Object.fromEntries(
-        columns.map((column) => [
-          column.key,
-          column.defaultValue ??
-            (column.type === "multi_suggest" ? [] : ""),
-        ]),
-      ),
-    ]);
+    onChange([...rows, createDefaultRow()]);
   }
   function updateRow(index: number, key: string, cellValue: unknown) {
     onChange(
@@ -592,7 +604,7 @@ function TableField({
               {question.config.rowLabel ?? "Строка"}
               {question.config.numberRows === false ? "" : ` ${rowIndex + 1}`}
             </span>
-            {!disabled && (
+            {!disabled && !question.config.fixedRows && (
               <button
                 type="button"
                 onClick={() => onChange(rows.filter((_, index) => index !== rowIndex))}
@@ -667,6 +679,7 @@ function TableField({
         </div>
       ))}
       {!disabled &&
+        !question.config.fixedRows &&
         (question.config.maxRows === undefined ||
           rows.length < question.config.maxRows) && (
           <button

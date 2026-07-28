@@ -74,6 +74,7 @@ const questionSchema = z.object({
       max: z.number().optional(),
       minRows: z.number().int().min(0).optional(),
       maxRows: z.number().int().positive().optional(),
+      fixedRows: z.number().int().positive().optional(),
       addRowLabel: z.string().optional(),
       numberRows: z.boolean().optional(),
       rowLabel: z.string().optional(),
