@@ -135,18 +135,31 @@ questions:
           sourceColumnKey: name
           excludeColumnKey: initiator
         - key: value
-          title: Предмет транзакции
-          type: select
+          title: Предметы транзакции
+          description: "Можно выбрать несколько вариантов."
+          type: multi_suggest
+          allowCustom: false
           required: true
+          fullWidth: true
+          lastOptionValue: Другое
+          sortOptions: true
           options:
-            - { value: Контент, label: Контент }
+            - { value: Контент или цифровой продукт, label: Контент или цифровой продукт }
             - { value: Информация и данные, label: Информация и данные }
-            - { value: Услуга, label: Услуга }
-            - { value: Денежные средства, label: Денежные средства }
-            - { value: Права, label: Права }
-            - { value: Доступ, label: Доступ }
+            - { value: Внимание и охват аудитории, label: Внимание и охват аудитории }
             - { value: Рекламный инвентарь, label: Рекламный инвентарь }
+            - { value: Услуга или выполненная работа, label: Услуга или выполненная работа }
+            - { value: Денежные средства или вознаграждение, label: Денежные средства или вознаграждение }
+            - { value: "Права, лицензия или разрешение", label: "Права, лицензия или разрешение" }
+            - { value: "Доступ, подписка или билет", label: "Доступ, подписка или билет" }
+            - { value: Инфраструктура или технологические ресурсы, label: Инфраструктура или технологические ресурсы }
             - { value: Другое, label: Другое }
+        - key: customValue
+          title: Укажите предмет транзакции
+          type: short_text
+          requiredWhen: { columnKey: value, includes: Другое }
+          visibleWhen: { columnKey: value, includes: Другое }
+          fullWidth: true
         - key: transactionType
           title: Тип транзакции (см. Глоссарий)
           type: select

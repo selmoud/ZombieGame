@@ -86,7 +86,11 @@ export async function GET(
             title: string;
             options?: Array<{ value: string; label: string }>;
             defaultValue?: string;
-            visibleWhen?: { columnKey: string; equals: string };
+            visibleWhen?: {
+              columnKey: string;
+              equals?: string;
+              includes?: string;
+            };
           }>;
           rowLabel?: string;
         },

@@ -89,6 +89,47 @@ describe("validateAnswers", () => {
     ).toEqual({});
   });
 
+  it("supports conditional fields for multiple selections", () => {
+    const conditionalQuestion = {
+      id: "transactions",
+      key: "transactions",
+      type: "TABLE",
+      title: "Транзакции",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          {
+            key: "values",
+            title: "Предметы транзакции",
+            type: "multi_suggest",
+            required: true,
+          },
+          {
+            key: "customValue",
+            title: "Другой предмет",
+            type: "short_text",
+            requiredWhen: { columnKey: "values", includes: "Другое" },
+            visibleWhen: { columnKey: "values", includes: "Другое" },
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([conditionalQuestion], {
+        transactions: [{ values: ["Контент", "Другое"], customValue: "" }],
+      }),
+    ).toEqual({
+      transactions: "Заполните обязательные ячейки таблицы",
+    });
+    expect(
+      validateAnswers([conditionalQuestion], {
+        transactions: [{ values: ["Контент"], customValue: "" }],
+      }),
+    ).toEqual({});
+  });
+
   it("checks number ranges inside table rows", () => {
     const percentageQuestion = {
       id: "boundaries",

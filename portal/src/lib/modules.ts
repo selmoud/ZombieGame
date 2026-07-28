@@ -9,10 +9,19 @@ const optionSchema = z.object({
   label: z.string(),
 });
 
-const conditionSchema = z.object({
-  columnKey: z.string().min(1),
-  equals: z.string(),
-});
+const conditionSchema = z
+  .object({
+    columnKey: z.string().min(1),
+    equals: z.string().optional(),
+    includes: z.string().optional(),
+  })
+  .refine(
+    (condition) =>
+      Number(condition.equals !== undefined) +
+        Number(condition.includes !== undefined) ===
+      1,
+    "Условие должно содержать equals или includes",
+  );
 
 const columnSchema = z.object({
   key: z.string().min(1),

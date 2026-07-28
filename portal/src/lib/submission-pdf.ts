@@ -1,5 +1,9 @@
 import { existsSync } from "node:fs";
 import PDFDocument from "pdfkit";
+import {
+  matchesFieldCondition,
+  type FieldCondition,
+} from "./field-conditions";
 
 type Option = { value: string; label: string };
 type Column = {
@@ -7,7 +11,7 @@ type Column = {
   title: string;
   options?: Option[];
   defaultValue?: string;
-  visibleWhen?: { columnKey: string; equals: string };
+  visibleWhen?: FieldCondition;
 };
 type Question = {
   title: string;
@@ -188,7 +192,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         question.config.columns?.forEach((column) => {
           if (
             column.visibleWhen &&
-            row[column.visibleWhen.columnKey] !== column.visibleWhen.equals
+            !matchesFieldCondition(row, column.visibleWhen)
           ) {
             return;
           }

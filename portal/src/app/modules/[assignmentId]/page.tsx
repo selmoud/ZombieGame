@@ -173,13 +173,21 @@ export default async function ModulePage({
         lastOptionValue?: string;
         notBeforeColumnKey?: string;
         optionsFromColumnKey?: string;
-        requiredWhen?: { columnKey: string; equals: string };
+        requiredWhen?: {
+          columnKey: string;
+          equals?: string;
+          includes?: string;
+        };
         sortOptions?: boolean;
         sourceQuestionKey?: string;
         sourceColumnKey?: string;
         sourceLabelSuffix?: string;
         uniqueAcrossRows?: boolean;
-        visibleWhen?: { columnKey: string; equals: string };
+        visibleWhen?: {
+          columnKey: string;
+          equals?: string;
+          includes?: string;
+        };
         min?: number;
         max?: number;
         step?: number;

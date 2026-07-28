@@ -1,3 +1,8 @@
+import {
+  matchesFieldCondition,
+  type FieldCondition,
+} from "./field-conditions";
+
 export type QuestionForValidation = {
   id: string;
   key: string;
@@ -20,8 +25,8 @@ type Config = {
     min?: number;
     max?: number;
     notBeforeColumnKey?: string;
-    requiredWhen?: { columnKey: string; equals: string };
-    visibleWhen?: { columnKey: string; equals: string };
+    requiredWhen?: FieldCondition;
+    visibleWhen?: FieldCondition;
   }>;
 };
 
@@ -88,13 +93,11 @@ export function validateAnswers(
             const typedRow = row as Record<string, unknown>;
             const isVisible =
               !column.visibleWhen ||
-              typedRow[column.visibleWhen.columnKey] ===
-                column.visibleWhen.equals;
+              matchesFieldCondition(typedRow, column.visibleWhen);
             const isRequired =
               column.required ||
               (column.requiredWhen &&
-                typedRow[column.requiredWhen.columnKey] ===
-                  column.requiredWhen.equals);
+                matchesFieldCondition(typedRow, column.requiredWhen));
             return isVisible && isRequired && isEmpty(typedRow?.[column.key]);
           },
         ),
@@ -109,8 +112,7 @@ export function validateAnswers(
           const cellValue = typedRow[column.key];
           const isVisible =
             !column.visibleWhen ||
-            typedRow[column.visibleWhen.columnKey] ===
-              column.visibleWhen.equals;
+            matchesFieldCondition(typedRow, column.visibleWhen);
           if (
             !isVisible ||
             column.type !== "number" ||

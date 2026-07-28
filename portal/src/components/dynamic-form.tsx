@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import {
+  matchesFieldCondition,
+  type FieldCondition,
+} from "@/lib/field-conditions";
 
 type Option = { value: string; label: string };
 type Column = {
@@ -20,13 +24,13 @@ type Column = {
   lastOptionValue?: string;
   notBeforeColumnKey?: string;
   optionsFromColumnKey?: string;
-  requiredWhen?: { columnKey: string; equals: string };
+  requiredWhen?: FieldCondition;
   sortOptions?: boolean;
   sourceQuestionKey?: string;
   sourceColumnKey?: string;
   sourceLabelSuffix?: string;
   uniqueAcrossRows?: boolean;
-  visibleWhen?: { columnKey: string; equals: string };
+  visibleWhen?: FieldCondition;
   min?: number;
   max?: number;
   step?: number;
@@ -582,8 +586,7 @@ function TableField({
               (nextRow, column) => {
                 if (
                   column.visibleWhen &&
-                  nextRow[column.visibleWhen.columnKey] !==
-                    column.visibleWhen.equals
+                  !matchesFieldCondition(nextRow, column.visibleWhen)
                 ) {
                   nextRow[column.key] = "";
                 }
@@ -695,15 +698,14 @@ function TableField({
             {columns.map((column) => {
               if (
                 column.visibleWhen &&
-                row[column.visibleWhen.columnKey] !== column.visibleWhen.equals
+                !matchesFieldCondition(row, column.visibleWhen)
               ) {
                 return null;
               }
               const isRequired =
                 column.required ||
                 (column.requiredWhen &&
-                  row[column.requiredWhen.columnKey] ===
-                    column.requiredWhen.equals);
+                  matchesFieldCondition(row, column.requiredWhen));
               const comparisonValue = column.notBeforeColumnKey
                 ? row[column.notBeforeColumnKey]
                 : undefined;
