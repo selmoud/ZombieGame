@@ -26,6 +26,7 @@ export type SubmissionPdfData = {
   companyName: string;
   subgroupName: string;
   statusLabel: string;
+  attachmentBaseUrl: string;
   questions: Question[];
 };
 
@@ -76,6 +77,20 @@ function printableValue(value: unknown, options?: Option[]) {
     return JSON.stringify(value);
   }
   return optionLabel(value, options);
+}
+
+function attachmentInfo(value: unknown) {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("id" in value) ||
+    !("name" in value)
+  ) {
+    return null;
+  }
+  const id = String((value as { id?: unknown }).id ?? "");
+  const name = String((value as { name?: unknown }).name ?? "Материал");
+  return id ? { id, name } : null;
 }
 
 export async function createSubmissionPdf(data: SubmissionPdfData) {
@@ -199,13 +214,27 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         document.moveDown(0.5);
       });
     } else {
-      document
-        .font("RobotoLike")
-        .fontSize(10)
-        .fillColor("#222222")
-        .text(printableValue(question.value, question.config.options), {
-          lineGap: 3,
-        });
+      const attachment = attachmentInfo(question.value);
+      if (attachment) {
+        const attachmentUrl = `${data.attachmentBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(attachment.id)}`;
+        document
+          .font("RobotoLike")
+          .fontSize(10)
+          .fillColor("#0059C7")
+          .text(`Прикреплённый файл: ${attachment.name}`, {
+            link: attachmentUrl,
+            underline: true,
+            lineGap: 3,
+          });
+      } else {
+        document
+          .font("RobotoLike")
+          .fontSize(10)
+          .fillColor("#222222")
+          .text(printableValue(question.value, question.config.options), {
+            lineGap: 3,
+          });
+      }
     }
     document.moveDown(0.8);
     divider();

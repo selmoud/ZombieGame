@@ -11,7 +11,7 @@ import { createSubmissionPdf } from "@/lib/submission-pdf";
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/assignments/[id]/pdf">,
 ) {
   const currentUser = await getCurrentUser();
@@ -66,6 +66,9 @@ export async function GET(
     companyName: assignment.user.company?.name ?? "",
     subgroupName: assignment.user.subgroup?.name ?? "",
     statusLabel: statusLabels[assignment.submission.status],
+    attachmentBaseUrl: `${(
+      process.env.APP_URL ?? new URL(request.url).origin
+    ).replace(/\/$/, "")}/api/attachments`,
     questions: assignment.moduleVersion.questions
       .filter((question) => !isQuestionHidden(question.config))
       .map((question) => ({
