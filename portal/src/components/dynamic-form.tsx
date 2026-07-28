@@ -373,6 +373,19 @@ export function DynamicForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, readOnly]);
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("draft-state-change", {
+        detail: {
+          assignmentId,
+          revision,
+          saveState,
+          status,
+        },
+      }),
+    );
+  }, [assignmentId, revision, saveState, status]);
+
   function setAnswer(questionId: string, value: unknown) {
     setSaveState("dirty");
     setAnswers((current) => ({ ...current, [questionId]: value }));
@@ -452,29 +465,6 @@ export function DynamicForm({
 
   return (
     <div>
-      <div className="sticky top-3 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#0D78F8] bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#0D78F8]">
-            Состояние черновика
-          </p>
-          <p className="mt-0.5 text-sm font-semibold text-[#0059C7]">
-            {readOnly
-              ? status === "ACCEPTED"
-                ? "Ответ принят"
-                : "Ответ отправлен"
-              : saveState === "saving"
-                ? "Сохраняем…"
-                : saveState === "dirty"
-                  ? "Есть изменения"
-                  : saveState === "error"
-                    ? "Ошибка сохранения"
-                    : "Все изменения сохранены"}
-            <span className="ml-2 text-xs font-normal text-[#0D78F8]">
-              версия {revision}
-            </span>
-          </p>
-        </div>
-      </div>
       {!readOnly && (
         <button
           id={`save-draft-${assignmentId}`}

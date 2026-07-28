@@ -167,7 +167,11 @@ export default async function ModulePage({
             </p>
           </section>
           {!["SUBMITTED", "ACCEPTED"].includes(status) && (
-            <DraftSaveButton targetId={`save-draft-${assignment.id}`} />
+            <DraftSaveButton
+              targetId={`save-draft-${assignment.id}`}
+              assignmentId={assignment.id}
+              initialRevision={assignment.submission.revision}
+            />
           )}
         </aside>
       </div>
