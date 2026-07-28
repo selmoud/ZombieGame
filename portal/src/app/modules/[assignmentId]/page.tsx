@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/app-shell";
 import { DraftStatus } from "@/components/draft-status";
@@ -7,6 +7,7 @@ import { DynamicForm } from "@/components/dynamic-form";
 import { GlossaryModal } from "@/components/glossary-modal";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
 import { statusLabels, statusStyles } from "@/lib/status";
 
@@ -37,6 +38,9 @@ export default async function ModulePage({
   });
   if (!assignment || assignment.userId !== user.id || !assignment.submission) {
     notFound();
+  }
+  if (!(await isModuleUnlocked(user.id, assignment.module.order))) {
+    redirect("/dashboard?locked=1");
   }
   const status = assignment.submission.status;
   const answers = Object.fromEntries(

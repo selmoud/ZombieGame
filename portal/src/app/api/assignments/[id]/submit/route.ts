@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { validateAnswers } from "@/lib/answer-validation";
 import { db } from "@/lib/db";
+import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
 
 export async function POST(
@@ -14,11 +15,15 @@ export async function POST(
     where: { id },
     include: {
       submission: { include: { answers: true } },
+      module: true,
       moduleVersion: { include: { questions: { orderBy: { order: "asc" } } } },
     },
   });
   if (!assignment || assignment.userId !== user.id || !assignment.submission) {
     return Response.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  if (!(await isModuleUnlocked(user.id, assignment.module.order))) {
+    return Response.json({ error: "MODULE_LOCKED" }, { status: 403 });
   }
   if (!["DRAFT", "NEEDS_REVISION"].includes(assignment.submission.status)) {
     return Response.json({ error: "INVALID_STATUS" }, { status: 409 });

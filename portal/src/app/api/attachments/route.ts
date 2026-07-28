@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isModuleUnlocked } from "@/lib/module-access-db";
 
 const allowedTypes = new Set([
   "application/pdf",
@@ -29,7 +30,11 @@ export async function POST(request: Request) {
   }
   const assignment = await db.moduleAssignment.findUnique({
     where: { id: assignmentId },
-    include: { submission: true, moduleVersion: { include: { questions: true } } },
+    include: {
+      module: true,
+      submission: true,
+      moduleVersion: { include: { questions: true } },
+    },
   });
   const question = assignment?.moduleVersion.questions.find(
     (item) => item.id === questionId && item.type === "FILE",
@@ -42,6 +47,9 @@ export async function POST(request: Request) {
     !["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(assignment.submission.status)
   ) {
     return Response.json({ error: "NOT_ALLOWED" }, { status: 403 });
+  }
+  if (!(await isModuleUnlocked(user.id, assignment.module.order))) {
+    return Response.json({ error: "MODULE_LOCKED" }, { status: 403 });
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());

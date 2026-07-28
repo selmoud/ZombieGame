@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isModuleUnlocked } from "@/lib/module-access-db";
 
 export async function PUT(
   request: Request,
@@ -23,10 +24,17 @@ export async function PUT(
 
   const assignment = await db.moduleAssignment.findUnique({
     where: { id },
-    include: { submission: true, moduleVersion: { include: { questions: true } } },
+    include: {
+      module: true,
+      submission: true,
+      moduleVersion: { include: { questions: true } },
+    },
   });
   if (!assignment || assignment.userId !== user.id || !assignment.submission) {
     return Response.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  if (!(await isModuleUnlocked(user.id, assignment.module.order))) {
+    return Response.json({ error: "MODULE_LOCKED" }, { status: 403 });
   }
   if (!["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(assignment.submission.status)) {
     return Response.json({ error: "READ_ONLY" }, { status: 409 });

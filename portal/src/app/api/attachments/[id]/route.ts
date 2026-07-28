@@ -3,6 +3,7 @@ import path from "node:path";
 import { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isModuleUnlocked } from "@/lib/module-access-db";
 
 export async function GET(
   _request: Request,
@@ -60,7 +61,7 @@ export async function DELETE(
       answer: {
         include: {
           submission: {
-            include: { assignment: true },
+            include: { assignment: { include: { module: true } } },
           },
         },
       },
@@ -70,8 +71,13 @@ export async function DELETE(
     return Response.json({ error: "NOT_FOUND" }, { status: 404 });
   }
   const submission = attachment.answer.submission;
+  const unlocked = await isModuleUnlocked(
+    user.id,
+    submission.assignment.module.order,
+  );
   const canDelete =
     submission.assignment.userId === user.id &&
+    unlocked &&
     ["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(submission.status);
   if (!canDelete) {
     return Response.json({ error: "NOT_ALLOWED" }, { status: 403 });
