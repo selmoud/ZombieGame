@@ -122,6 +122,14 @@ export default async function ModulePage({
                 <p className="mt-3 max-w-2xl leading-7 text-neutral-600">
                   {assignment.moduleVersion.description}
                 </p>
+                {canDownload && (
+                  <a
+                    href={`/api/assignments/${assignment.id}/pdf`}
+                    className="mt-5 inline-flex rounded-xl bg-[#0059C7] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#00479F]"
+                  >
+                    Скачать PDF
+                  </a>
+                )}
               </div>
               {status !== "DRAFT" && (
                 <span
@@ -186,30 +194,6 @@ export default async function ModulePage({
               initialStatus={status}
             />
           </div>
-          <section className="paper mt-5 flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-semibold text-[#000000]">Результаты раздела</h2>
-              <p className="mt-1 text-sm leading-6 text-neutral-500">
-                PDF содержит ответы в том порядке, в котором их увидит
-                модератор, и станет доступен после отправки раздела.
-              </p>
-            </div>
-            {canDownload ? (
-              <a
-                href={`/api/assignments/${assignment.id}/pdf`}
-                className="shrink-0 rounded-xl bg-[#0059C7] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#00479F]"
-              >
-                Скачать результаты раздела
-              </a>
-            ) : (
-              <span
-                aria-disabled="true"
-                className="cursor-not-allowed shrink-0 rounded-xl bg-neutral-200 px-5 py-3 text-center text-sm font-semibold text-neutral-500"
-              >
-                Скачать результаты раздела
-              </span>
-            )}
-          </section>
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
