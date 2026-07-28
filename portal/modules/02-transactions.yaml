@@ -156,7 +156,7 @@ questions:
             - { value: Инфраструктура или технологические ресурсы, label: Инфраструктура или технологические ресурсы }
             - { value: Другое, label: Другое }
         - key: customValue
-          title: Укажите предмет транзакции
+          title: Укажите предмет транзакции (выбрано «Другое»)
           type: short_text
           requiredWhen: { columnKey: value, includes: Другое }
           visibleWhen: { columnKey: value, includes: Другое }
