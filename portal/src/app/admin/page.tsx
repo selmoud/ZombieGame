@@ -4,7 +4,6 @@ import { CreateExpertForm } from "@/components/create-expert-form";
 import { ExpertCard } from "@/components/expert-card";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { statusLabels, statusStyles } from "@/lib/status";
 import { approveRegistration, rejectRegistration } from "./actions";
 
 export default async function AdminPage({
@@ -14,7 +13,7 @@ export default async function AdminPage({
 }) {
   const admin = await requireRole("ADMIN");
   const query = await searchParams;
-  const [users, submissions, companies, registrations] = await Promise.all([
+  const [users, companies, registrations] = await Promise.all([
     db.user.findMany({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
@@ -24,21 +23,20 @@ export default async function AdminPage({
       },
       orderBy: { createdAt: "desc" },
     }),
-    db.submission.findMany({
-      include: {
-        assignment: { include: { user: true, module: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 6,
+    db.company.count({
+      where: { users: { some: { role: { in: ["EXPERT", "LEAD"] } } } },
     }),
-    db.company.count(),
     db.registrationRequest.findMany({
       where: { status: "PENDING" },
       orderBy: { createdAt: "asc" },
     }),
   ]);
-  const submittedCount = submissions.filter((item) =>
-    ["SUBMITTED", "ACCEPTED"].includes(item.status),
+  const completedExperts = users.filter(
+    (user) =>
+      user.assignments.length > 0 &&
+      user.assignments.every(
+        (assignment) => assignment.submission?.status === "ACCEPTED",
+      ),
   ).length;
 
   return (
@@ -73,9 +71,9 @@ export default async function AdminPage({
 
       <section className="mt-7 grid gap-4 sm:grid-cols-3">
         {[
-          ["Экспертов", users.length],
           ["Компаний", companies],
-          ["Готово к работе", submittedCount],
+          ["Экспертов", users.length],
+          ["Завершили прохождение", completedExperts],
         ].map(([label, value]) => (
           <div key={label} className="paper rounded-2xl p-6">
             <p className="text-sm text-neutral-500">{label}</p>
@@ -218,35 +216,6 @@ export default async function AdminPage({
         </div>
       </section>
 
-      <section className="paper mt-7 rounded-2xl p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl text-[#000000]">Последние ответы</h2>
-          <Link href="/admin/submissions" className="text-sm font-semibold text-[#0059C7]">
-            Смотреть все →
-          </Link>
-        </div>
-        <div className="mt-4 grid gap-3">
-          {submissions.map((submission) => (
-            <Link
-              key={submission.id}
-              href={`/admin/submissions/${submission.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 p-4 hover:border-[#0059C7]/50"
-            >
-              <div>
-                <p className="font-semibold text-[#000000]">
-                  {submission.assignment.user.fullName}
-                </p>
-                <p className="mt-1 text-sm text-neutral-500">
-                  {submission.assignment.module.title}
-                </p>
-              </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[submission.status]}`}>
-                {statusLabels[submission.status]}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
     </AppShell>
   );
 }
