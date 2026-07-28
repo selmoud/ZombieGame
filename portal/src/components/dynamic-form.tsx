@@ -247,7 +247,7 @@ function FileUploadField({
                     setDeleting(false),
                   );
                 }}
-                className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
+                className="inline-flex h-7 items-center justify-center rounded-md px-1.5 text-xs font-bold leading-none text-[#FF2F86] transition hover:bg-white/70 disabled:opacity-60"
               >
                 {deleting ? "Удаляем…" : "Удалить"}
               </button>
