@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/app-shell";
+import { DraftSaveButton } from "@/components/draft-save-button";
 import { DynamicForm } from "@/components/dynamic-form";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -148,6 +149,9 @@ export default async function ModulePage({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+          {!["SUBMITTED", "ACCEPTED"].includes(status) && (
+            <DraftSaveButton targetId={`save-draft-${assignment.id}`} />
+          )}
           <section className="paper rounded-2xl p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Как работать
