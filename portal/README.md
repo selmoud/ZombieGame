@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Экспертный портал «Стратегия платформ»
 
-## Getting Started
+Внутренний портал для сбора, проверки и выгрузки экспертных позиций по восьми
+разделам доклада с горизонтом до 2036 года.
 
-First, run the development server:
+## Возможности MVP
+
+- вход по одноразовому персональному приглашению;
+- кабинет эксперта и статусы восьми разделов;
+- формы из YAML, включая повторяемые таблицы;
+- автоматическое и ручное сохранение черновика;
+- отправка, возврат на доработку и принятие ответа;
+- комментарии администратора;
+- создание эксперта и ссылки-приглашения;
+- загрузка PDF, DOCX, XLSX, PNG и JPG;
+- фильтры ответов и выгрузка XLSX.
+
+## Быстрый запуск в Docker
+
+Из каталога `portal/`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+После запуска откройте [http://localhost:3000](http://localhost:3000). Миграции
+и демонстрационные данные применяются автоматически.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Тестовые ссылки:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- эксперт: `http://localhost:3000/invite/demo-expert`;
+- администратор: `http://localhost:3000/invite/demo-admin`.
 
-## Learn More
+Приглашения одноразовые. Чтобы восстановить демонстрационные приглашения,
+остановите приложение, выполните `docker compose run --rm app npm run db:seed`
+и снова запустите его.
 
-To learn more about Next.js, take a look at the following resources:
+## Локальная разработка
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Требуются Node.js 24+, npm и Docker.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cp .env.example .env
+docker compose up -d db
+npm install
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run dev
+```
 
-## Deploy on Vercel
+Приложение доступно на `http://localhost:3000`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Проверки
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+## Переменные окружения
+
+| Переменная | Назначение |
+| --- | --- |
+| `DATABASE_URL` | Строка подключения PostgreSQL |
+| `APP_URL` | Публичный адрес портала для ссылок-приглашений |
+| `INVITATION_TOKEN_PEPPER` | Секрет HMAC для хеширования приглашений |
+| `UPLOAD_DIR` | Каталог закрытого файлового хранилища |
+| `MAX_UPLOAD_SIZE_MB` | Максимальный размер одного файла |
+
+В production замените `INVITATION_TOKEN_PEPPER`, используйте TLS и перенесите
+вложения в закрытое S3-совместимое хранилище с антивирусной проверкой.
+
+## Структура
+
+```text
+app/                 страницы, Server Actions и Route Handlers
+components/          оболочка кабинета и динамическая форма
+lib/                 авторизация, БД, валидация, YAML и XLSX
+modules/             восемь версионируемых YAML-модулей
+prisma/              схема, миграции и seed
+tests/               модульные тесты
+```
+
+Структура вопросов не зашита в интерфейс. Команда `npm run db:seed` проверяет
+YAML и публикует версии модулей в PostgreSQL. Назначение эксперта сохраняет
+конкретную версию, поэтому будущие изменения вопросов не повреждают старые
+ответы.
+
+Архитектурные решения подробно описаны в
+[`../docs/architecture.md`](../docs/architecture.md).

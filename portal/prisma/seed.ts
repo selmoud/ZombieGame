@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createHmac } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { loadModuleDefinitions, questionTypeToDatabase } from "../src/lib/modules";
 
 const connectionString = process.env.DATABASE_URL;
@@ -90,19 +90,30 @@ async function main() {
         publishedAt: new Date(),
       },
     });
-    await db.question.deleteMany({ where: { moduleVersionId: version.id } });
-    await db.question.createMany({
-      data: definition.questions.map((question, index) => ({
-        moduleVersionId: version.id,
-        key: question.key,
+    for (const [index, question] of definition.questions.entries()) {
+      const data = {
         type: questionTypeToDatabase(question.type),
         title: question.title,
         description: question.description,
         required: question.required,
         order: index + 1,
-        config: question.config,
-      })),
-    });
+        config: question.config as Prisma.InputJsonValue,
+      };
+      await db.question.upsert({
+        where: {
+          moduleVersionId_key: {
+            moduleVersionId: version.id,
+            key: question.key,
+          },
+        },
+        update: data,
+        create: {
+          moduleVersionId: version.id,
+          key: question.key,
+          ...data,
+        },
+      });
+    }
     const assignment = await db.moduleAssignment.upsert({
       where: { userId_moduleId: { userId: expert.id, moduleId: moduleRecord.id } },
       update: { moduleVersionId: version.id },

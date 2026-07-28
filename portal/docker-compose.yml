@@ -1,4 +1,21 @@
 services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://portal:portal@db:5432/portal?schema=public
+      APP_URL: http://localhost:3000
+      INVITATION_TOKEN_PEPPER: local-compose-pepper-change-in-production
+      UPLOAD_DIR: data/uploads
+      MAX_UPLOAD_SIZE_MB: 20
+    command: sh -c "npx prisma migrate deploy && npm run db:seed && npm start"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - portal_uploads:/app/data/uploads
+
   db:
     image: postgres:17-alpine
     environment:
@@ -17,3 +34,4 @@ services:
 
 volumes:
   portal_postgres:
+  portal_uploads:
