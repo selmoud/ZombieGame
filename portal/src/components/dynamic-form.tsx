@@ -189,14 +189,17 @@ function FileUploadField({
   value,
   disabled,
   onUpload,
+  onDelete,
 }: {
   value: unknown;
   disabled: boolean;
   onUpload: (file: File) => Promise<void>;
+  onDelete: (attachmentId: string) => Promise<void>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const uploadedFile =
     typeof value === "object" && value && "id" in value
       ? (value as { id: unknown; name?: unknown })
@@ -216,15 +219,41 @@ function FileUploadField({
   return (
     <div className="space-y-3">
       {uploadedFile && (
-        <a
-          href={`/api/attachments/${String(uploadedFile.id)}`}
-          className="flex items-center justify-between gap-3 rounded-xl bg-[#DDF8FB] px-4 py-3 text-sm font-semibold text-[#00616C]"
-        >
-          <span className="truncate">
-            Прикреплён: {String(uploadedFile.name ?? "Скачать файл")}
+        <div className="flex flex-col gap-3 rounded-xl bg-[#DDF8FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="min-w-0 truncate text-sm font-semibold text-[#00616C]">
+            Прикреплён: {String(uploadedFile.name ?? "Материал")}
           </span>
-          <span className="shrink-0">Скачать ↓</span>
-        </a>
+          <div className="flex shrink-0 items-center gap-3">
+            <a
+              href={`/api/attachments/${String(uploadedFile.id)}`}
+              className="text-sm font-bold text-[#0059C7]"
+            >
+              Скачать ↓
+            </a>
+            {!disabled && (
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Удалить файл без возможности восстановления?",
+                    )
+                  ) {
+                    return;
+                  }
+                  setDeleting(true);
+                  void onDelete(String(uploadedFile.id)).finally(() =>
+                    setDeleting(false),
+                  );
+                }}
+                className="text-sm font-bold text-[#A9004A] disabled:opacity-60"
+              >
+                {deleting ? "Удаляем…" : "Удалить"}
+              </button>
+            )}
+          </div>
+        </div>
       )}
       {!disabled && (
         <div
@@ -375,6 +404,21 @@ export function DynamicForm({
       setMessage(
         "Файл не загружен. Допустимы PDF, DOCX, XLSX, PNG и JPG до 20 МБ.",
       );
+    }
+  }
+
+  async function deleteFile(questionId: string, attachmentId: string) {
+    setSaveState("saving");
+    try {
+      const response = await fetch(`/api/attachments/${attachmentId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      setAnswer(questionId, "");
+      setMessage("");
+    } catch {
+      setSaveState("error");
+      setMessage("Не удалось удалить файл. Обновите страницу и попробуйте ещё раз.");
     }
   }
 
@@ -544,6 +588,9 @@ export function DynamicForm({
                   value={value}
                   disabled={readOnly}
                   onUpload={(file) => uploadFile(question.id, file)}
+                  onDelete={(attachmentId) =>
+                    deleteFile(question.id, attachmentId)
+                  }
                 />
               ) : (
                 <input
