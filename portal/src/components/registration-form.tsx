@@ -96,7 +96,7 @@ export function RegistrationForm({
       </fieldset>
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-          Пароль
+          Придумайте пароль
         </span>
         <input
           className="field"
