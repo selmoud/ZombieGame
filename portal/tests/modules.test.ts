@@ -40,6 +40,11 @@ describe("module definitions", () => {
       "select",
       "long_text",
     ]);
+    expect(
+      boundaries?.config.columns
+        ?.filter((column) => ["gdpShare", "employmentShare"].includes(column.key))
+        .every((column) => column.required === false),
+    ).toBe(true);
     expect(segments).toMatchObject({
       order: 2,
       title: "Сегменты отрасли",

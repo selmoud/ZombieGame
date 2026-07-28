@@ -158,8 +158,12 @@ export default async function ModulePage({
               Ответьте на вопросы раздела
             </h2>
             <p className="mt-2 max-w-2xl leading-7 text-white/90">
-              Опирайтесь на собственную экспертизу, проверяемые данные и
-              конкретные примеры. Черновик сохраняется автоматически.
+              <span className="block">
+                Опирайтесь на собственную экспертизу, проверяемые данные и
+                конкретные примеры.
+              </span>
+              <span className="block">Обязательные поля отмечены *</span>
+              <span className="block">Черновик сохраняется автоматически.</span>
             </p>
           </section>
           <div className="mt-4">
