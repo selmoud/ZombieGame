@@ -37,6 +37,7 @@ const columnSchema = z.object({
   excludeOptionValues: z.array(z.string()).optional(),
   fullWidth: z.boolean().optional(),
   lastOptionValue: z.string().optional(),
+  notBeforeColumnKey: z.string().optional(),
   optionsFromColumnKey: z.string().optional(),
   requiredWhen: conditionSchema.optional(),
   sortOptions: z.boolean().optional(),

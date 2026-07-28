@@ -235,10 +235,88 @@ questions:
           fullWidth: true
   - key: current_state
     order: 3
-    type: long_text
+    type: table
     title: Ретроспективная оценка развития отрасли в 2018–2025 годах
-    description: "Опишите ключевые этапы и динамику развития отрасли в 2018–2025 годах: изменения участников, продуктов, процессов и моделей работы. Отметьте, какие сегменты росли, сокращались или существенно менялись."
+    description: "Разделите период 2018–2025 годов на значимые этапы и для каждого укажите ключевой фактор и характер его влияния на отрасль."
     required: true
+    config:
+      minRows: 1
+      maxRows: 8
+      rowLabel: Этап
+      addRowLabel: Добавить этап
+      columns:
+        - key: startYear
+          title: Начало этапа
+          description: "Выберите первый год этапа."
+          type: select
+          required: true
+          options:
+            - { value: "2018", label: "2018" }
+            - { value: "2019", label: "2019" }
+            - { value: "2020", label: "2020" }
+            - { value: "2021", label: "2021" }
+            - { value: "2022", label: "2022" }
+            - { value: "2023", label: "2023" }
+            - { value: "2024", label: "2024" }
+            - { value: "2025", label: "2025" }
+        - key: endYear
+          title: Окончание этапа
+          description: "Выберите последний год этапа."
+          type: select
+          required: true
+          notBeforeColumnKey: startYear
+          options:
+            - { value: "2018", label: "2018" }
+            - { value: "2019", label: "2019" }
+            - { value: "2020", label: "2020" }
+            - { value: "2021", label: "2021" }
+            - { value: "2022", label: "2022" }
+            - { value: "2023", label: "2023" }
+            - { value: "2024", label: "2024" }
+            - { value: "2025", label: "2025" }
+        - key: keyFactor
+          title: Ключевой фактор, повлиявший на отрасль в указанный период
+          description: "Выберите основной фактор этапа. Если подходящего варианта нет, выберите «Другое»."
+          type: suggest
+          required: true
+          allowCustom: false
+          fullWidth: true
+          lastOptionValue: Другое
+          sortOptions: true
+          options:
+            - { value: Пандемия COVID-19 и связанные ограничения, label: Пандемия COVID-19 и связанные ограничения }
+            - { value: "Геополитические изменения, СВО и санкционное давление", label: "Геополитические изменения, СВО и санкционное давление" }
+            - { value: Ускорение цифровизации и изменение поведения пользователей, label: Ускорение цифровизации и изменение поведения пользователей }
+            - { value: Развитие российских цифровых платформ и импортозамещение, label: Развитие российских цифровых платформ и импортозамещение }
+            - { value: Изменения государственного регулирования, label: Изменения государственного регулирования }
+            - { value: "Технологические изменения: ИИ, алгоритмы и новые форматы", label: "Технологические изменения: ИИ, алгоритмы и новые форматы" }
+            - { value: Изменение рекламного рынка и моделей монетизации, label: Изменение рекламного рынка и моделей монетизации }
+            - { value: Изменение доходов населения и потребительского спроса, label: Изменение доходов населения и потребительского спроса }
+            - { value: "Консолидация рынка и сделки M&A", label: "Консолидация рынка и сделки M&A" }
+            - { value: Рост стоимости производства и инфраструктуры, label: Рост стоимости производства и инфраструктуры }
+            - { value: Другое, label: Другое }
+        - key: customFactor
+          title: Название фактора
+          description: "Кратко сформулируйте фактор, которого нет в списке."
+          type: short_text
+          fullWidth: true
+          visibleWhen: { columnKey: keyFactor, equals: Другое }
+          requiredWhen: { columnKey: keyFactor, equals: Другое }
+        - key: influence
+          title: Оценка влияния фактора на отрасль
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Негативное влияние, label: Негативное влияние }
+            - { value: Нейтральное влияние, label: Нейтральное влияние }
+            - { value: Позитивное влияние, label: Позитивное влияние }
+        - key: influenceDescription
+          title: Суть влияния
+          description: "Своими словами опишите, что изменилось в отрасли под влиянием выбранного фактора."
+          type: long_text
+          required: true
+          fullWidth: true
   - key: key_metrics
     order: 4
     type: table

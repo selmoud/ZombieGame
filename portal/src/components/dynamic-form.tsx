@@ -16,6 +16,7 @@ type Column = {
   excludeOptionValues?: string[];
   fullWidth?: boolean;
   lastOptionValue?: string;
+  notBeforeColumnKey?: string;
   optionsFromColumnKey?: string;
   requiredWhen?: { columnKey: string; equals: string };
   sortOptions?: boolean;
@@ -614,15 +615,27 @@ function TableField({
                 (column.requiredWhen &&
                   row[column.requiredWhen.columnKey] ===
                     column.requiredWhen.equals);
+              const comparisonValue = column.notBeforeColumnKey
+                ? row[column.notBeforeColumnKey]
+                : undefined;
+              const hasPeriodError =
+                column.notBeforeColumnKey !== undefined &&
+                row[column.key] !== undefined &&
+                row[column.key] !== "" &&
+                comparisonValue !== undefined &&
+                comparisonValue !== "" &&
+                Number(row[column.key]) < Number(comparisonValue);
               return (
               <div
                 key={column.key}
-                className={
-                  column.fullWidth ||
-                  ["long_text", "multi_suggest"].includes(column.type)
+                className={`${column.fullWidth ||
+                    ["long_text", "multi_suggest"].includes(column.type)
                     ? "lg:col-span-2"
+                    : ""} ${
+                  hasPeriodError
+                    ? "[&_.field]:border-[#FF2F86] [&_.field]:ring-2 [&_.field]:ring-[#FFE0ED]"
                     : ""
-                }
+                }`}
               >
                 <span className="mb-1.5 block text-xs font-medium text-neutral-600">
                   {column.title}
@@ -642,6 +655,11 @@ function TableField({
                     updateRow(rowIndex, column.key, cellValue)
                   }
                 />
+                {hasPeriodError && (
+                  <p className="mt-1.5 text-xs font-medium text-[#C80058]">
+                    Год окончания не может быть раньше года начала
+                  </p>
+                )}
               </div>
               );
             })}

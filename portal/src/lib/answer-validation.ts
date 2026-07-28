@@ -19,6 +19,7 @@ type Config = {
     required?: boolean;
     min?: number;
     max?: number;
+    notBeforeColumnKey?: string;
     requiredWhen?: { columnKey: string; equals: string };
     visibleWhen?: { columnKey: string; equals: string };
   }>;
@@ -128,6 +129,24 @@ export function validateAnswers(
       if (invalidNumber) {
         errors[question.id] =
           "Проверьте числовые значения и допустимый диапазон";
+        continue;
+      }
+      const invalidPeriod = value.some((row) =>
+        config.columns?.some((column) => {
+          if (!column.notBeforeColumnKey) return false;
+          const typedRow = row as Record<string, unknown>;
+          const currentValue = typedRow[column.key];
+          const comparisonValue = typedRow[column.notBeforeColumnKey];
+          return (
+            !isEmpty(currentValue) &&
+            !isEmpty(comparisonValue) &&
+            Number(currentValue) < Number(comparisonValue)
+          );
+        }),
+      );
+      if (invalidPeriod) {
+        errors[question.id] =
+          "Год окончания этапа не может быть раньше года начала";
       }
     }
   }

@@ -76,6 +76,7 @@ export default async function ModulePage({
         excludeOptionValues?: string[];
         fullWidth?: boolean;
         lastOptionValue?: string;
+        notBeforeColumnKey?: string;
         optionsFromColumnKey?: string;
         requiredWhen?: { columnKey: string; equals: string };
         sortOptions?: boolean;

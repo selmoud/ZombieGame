@@ -61,6 +61,16 @@ describe("module definitions", () => {
       title: "Материалы к экспертной оценке отрасли и сегментов",
       required: false,
     });
+    expect(
+      industry.questions.find((question) => question.key === "current_state"),
+    ).toMatchObject({
+      order: 3,
+      type: "table",
+      config: {
+        minRows: 1,
+        addRowLabel: "Добавить этап",
+      },
+    });
   });
 
   it("supports searchable and linked table fields", async () => {

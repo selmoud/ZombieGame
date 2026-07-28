@@ -124,4 +124,41 @@ describe("validateAnswers", () => {
       }),
     ).toEqual({});
   });
+
+  it("checks chronological boundaries inside table rows", () => {
+    const retrospectiveQuestion = {
+      id: "retrospective",
+      key: "retrospective",
+      type: "TABLE",
+      title: "Ретроспективная оценка",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          { key: "startYear", title: "Начало", type: "select", required: true },
+          {
+            key: "endYear",
+            title: "Окончание",
+            type: "select",
+            required: true,
+            notBeforeColumnKey: "startYear",
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([retrospectiveQuestion], {
+        retrospective: [{ startYear: "2022", endYear: "2020" }],
+      }),
+    ).toEqual({
+      retrospective:
+        "Год окончания этапа не может быть раньше года начала",
+    });
+    expect(
+      validateAnswers([retrospectiveQuestion], {
+        retrospective: [{ startYear: "2020", endYear: "2022" }],
+      }),
+    ).toEqual({});
+  });
 });
