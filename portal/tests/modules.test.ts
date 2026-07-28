@@ -138,4 +138,21 @@ describe("module definitions", () => {
       sourceColumnKey: "name",
     });
   });
+
+  it("links transaction participants and scenarios to industry segments", async () => {
+    const modules = await loadModuleDefinitions();
+    const transactions = modules.find((module) => module.slug === "transactions");
+
+    for (const questionKey of ["participants", "macrotransactions"]) {
+      const segmentColumn = transactions?.questions
+        .find((question) => question.key === questionKey)
+        ?.config.columns?.find((column) => column.key === "segments");
+
+      expect(segmentColumn).toMatchObject({
+        type: "multi_suggest",
+        contextKey: "industrySegments",
+        allowCustom: false,
+      });
+    }
+  });
 });

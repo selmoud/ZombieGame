@@ -12,6 +12,7 @@ type Column = {
   required?: boolean;
   options?: Option[];
   allowCustom?: boolean;
+  contextKey?: string;
   defaultValue?: string;
   excludeColumnKey?: string;
   excludeOptionValues?: string[];
@@ -439,6 +440,7 @@ function TableField({
   question,
   questions,
   answers,
+  contextualOptions,
   value,
   disabled,
   onChange,
@@ -446,6 +448,7 @@ function TableField({
   question: Question;
   questions: Question[];
   answers: Record<string, unknown>;
+  contextualOptions: Record<string, Option[]>;
   value: unknown;
   disabled: boolean;
   onChange: (value: unknown) => void;
@@ -491,7 +494,13 @@ function TableField({
     const optionSource =
       columns.find((item) => item.key === column.optionsFromColumnKey) ??
       column;
-    const staticOptions = column.options ?? optionSource.options ?? [];
+    const contextOptions = column.contextKey
+      ? contextualOptions[column.contextKey] ?? []
+      : [];
+    const staticOptions = [
+      ...(column.options ?? optionSource.options ?? []),
+      ...contextOptions,
+    ];
     const sourceQuestionKey =
       column.sourceQuestionKey ?? optionSource.sourceQuestionKey;
     const sourceColumnKey =
@@ -911,12 +920,14 @@ export function DynamicForm({
   initialAnswers,
   initialRevision,
   initialStatus,
+  contextualOptions = {},
 }: {
   assignmentId: string;
   questions: Question[];
   initialAnswers: Record<string, unknown>;
   initialRevision: number;
   initialStatus: string;
+  contextualOptions?: Record<string, Option[]>;
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState(initialAnswers);
@@ -1144,6 +1155,7 @@ export function DynamicForm({
                   question={question}
                   questions={questions}
                   answers={answers}
+                  contextualOptions={contextualOptions}
                   value={value}
                   disabled={readOnly}
                   onChange={(next) => setAnswer(question.id, next)}

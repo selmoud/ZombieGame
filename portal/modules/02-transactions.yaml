@@ -2,40 +2,51 @@ slug: transactions
 version: 1
 order: 2
 title: Модель транзакций
-description: Участники, сценарии и потенциал платформизации взаимодействий.
+description: Участники, сценарии взаимодействия и транзакционные издержки.
 theory: |
-  Цифровая платформа создаёт ценность, организуя транзакции между двумя или
-  более взаимозависимыми группами пользователей. Транзакция — это совокупность
-  действий, с помощью которых стороны обмениваются товарами, услугами, данными,
-  денежными средствами или другими ценностями.
+  В разделе 1 вы определили границы отрасли и её рыночные сегменты. Теперь для
+  этих сегментов нужно описать, **кто с кем взаимодействует**, **какую ценность
+  передаёт** и **из каких действий складывается взаимодействие**.
 
-  Сначала выделите устойчивые группы участников: **стороны спроса и
-  предложения**, **посредников** и **государство**. Затем определите
-  макротранзакции — устойчивые отраслевые сценарии взаимодействия, например
-  заказ и получение услуги.
+  Транзакция — совокупность действий между сторонами спроса и предложения,
+  направленных на обмен контентом, информацией, данными, услугами, денежными
+  средствами, правами или другой ценностью.
 
-  Каждую макротранзакцию разложите на микротранзакции: поиск информации,
-  идентификацию, проверку требований, согласование решения, оформление
-  документов, расчёты и контроль исполнения. Объединение однотипных
-  микротранзакций из разных сценариев образует матрицу транзакций отрасли.
+  Сначала выделите устойчивые группы участников: стороны спроса и предложения,
+  посредников и государство. Затем опишите крупные устойчивые сценарии
+  взаимодействия — **макротранзакции**. Например, создание и распространение
+  видеоконтента или размещение и показ рекламы.
 
-  Для сопоставимости оценивайте микротранзакции по трём параметрам:
-  **массовость**, **повторяемость** и **стандартизированность**. Чем выше эти
-  показатели, тем больше потенциал унификации, цифровизации и перевода
-  взаимодействия на платформу.
+  После этого разложите каждый сценарий на последовательность конкретных
+  действий — **микротранзакций**. К ним относятся поиск информации,
+  идентификация, проверка требований, согласование, оформление документов,
+  расчёты и контроль исполнения.
 
-  Отдельно выявите наиболее ресурсоёмкие операции и источники транзакционных
-  издержек: повторный ввод данных, поиск контрагента, ручные проверки,
-  согласования, оформление и контроль.
+  Для каждой микротранзакции оцените массовость, повторяемость,
+  стандартизированность и издержки. Это позволит определить действия, которые
+  в первую очередь требуют унификации, цифровизации или переноса на платформы.
 questions:
   - key: participants
+    order: 1
     type: table
-    title: Участники рынка
-    description: "Одна строка — одна устойчивая группа участников и её роль. Пример: «Сторона спроса — зрители — выбирают и потребляют контент»."
+    title: Участники отрасли
+    description: "Добавьте устойчивые группы участников. Не перечисляйте отдельные компании: например, «авторы контента», «зрители», «рекламодатели»."
     required: true
     config:
-      minRows: 1
+      minRows: 2
+      maxRows: 20
+      rowLabel: Участник
+      addRowLabel: Добавить участника
       columns:
+        - key: segments
+          title: Сегменты
+          description: "Выберите один или несколько сегментов из принятого раздела 1."
+          type: multi_suggest
+          contextKey: industrySegments
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
         - key: kind
           title: Тип участника
           type: select
@@ -45,42 +56,115 @@ questions:
             - { value: supply, label: Сторона предложения }
             - { value: intermediary, label: Посредник }
             - { value: government, label: Государство }
-        - { key: name, title: Название, type: short_text, required: true }
-        - { key: role, title: Роль, type: long_text, required: true }
+        - key: name
+          title: Группа участников
+          description: "Например: зрители, авторы контента, рекламодатели, правообладатели."
+          type: short_text
+          required: true
+        - key: role
+          title: Роль в сегменте
+          description: "Кратко укажите, что участник делает и какую ценность предоставляет или получает."
+          type: long_text
+          required: true
+          fullWidth: true
+
   - key: macrotransactions
+    order: 2
     type: table
-    title: Макротранзакции
-    description: "Опишите крупные устойчивые сценарии взаимодействия. Пример: «Создание и распространение видеоконтента: автор размещает произведение, платформа доставляет его зрителю»."
+    title: Сценарии взаимодействия (макротранзакции)
+    description: "Опишите крупные устойчивые сценарии. Один сценарий — одно завершённое взаимодействие с понятным результатом."
     required: true
     config:
       minRows: 1
+      maxRows: 15
+      rowLabel: Сценарий
+      addRowLabel: Добавить сценарий
       columns:
-        - { key: name, title: Сценарий, type: short_text, required: true }
-        - { key: description, title: Описание, type: long_text, required: true }
-        - key: participants
-          title: Участники
+        - key: segments
+          title: Сегменты
           type: multi_suggest
+          contextKey: industrySegments
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: name
+          title: Название сценария
+          description: "Сформулируйте как действие. Например: «Создание и распространение видеоконтента»."
+          type: short_text
+          required: true
+          fullWidth: true
+        - key: initiator
+          title: Инициатор
+          type: suggest
+          allowCustom: false
           required: true
           sourceQuestionKey: participants
           sourceColumnKey: name
+        - key: recipient
+          title: Получатель
+          type: suggest
+          allowCustom: false
+          required: true
+          sourceQuestionKey: participants
+          sourceColumnKey: name
+          excludeColumnKey: initiator
+        - key: value
+          title: Основной предмет обмена
+          type: select
+          required: true
+          options:
+            - { value: Контент, label: Контент }
+            - { value: Информация и данные, label: Информация и данные }
+            - { value: Услуга, label: Услуга }
+            - { value: Денежные средства, label: Денежные средства }
+            - { value: Права, label: Права }
+            - { value: Доступ, label: Доступ }
+            - { value: Рекламный инвентарь, label: Рекламный инвентарь }
+            - { value: Другое, label: Другое }
+        - key: transactionType
+          title: Тип транзакции
+          type: select
+          required: true
+          options:
+            - { value: Сделка, label: Сделка }
+            - { value: Управленческая, label: Управленческая }
+            - { value: Рационирующая, label: Рационирующая }
+        - key: description
+          title: Суть и результат взаимодействия
+          description: "Опишите, что происходит между участниками и чем завершается сценарий."
+          type: long_text
+          required: true
+          fullWidth: true
+
   - key: microtransactions
+    order: 3
     type: table
-    title: Микротранзакции
-    description: "Разложите каждый крупный сценарий на отдельные действия и оцените их. Пример: регистрация автора, проверка прав, загрузка контента, рекомендация зрителю и выплата вознаграждения."
+    title: Действия и транзакционные издержки
+    description: "Разложите сценарии на последовательные действия. Одна карточка — одно конкретное действие. Перетащите карточки, чтобы установить порядок."
     required: true
     config:
-      minRows: 1
+      minRows: 2
+      maxRows: 40
+      sortableRows: true
+      rowLabel: Действие
+      addRowLabel: Добавить действие
       columns:
         - key: macro
-          title: Макротранзакция
+          title: Сценарий
           type: suggest
+          allowCustom: false
           required: true
           sourceQuestionKey: macrotransactions
           sourceColumnKey: name
+          fullWidth: true
         - key: name
-          title: Микротранзакция
+          title: Действие (микротранзакция)
+          description: "Выберите типовое действие или впишите более точное отраслевое название."
           type: suggest
+          allowCustom: true
           required: true
+          fullWidth: true
           options:
             - { value: Поиск и сопоставление информации, label: Поиск и сопоставление информации }
             - { value: Агрегация и структурирование данных, label: Агрегация и структурирование данных }
@@ -91,12 +175,90 @@ questions:
             - { value: Оформление документов, label: Оформление документов }
             - { value: Проведение расчётов, label: Проведение расчётов }
             - { value: Мониторинг исполнения, label: Мониторинг исполнения }
-        - { key: frequency, title: Массовость, type: scale, min: 1, max: 4 }
-        - { key: repeatability, title: Повторяемость, type: scale, min: 1, max: 5 }
-        - { key: standardization, title: Стандартизированность, type: scale, min: 1, max: 5 }
-        - { key: potential, title: Возможность платформизации, type: long_text }
-  - key: target_2036
+        - key: actor
+          title: Кто выполняет
+          type: suggest
+          allowCustom: false
+          required: true
+          sourceQuestionKey: participants
+          sourceColumnKey: name
+        - key: result
+          title: Что происходит и какой результат
+          type: long_text
+          required: true
+          fullWidth: true
+        - key: frequency
+          title: Массовость
+          type: select
+          required: true
+          options:
+            - { value: Очень низкая, label: Очень низкая }
+            - { value: Низкая, label: Низкая }
+            - { value: Средняя, label: Средняя }
+            - { value: Высокая, label: Высокая }
+            - { value: Очень высокая, label: Очень высокая }
+        - key: repeatability
+          title: Повторяемость
+          type: select
+          required: true
+          options:
+            - { value: Очень низкая, label: Очень низкая }
+            - { value: Низкая, label: Низкая }
+            - { value: Средняя, label: Средняя }
+            - { value: Высокая, label: Высокая }
+            - { value: Очень высокая, label: Очень высокая }
+        - key: standardization
+          title: Стандартизированность
+          type: select
+          required: true
+          options:
+            - { value: Очень низкая, label: Очень низкая }
+            - { value: Низкая, label: Низкая }
+            - { value: Средняя, label: Средняя }
+            - { value: Высокая, label: Высокая }
+            - { value: Очень высокая, label: Очень высокая }
+        - key: resourceIntensity
+          title: Ресурсоёмкость
+          type: select
+          required: true
+          options:
+            - { value: Очень низкая, label: Очень низкая }
+            - { value: Низкая, label: Низкая }
+            - { value: Средняя, label: Средняя }
+            - { value: Высокая, label: Высокая }
+            - { value: Очень высокая, label: Очень высокая }
+        - key: costSources
+          title: Основные источники издержек
+          type: multi_suggest
+          allowCustom: true
+          required: true
+          fullWidth: true
+          options:
+            - { value: Поиск информации и контрагента, label: Поиск информации и контрагента }
+            - { value: Повторный ввод данных, label: Повторный ввод данных }
+            - { value: Ручные проверки, label: Ручные проверки }
+            - { value: Переговоры и согласования, label: Переговоры и согласования }
+            - { value: Оформление документов, label: Оформление документов }
+            - { value: Проведение расчётов, label: Проведение расчётов }
+            - { value: Контроль исполнения, label: Контроль исполнения }
+            - { value: Ошибки и дублирование, label: Ошибки и дублирование }
+        - key: rationale
+          title: Обоснование оценки
+          description: "Кратко поясните, на каких данных, наблюдениях или примерах основана оценка."
+          type: long_text
+          required: true
+          fullWidth: true
+
+  - key: priorities
+    order: 4
     type: long_text
-    title: Какой должна стать модель транзакций к 2036 году?
-    description: "Опишите, какие операции должны быть стандартизированы, автоматизированы или перенесены на платформы и насколько должны сократиться издержки."
+    title: Приоритетные действия для цифровизации и платформизации
+    description: "Назовите микротранзакции, которые в первую очередь следует унифицировать, цифровизировать или перенести на платформы, и кратко объясните почему."
     required: true
+
+  - key: transaction_materials
+    order: 5
+    type: file
+    title: Подтверждающие материалы
+    description: "Необязательно. Приложите схему, исследование, расчёт или другой материал, подтверждающий описание транзакций и издержек."
+    config: {}

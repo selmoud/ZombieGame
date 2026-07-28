@@ -54,6 +54,57 @@ export default async function ModulePage({
       answer.value,
     ]),
   );
+  const previousAssignment =
+    assignment.module.order === 2
+      ? await db.moduleAssignment.findFirst({
+          where: {
+            userId: user.id,
+            module: { order: 1 },
+            submission: { status: "ACCEPTED" },
+          },
+          include: {
+            submission: {
+              include: {
+                answers: { include: { question: true } },
+              },
+            },
+          },
+        })
+      : null;
+  const previousAnswers = Object.fromEntries(
+    previousAssignment?.submission?.answers.map((answer) => [
+      answer.question.key,
+      answer.value,
+    ]) ?? [],
+  );
+  const boundaryRows = Array.isArray(previousAnswers.analysis_object)
+    ? (previousAnswers.analysis_object as Array<Record<string, unknown>>)
+    : [];
+  const segmentRows = Array.isArray(previousAnswers.industry_boundaries)
+    ? (previousAnswers.industry_boundaries as Array<Record<string, unknown>>)
+    : [];
+  const industry =
+    String(boundaryRows[0]?.industry ?? "") ||
+    "Коммуникации, медиа и развлечения";
+  const adjacentIndustries = Array.isArray(boundaryRows[0]?.adjacentIndustries)
+    ? boundaryRows[0].adjacentIndustries.map(String)
+    : [];
+  const segments = segmentRows
+    .map((row) => ({
+      name:
+        String(row.segment ?? "") === "Другое"
+          ? String(row.customSegment ?? "")
+          : String(row.segment ?? ""),
+      userActivityShare: String(row.userActivityShare ?? ""),
+      economicShare: String(row.economicShare ?? ""),
+    }))
+    .filter((segment) => segment.name);
+  const contextualOptions = {
+    industrySegments: segments.map((segment) => ({
+      value: segment.name,
+      label: segment.name,
+    })),
+  };
   const questions = assignment.moduleVersion.questions
     .filter((question) => !isQuestionHidden(question.config))
     .map((question) => ({
@@ -82,6 +133,7 @@ export default async function ModulePage({
         required?: boolean;
         options?: Array<{ value: string; label: string }>;
         allowCustom?: boolean;
+        contextKey?: string;
         defaultValue?: string;
         excludeColumnKey?: string;
         excludeOptionValues?: string[];
@@ -169,6 +221,57 @@ export default async function ModulePage({
               <ReactMarkdown>{assignment.moduleVersion.theoryMarkdown}</ReactMarkdown>
             </div>
           </section>
+          {previousAssignment && (
+            <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                Основа из раздела 1
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-black">
+                Принятые границы и сегменты
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-500">
+                Эти данные уже согласованы модератором и используются в полях
+                раздела 2. Повторно вводить их не нужно.
+              </p>
+              <div className="mt-5 rounded-xl bg-[#E0EEFF] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Отрасль
+                </p>
+                <p className="mt-1 font-semibold text-black">{industry}</p>
+              </div>
+              {segments.length > 0 && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {segments.map((segment) => (
+                    <div
+                      key={segment.name}
+                      className="rounded-xl border border-neutral-200 bg-white p-4"
+                    >
+                      <p className="font-semibold text-black">{segment.name}</p>
+                      <div className="mt-2 space-y-1 text-xs leading-5 text-neutral-500">
+                        {segment.userActivityShare && (
+                          <p>
+                            Пользовательская активность:{" "}
+                            {segment.userActivityShare}
+                          </p>
+                        )}
+                        {segment.economicShare && (
+                          <p>Экономическая доля: {segment.economicShare}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {adjacentIndustries.length > 0 && (
+                <p className="mt-4 text-sm leading-6 text-neutral-500">
+                  <span className="font-semibold text-black">
+                    Смежные отрасли:
+                  </span>{" "}
+                  {adjacentIndustries.join(", ")}
+                </p>
+              )}
+            </section>
+          )}
           <section className="mt-5 rounded-2xl bg-[#0D78F8] p-6 text-white sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-wider text-white/80">
               Практическая часть
@@ -192,6 +295,7 @@ export default async function ModulePage({
               initialAnswers={answers}
               initialRevision={assignment.submission.revision}
               initialStatus={status}
+              contextualOptions={contextualOptions}
             />
           </div>
         </div>

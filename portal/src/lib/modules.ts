@@ -32,6 +32,7 @@ const columnSchema = z.object({
   required: z.boolean().optional().default(false),
   options: z.array(optionSchema).optional(),
   allowCustom: z.boolean().optional(),
+  contextKey: z.string().optional(),
   defaultValue: z.string().optional(),
   excludeColumnKey: z.string().optional(),
   excludeOptionValues: z.array(z.string()).optional(),
