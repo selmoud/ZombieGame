@@ -155,4 +155,29 @@ describe("module definitions", () => {
       });
     }
   });
+
+  it("reuses expert-added participant groups after moderation", async () => {
+    const modules = await loadModuleDefinitions();
+    const participants = modules
+      .find((module) => module.slug === "transactions")
+      ?.questions.find((question) => question.key === "participants");
+    const groupColumn = participants?.config.columns?.find(
+      (column) => column.key === "name",
+    );
+    const roleColumn = participants?.config.columns?.find(
+      (column) => column.key === "kind",
+    );
+
+    expect(groupColumn).toMatchObject({
+      contextKey: "approvedParticipantGroups",
+      sourceQuestionKey: "participants",
+      sourceColumnKey: "name",
+      sourceLabelSuffix: "(добавлено экспертом)",
+      fullWidth: true,
+    });
+    expect(roleColumn).toMatchObject({
+      title: "Роль участника",
+      fullWidth: true,
+    });
+  });
 });

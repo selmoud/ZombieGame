@@ -53,7 +53,12 @@ questions:
           type: suggest
           allowCustom: true
           required: true
+          fullWidth: true
           sortOptions: true
+          contextKey: approvedParticipantGroups
+          sourceQuestionKey: participants
+          sourceColumnKey: name
+          sourceLabelSuffix: (добавлено экспертом)
           options:
             - { value: Авторы и создатели контента, label: Авторы и создатели контента }
             - { value: Аудитория и пользователи, label: Аудитория и пользователи }
@@ -73,6 +78,7 @@ questions:
           title: Роль участника
           type: select
           required: true
+          fullWidth: true
           options:
             - { value: demand, label: Сторона спроса }
             - { value: supply, label: Сторона предложения }

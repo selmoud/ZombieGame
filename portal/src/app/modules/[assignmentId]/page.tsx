@@ -99,10 +99,42 @@ export default async function ModulePage({
       economicShare: String(row.economicShare ?? ""),
     }))
     .filter((segment) => segment.name);
+  const acceptedParticipantAnswers =
+    assignment.module.order === 2
+      ? await db.answer.findMany({
+          where: {
+            question: {
+              key: "participants",
+              moduleVersion: { module: { order: 2 } },
+            },
+            submission: { status: "ACCEPTED" },
+          },
+          select: { value: true },
+        })
+      : [];
+  const approvedParticipantGroups = Array.from(
+    new Set(
+      acceptedParticipantAnswers.flatMap((answer) =>
+        Array.isArray(answer.value)
+          ? answer.value
+              .map((row) =>
+                typeof row === "object" && row && "name" in row
+                  ? String(row.name ?? "").trim()
+                  : "",
+              )
+              .filter(Boolean)
+          : [],
+      ),
+    ),
+  );
   const contextualOptions = {
     industrySegments: segments.map((segment) => ({
       value: segment.name,
       label: segment.name,
+    })),
+    approvedParticipantGroups: approvedParticipantGroups.map((group) => ({
+      value: group,
+      label: `${group} (добавлено экспертом)`,
     })),
   };
   const questions = assignment.moduleVersion.questions
