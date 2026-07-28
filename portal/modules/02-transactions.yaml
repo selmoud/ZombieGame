@@ -223,18 +223,9 @@ questions:
           required: true
           sourceQuestionKey: participants
           sourceColumnKey: name
-        - key: counterparty
-          title: С кем взаимодействует
-          description: "Выбирается из перечня групп участников в пункте 1."
-          type: suggest
-          allowCustom: false
-          required: true
-          sourceQuestionKey: participants
-          sourceColumnKey: name
-          excludeColumnKey: actor
         - key: result
           title: Описание и результат действия
-          description: "Кратко опишите действие и укажите, какой результат получает следующая сторона цепочки."
+          description: "Кратко опишите, что происходит и какой результат получается после выполнения действия."
           type: long_text
           required: true
           fullWidth: true
