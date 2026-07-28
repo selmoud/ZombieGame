@@ -119,6 +119,7 @@ questions:
           fullWidth: true
         - key: initiator
           title: Инициатор
+          description: "Выбирается из перечня описанных групп участников выше."
           type: suggest
           allowCustom: false
           required: true
@@ -126,6 +127,7 @@ questions:
           sourceColumnKey: name
         - key: recipient
           title: Получатель
+          description: "Выбирается из перечня описанных групп участников выше."
           type: suggest
           allowCustom: false
           required: true
