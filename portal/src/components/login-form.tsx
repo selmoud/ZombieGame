@@ -25,7 +25,7 @@ export function LoginForm({ admin }: { admin: boolean }) {
           className="field"
           name="fullName"
           autoComplete="username"
-          defaultValue={admin ? "Анна Смирнова" : ""}
+          defaultValue={admin ? "Тимофей Мальцев" : ""}
           required
         />
       </label>

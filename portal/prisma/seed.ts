@@ -19,7 +19,8 @@ function tokenHash(token: string) {
 }
 
 async function main() {
-  const adminPasswordHash = await hashPassword("Admin2036!");
+  const timofeyPasswordHash = await hashPassword("Admin007");
+  const vitaliyPasswordHash = await hashPassword("Admin008");
   const company = await db.company.upsert({
     where: { name: "АО «Медиаплатформа»" },
     update: {},
@@ -30,18 +31,53 @@ async function main() {
     update: {},
     create: { name: "Медиа и контент" },
   });
+  const vkCompany = await db.company.upsert({
+    where: { name: "VK" },
+    update: {},
+    create: { name: "VK" },
+  });
 
   const admin = await db.user.upsert({
     where: { id: "00000000-0000-4000-8000-000000000001" },
-    update: { isActive: true, passwordHash: adminPasswordHash },
-    create: {
-      id: "00000000-0000-4000-8000-000000000001",
-      fullName: "Анна Смирнова",
+    update: {
+      fullName: "Тимофей Мальцев",
       position: "Администратор рабочей группы",
       role: "ADMIN",
       isActive: true,
-      passwordHash: adminPasswordHash,
-      companyId: company.id,
+      passwordHash: timofeyPasswordHash,
+      companyId: vkCompany.id,
+      subgroupId: subgroup.id,
+    },
+    create: {
+      id: "00000000-0000-4000-8000-000000000001",
+      fullName: "Тимофей Мальцев",
+      position: "Администратор рабочей группы",
+      role: "ADMIN",
+      isActive: true,
+      passwordHash: timofeyPasswordHash,
+      companyId: vkCompany.id,
+      subgroupId: subgroup.id,
+    },
+  });
+  await db.user.upsert({
+    where: { id: "00000000-0000-4000-8000-000000000003" },
+    update: {
+      fullName: "Киселев Виталий",
+      position: "Администратор рабочей группы",
+      role: "ADMIN",
+      isActive: true,
+      passwordHash: vitaliyPasswordHash,
+      companyId: vkCompany.id,
+      subgroupId: subgroup.id,
+    },
+    create: {
+      id: "00000000-0000-4000-8000-000000000003",
+      fullName: "Киселев Виталий",
+      position: "Администратор рабочей группы",
+      role: "ADMIN",
+      isActive: true,
+      passwordHash: vitaliyPasswordHash,
+      companyId: vkCompany.id,
       subgroupId: subgroup.id,
     },
   });
@@ -157,7 +193,8 @@ async function main() {
 
   console.log("Seed complete");
   console.log("Expert: http://localhost:3000/invite/demo-expert");
-  console.log("Admin:  http://localhost:3000/invite/demo-admin");
+  console.log("Admin invitation: http://localhost:3000/invite/demo-admin");
+  console.log("Admins: Тимофей Мальцев / Admin007; Киселев Виталий / Admin008");
 }
 
 main()
