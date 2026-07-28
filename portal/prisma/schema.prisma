@@ -50,11 +50,12 @@ model Company {
 }
 
 model Subgroup {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  users     User[]
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                   String                @id @default(uuid()) @db.Uuid
+  name                 String                @unique
+  users                User[]
+  registrationRequests RegistrationRequest[]
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
 
   @@map("subgroups")
 }
@@ -94,6 +95,8 @@ model RegistrationRequest {
   fullName     String             @map("full_name")
   companyName  String             @map("company_name")
   passwordHash String             @map("password_hash")
+  subgroupId   String?            @map("subgroup_id") @db.Uuid
+  subgroup     Subgroup?          @relation(fields: [subgroupId], references: [id], onDelete: SetNull)
   status       RegistrationStatus @default(PENDING)
   reviewedById String?            @map("reviewed_by_id") @db.Uuid
   reviewedBy   User?              @relation("RegistrationReviewer", fields: [reviewedById], references: [id])
@@ -102,6 +105,7 @@ model RegistrationRequest {
   updatedAt    DateTime           @updatedAt @map("updated_at")
 
   @@index([status, createdAt])
+  @@index([subgroupId])
   @@map("registration_requests")
 }
 

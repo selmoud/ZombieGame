@@ -31,8 +31,8 @@ export default async function DashboardPage() {
           <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
             Личный кабинет
           </p>
-          <h1 className="mt-2 text-4xl text-[#000000]">
-            Добрый день, {user.fullName.split(" ")[0]}
+          <h1 className="mt-2 max-w-3xl text-4xl leading-tight text-[#000000]">
+            Добрый день, {user.fullName}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-neutral-600">
             Заполните назначенные разделы. Черновики можно сохранять и

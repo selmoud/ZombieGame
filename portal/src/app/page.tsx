@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 import { RegistrationForm } from "@/components/registration-form";
 import { getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export default async function Home() {
   const user = await getCurrentUser();
   if (user) redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
+  const subgroups = await db.subgroup.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden px-5 py-12">
@@ -36,7 +41,7 @@ export default async function Home() {
               войти и приступить к работе.
             </p>
             <div className="mt-7">
-              <RegistrationForm />
+              <RegistrationForm subgroups={subgroups} />
             </div>
           </div>
         </div>

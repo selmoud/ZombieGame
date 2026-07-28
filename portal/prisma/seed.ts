@@ -27,9 +27,9 @@ async function main() {
     create: { name: "АО «Медиаплатформа»" },
   });
   const subgroup = await db.subgroup.upsert({
-    where: { name: "Медиа и контент" },
+    where: { name: "Коммуникации" },
     update: {},
-    create: { name: "Медиа и контент" },
+    create: { name: "Коммуникации" },
   });
   const vkCompany = await db.company.upsert({
     where: { name: "VK" },

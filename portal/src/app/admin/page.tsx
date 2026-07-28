@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { CreateExpertForm } from "@/components/create-expert-form";
 import { ExpertCard } from "@/components/expert-card";
+import { SubgroupManager } from "@/components/subgroup-manager";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { approveRegistration, rejectRegistration } from "./actions";
@@ -13,7 +14,7 @@ export default async function AdminPage({
 }) {
   const admin = await requireRole("ADMIN");
   const query = await searchParams;
-  const [users, companies, registrations] = await Promise.all([
+  const [users, companies, registrations, subgroups] = await Promise.all([
     db.user.findMany({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
@@ -28,7 +29,16 @@ export default async function AdminPage({
     }),
     db.registrationRequest.findMany({
       where: { status: "PENDING" },
+      include: { subgroup: true },
       orderBy: { createdAt: "asc" },
+    }),
+    db.subgroup.findMany({
+      include: {
+        _count: {
+          select: { users: true, registrationRequests: true },
+        },
+      },
+      orderBy: { name: "asc" },
     }),
   ]);
   const completedExperts = users.filter(
@@ -111,7 +121,7 @@ export default async function AdminPage({
           {registrations.map((request) => (
             <div
               key={request.id}
-              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_auto]"
+              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_1fr_auto]"
             >
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
@@ -127,6 +137,14 @@ export default async function AdminPage({
                 </p>
                 <p className="mt-1 font-medium text-neutral-700">
                   {request.companyName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-neutral-400">
+                  Подгруппа
+                </p>
+                <p className="mt-1 font-medium text-neutral-700">
+                  {request.subgroup?.name ?? "Коммуникации"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -152,6 +170,11 @@ export default async function AdminPage({
           )}
         </div>
       </section>
+
+      <SubgroupManager
+        subgroups={subgroups}
+        status={typeof query.subgroup === "string" ? query.subgroup : undefined}
+      />
 
       <section className="paper mt-7 overflow-hidden rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-6 py-5">
@@ -211,7 +234,9 @@ export default async function AdminPage({
             регистрации. Все восемь разделов будут назначены автоматически.
           </p>
           <div className="mt-5">
-            <CreateExpertForm />
+            <CreateExpertForm
+              subgroups={subgroups.map(({ id, name }) => ({ id, name }))}
+            />
           </div>
         </div>
       </section>

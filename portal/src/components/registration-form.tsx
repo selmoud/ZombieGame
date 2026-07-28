@@ -9,7 +9,11 @@ import {
 
 const initialState: RegistrationState = {};
 
-export function RegistrationForm() {
+export function RegistrationForm({
+  subgroups,
+}: {
+  subgroups: Array<{ id: string; name: string }>;
+}) {
   const [state, action, pending] = useActionState(
     submitRegistration,
     initialState,
@@ -65,6 +69,26 @@ export function RegistrationForm() {
           placeholder="Название организации"
           required
         />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+          Подгруппа
+        </span>
+        <select
+          className="field"
+          name="subgroupId"
+          defaultValue=""
+          required
+        >
+          <option value="" disabled>
+            Выберите подгруппу
+          </option>
+          {subgroups.map((subgroup) => (
+            <option key={subgroup.id} value={subgroup.id}>
+              {subgroup.name}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">

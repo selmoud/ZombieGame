@@ -21,12 +21,13 @@ export async function createExpert(
   const admin = await requireRole("ADMIN");
   const fullName = String(formData.get("fullName") ?? "").trim();
   const companyName = String(formData.get("company") ?? "").trim();
+  const subgroupId = String(formData.get("subgroupId") ?? "");
   const password = String(formData.get("password") ?? "");
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
-  if (fullName.split(/\s+/).length < 2 || !companyName) {
-    return { error: "Укажите фамилию, имя и компанию." };
+  if (fullName.split(/\s+/).length < 2 || !companyName || !subgroupId) {
+    return { error: "Укажите фамилию, имя, компанию и подгруппу." };
   }
   if (password.length < 8) {
     return { error: "Пароль должен содержать не менее 8 символов." };
@@ -34,25 +35,29 @@ export async function createExpert(
   if (password !== passwordConfirmation) {
     return { error: "Пароли не совпадают." };
   }
-  const existingUser = await db.user.findFirst({
-    where: { fullName: { equals: fullName, mode: "insensitive" } },
-    select: { id: true },
-  });
+  const [existingUser, selectedSubgroup] = await Promise.all([
+    db.user.findFirst({
+      where: { fullName: { equals: fullName, mode: "insensitive" } },
+      select: { id: true },
+    }),
+    db.subgroup.findUnique({
+      where: { id: subgroupId },
+      select: { id: true },
+    }),
+  ]);
   if (existingUser) {
     return { error: "Пользователь с таким именем уже существует." };
   }
+  if (!selectedSubgroup) {
+    return { error: "Выбранная подгруппа больше недоступна." };
+  }
 
   await db.$transaction(async (tx) => {
-    const [company, subgroup, modules] = await Promise.all([
+    const [company, modules] = await Promise.all([
       tx.company.upsert({
         where: { name: companyName },
         update: {},
         create: { name: companyName },
-      }),
-      tx.subgroup.upsert({
-        where: { name: "Медиа и контент" },
-        update: {},
-        create: { name: "Медиа и контент" },
       }),
       tx.module.findMany({
         where: { isActive: true },
@@ -71,7 +76,7 @@ export async function createExpert(
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         companyId: company.id,
-        subgroupId: subgroup.id,
+        subgroupId: selectedSubgroup.id,
         isActive: true,
         activatedAt: new Date(),
         passwordHash: await hashPassword(password),
@@ -239,16 +244,20 @@ export async function approveRegistration(formData: FormData) {
       update: {},
       create: { name: request.companyName },
     });
-    const subgroup = await tx.subgroup.upsert({
-      where: { name: "Медиа и контент" },
-      update: {},
-      create: { name: "Медиа и контент" },
-    });
+    const subgroupId =
+      request.subgroupId ??
+      (
+        await tx.subgroup.upsert({
+          where: { name: "Коммуникации" },
+          update: {},
+          create: { name: "Коммуникации" },
+        })
+      ).id;
     const expert = await tx.user.create({
       data: {
         fullName: request.fullName,
         companyId: company.id,
-        subgroupId: subgroup.id,
+        subgroupId,
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         isActive: true,
@@ -303,4 +312,80 @@ export async function rejectRegistration(formData: FormData) {
     },
   });
   redirect("/admin?registration=rejected");
+}
+
+function subgroupName(formData: FormData) {
+  return String(formData.get("name") ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export async function createSubgroup(formData: FormData) {
+  await requireRole("ADMIN");
+  const name = subgroupName(formData);
+  if (!name || name.length > 80) redirect("/admin?subgroup=invalid");
+  const existing = await db.subgroup.findFirst({
+    where: { name: { equals: name, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existing) redirect("/admin?subgroup=duplicate");
+  await db.subgroup.create({ data: { name } });
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?subgroup=created");
+}
+
+export async function renameSubgroup(formData: FormData) {
+  await requireRole("ADMIN");
+  const id = String(formData.get("id") ?? "");
+  const name = subgroupName(formData);
+  if (!id || !name || name.length > 80) {
+    redirect("/admin?subgroup=invalid");
+  }
+  const duplicate = await db.subgroup.findFirst({
+    where: {
+      id: { not: id },
+      name: { equals: name, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  if (duplicate) redirect("/admin?subgroup=duplicate");
+  const updated = await db.subgroup.updateMany({
+    where: { id },
+    data: { name },
+  });
+  if (!updated.count) redirect("/admin?subgroup=not-found");
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?subgroup=updated");
+}
+
+export async function deleteSubgroup(formData: FormData) {
+  await requireRole("ADMIN");
+  const id = String(formData.get("id") ?? "");
+  const subgroup = await db.subgroup.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          users: true,
+          registrationRequests: {
+            where: { status: "PENDING" },
+          },
+        },
+      },
+    },
+  });
+  if (!subgroup) redirect("/admin?subgroup=not-found");
+  if (
+    subgroup._count.users > 0 ||
+    subgroup._count.registrationRequests > 0
+  ) {
+    redirect("/admin?subgroup=in-use");
+  }
+  await db.subgroup.delete({ where: { id: subgroup.id } });
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?subgroup=deleted");
 }

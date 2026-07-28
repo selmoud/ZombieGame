@@ -8,7 +8,11 @@ import {
 
 const initialState: CreateExpertState = {};
 
-export function CreateExpertForm() {
+export function CreateExpertForm({
+  subgroups,
+}: {
+  subgroups: Array<{ id: string; name: string }>;
+}) {
   const [state, action, pending] = useActionState(createExpert, initialState);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -56,6 +60,26 @@ export function CreateExpertForm() {
         </label>
         <label>
           <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+            Подгруппа
+          </span>
+          <select
+            className="field"
+            name="subgroupId"
+            defaultValue=""
+            required
+          >
+            <option value="" disabled>
+              Выберите подгруппу
+            </option>
+            {subgroups.map((subgroup) => (
+              <option key={subgroup.id} value={subgroup.id}>
+                {subgroup.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="mb-1.5 block text-xs font-medium text-neutral-600">
             Пароль
           </span>
           <input
@@ -67,7 +91,7 @@ export function CreateExpertForm() {
             required
           />
         </label>
-        <label>
+        <label className="md:col-start-2">
           <span className="mb-1.5 block text-xs font-medium text-neutral-600">
             Повторите пароль
           </span>
@@ -89,9 +113,6 @@ export function CreateExpertForm() {
           Показать пароль
         </label>
         <div className="md:col-span-2">
-          <p className="mb-4 text-sm text-neutral-500">
-            Подгруппа будет назначена автоматически: «Медиа и контент».
-          </p>
           <button
             disabled={pending}
             className="w-full rounded-xl bg-[#0059C7] px-4 py-3 font-semibold text-white hover:bg-[#00479F] disabled:opacity-60 md:w-auto md:min-w-56"
