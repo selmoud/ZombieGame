@@ -301,6 +301,7 @@ export default async function ModulePage({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+          <GlossaryModal />
           <section className="paper rounded-2xl p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Как работать
@@ -319,7 +320,6 @@ export default async function ModulePage({
             </p>
           </section>
           <DraftStatus assignmentId={assignment.id} initialStatus={status} />
-          <GlossaryModal />
         </aside>
       </div>
     </AppShell>

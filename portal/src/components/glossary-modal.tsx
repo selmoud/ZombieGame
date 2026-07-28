@@ -111,7 +111,7 @@ export function GlossaryModal() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full rounded-xl border border-black bg-white px-5 py-3.5 font-bold text-black transition hover:bg-neutral-100"
+        className="w-full rounded-xl border border-[#0059C7] bg-[#0059C7] px-5 py-3.5 font-bold text-white transition hover:border-[#00479F] hover:bg-[#00479F]"
       >
         Глоссарий
       </button>
