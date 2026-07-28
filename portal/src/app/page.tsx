@@ -11,9 +11,9 @@ export default async function Home() {
       <div className="absolute left-[-8rem] top-[-10rem] size-96 rounded-full bg-[#8125C8]/15 blur-3xl" />
       <section className="paper relative w-full max-w-5xl overflow-hidden rounded-3xl">
         <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="relative overflow-hidden bg-[#0D78F8] px-8 py-12 text-white sm:px-12 sm:py-16">
+          <div className="relative overflow-hidden bg-[#0D78F8] px-8 py-12 text-white sm:px-12">
             <div className="absolute -bottom-24 -right-24 size-72 rounded-full bg-[#8125C8]/30" />
-            <span className="relative inline-flex rounded-full bg-[#FF2F86] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-black">
+            <span className="relative inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-black">
               Экспертная группа
             </span>
             <h1 className="relative mt-8 max-w-xl text-4xl font-bold leading-tight sm:text-5xl">
@@ -24,7 +24,7 @@ export default async function Home() {
               платформ Российской Федерации
             </p>
           </div>
-          <div className="flex flex-col justify-center px-8 py-12 sm:px-12">
+          <div className="flex flex-col px-8 py-12 sm:px-12">
             <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
               Регистрация
             </p>
