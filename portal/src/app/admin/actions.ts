@@ -369,7 +369,9 @@ export async function deleteSubgroup(formData: FormData) {
       id: true,
       _count: {
         select: {
-          users: true,
+          users: {
+            where: { role: { in: ["EXPERT", "LEAD"] } },
+          },
           registrationRequests: {
             where: { status: "PENDING" },
           },

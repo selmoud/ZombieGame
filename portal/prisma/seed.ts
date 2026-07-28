@@ -21,7 +21,7 @@ function tokenHash(token: string) {
 async function main() {
   const timofeyPasswordHash = await hashPassword("Admin007");
   const vitaliyPasswordHash = await hashPassword("Admin008");
-  const subgroup = await db.subgroup.upsert({
+  await db.subgroup.upsert({
     where: { name: "Коммуникации" },
     update: {},
     create: { name: "Коммуникации" },
@@ -41,7 +41,7 @@ async function main() {
       isActive: true,
       passwordHash: timofeyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: subgroup.id,
+      subgroupId: null,
     },
     create: {
       id: "00000000-0000-4000-8000-000000000001",
@@ -51,7 +51,7 @@ async function main() {
       isActive: true,
       passwordHash: timofeyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: subgroup.id,
+      subgroupId: null,
     },
   });
   await db.user.upsert({
@@ -63,7 +63,7 @@ async function main() {
       isActive: true,
       passwordHash: vitaliyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: subgroup.id,
+      subgroupId: null,
     },
     create: {
       id: "00000000-0000-4000-8000-000000000003",
@@ -73,7 +73,7 @@ async function main() {
       isActive: true,
       passwordHash: vitaliyPasswordHash,
       companyId: vkCompany.id,
-      subgroupId: subgroup.id,
+      subgroupId: null,
     },
   });
   const modules = await loadModuleDefinitions();

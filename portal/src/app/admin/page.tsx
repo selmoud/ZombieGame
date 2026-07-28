@@ -35,7 +35,14 @@ export default async function AdminPage({
     db.subgroup.findMany({
       include: {
         _count: {
-          select: { users: true, registrationRequests: true },
+          select: {
+            users: {
+              where: { role: { in: ["EXPERT", "LEAD"] } },
+            },
+            registrationRequests: {
+              where: { status: "PENDING" },
+            },
+          },
         },
       },
       orderBy: { name: "asc" },
