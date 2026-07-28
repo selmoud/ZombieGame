@@ -481,19 +481,6 @@ export function DynamicForm({
 
   return (
     <div>
-      {!readOnly && (
-        <button
-          id={`save-draft-${assignmentId}`}
-          type="button"
-          onClick={() => saveDraft().catch(() => undefined)}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          Сохранить черновик
-        </button>
-      )}
-
       {message && (
         <div
           className={`mb-5 rounded-xl border px-4 py-3 text-sm ${

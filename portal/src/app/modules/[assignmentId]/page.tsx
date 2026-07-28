@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/app-shell";
-import { DraftSaveButton } from "@/components/draft-save-button";
+import { DraftStatus } from "@/components/draft-status";
 import { DynamicForm } from "@/components/dynamic-form";
 import { GlossaryModal } from "@/components/glossary-modal";
 import { requireUser } from "@/lib/auth";
@@ -170,8 +170,7 @@ export default async function ModulePage({
             </p>
           </section>
           {!["SUBMITTED", "ACCEPTED"].includes(status) && (
-            <DraftSaveButton
-              targetId={`save-draft-${assignment.id}`}
+            <DraftStatus
               assignmentId={assignment.id}
               initialRevision={assignment.submission.revision}
             />
