@@ -1,0 +1,28 @@
+slug: target-state
+version: 1
+order: 8
+title: Выводы и рекомендации
+description: Консолидированные предложения и целевая модель отрасли к 2036 году.
+theory: |
+  # Целевая модель 2036
+  Сформулируйте практические предложения: изменение, ответственные стороны,
+  ожидаемый измеримый эффект и риски реализации.
+questions:
+  - key: proposals
+    type: table
+    title: Стратегические предложения
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: direction, title: Ключевое направление, type: short_text, required: true }
+        - { key: current, title: Текущее состояние, type: long_text, required: true }
+        - { key: target, title: Целевое состояние 2036, type: long_text, required: true }
+        - { key: changes, title: Необходимые изменения, type: long_text, required: true }
+        - { key: owners, title: Ответственные участники, type: short_text }
+        - { key: effect, title: Ожидаемый эффект, type: long_text, required: true }
+        - { key: risks, title: Риски, type: long_text }
+  - key: priorities
+    type: long_text
+    title: Какие три меры следует начать в первую очередь?
+    required: true

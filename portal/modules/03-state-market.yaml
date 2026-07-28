@@ -1,0 +1,39 @@
+slug: state-market
+version: 1
+order: 3
+title: Роль государства и рынка
+description: Текущие и предлагаемые роли государства в платформенной модели.
+theory: |
+  # Роль государства и рынка
+  Оцените функции государства и предложите распределение ответственности
+  между государством, платформами и участниками рынка.
+questions:
+  - key: state_roles
+    type: table
+    title: Роли государства
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - key: role
+          title: Роль
+          type: select
+          required: true
+          options:
+            - { value: regulator, label: Регулятор }
+            - { value: supervisor, label: Контрольно-надзорный орган }
+            - { value: customer, label: Заказчик }
+            - { value: operator, label: Оператор платформы }
+            - { value: data_provider, label: Поставщик данных }
+            - { value: other, label: Другое }
+        - { key: function, title: Описание функции, type: long_text, required: true }
+        - { key: efficiency, title: Эффективность 1–5, type: scale, min: 1, max: 5 }
+        - { key: proposed_model, title: Предлагаемая модель, type: long_text }
+  - key: market_role
+    type: long_text
+    title: Какую роль должен играть бизнес?
+    required: true
+  - key: target_2036
+    type: long_text
+    title: Как должно измениться взаимодействие к 2036 году?
+    required: true

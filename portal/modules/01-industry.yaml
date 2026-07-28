@@ -1,0 +1,57 @@
+slug: industry
+version: 1
+order: 1
+title: Текущее состояние отрасли
+description: Факты, показатели и ключевые участники отрасли сегодня.
+theory: |
+  # Текущее состояние отрасли
+  Опишите текущее положение на основе проверяемых фактов. По возможности
+  указывайте показатели, период измерения и источник данных.
+questions:
+  - key: analysis_object
+    type: table
+    title: Объект анализа
+    required: true
+    config:
+      minRows: 1
+      maxRows: 5
+      columns:
+        - { key: company, title: Компания, type: short_text, required: true }
+        - { key: product, title: Продукт, type: short_text }
+        - { key: platform, title: Платформа, type: short_text }
+        - { key: segment, title: Сегмент, type: short_text, required: true }
+  - key: current_state
+    type: long_text
+    title: Как вы оцениваете текущее состояние отрасли?
+    description: Ключевые игроки, продукты, процессы и показатели.
+    required: true
+  - key: key_metrics
+    type: table
+    title: Ключевые показатели
+    config:
+      minRows: 0
+      columns:
+        - { key: metric, title: Показатель, type: short_text, required: true }
+        - { key: value, title: Значение, type: short_text, required: true }
+        - { key: source, title: Источник, type: link }
+  - key: systemic
+    type: select
+    title: Являются ли описанные проблемы системными для отрасли?
+    required: true
+    config:
+      options:
+        - { value: yes, label: Да }
+        - { value: no, label: Нет }
+        - { value: unsure, label: Не могу оценить }
+  - key: systemic_comment
+    type: long_text
+    title: Какие участники сталкиваются с аналогичной ситуацией?
+  - key: target_2036
+    type: long_text
+    title: Как должна выглядеть ситуация к 2036 году?
+    required: true
+  - key: supporting_file
+    type: file
+    title: Подтверждающие материалы
+    description: PDF, DOCX, XLSX, PNG или JPG до 20 МБ.
+    config: {}

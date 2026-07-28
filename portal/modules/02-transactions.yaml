@@ -1,0 +1,55 @@
+slug: transactions
+version: 1
+order: 2
+title: Модель транзакций
+description: Участники, сценарии и потенциал платформизации взаимодействий.
+theory: |
+  # Модель транзакций
+  Разложите отраслевые процессы на макро- и микротранзакции. Для каждой
+  микротранзакции оцените массовость, повторяемость и стандартизированность.
+questions:
+  - key: participants
+    type: table
+    title: Участники рынка
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - key: kind
+          title: Тип участника
+          type: select
+          required: true
+          options:
+            - { value: demand, label: Сторона спроса }
+            - { value: supply, label: Сторона предложения }
+            - { value: intermediary, label: Посредник }
+            - { value: government, label: Государство }
+        - { key: name, title: Название, type: short_text, required: true }
+        - { key: role, title: Роль, type: long_text, required: true }
+  - key: macrotransactions
+    type: table
+    title: Макротранзакции
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: name, title: Сценарий, type: short_text, required: true }
+        - { key: description, title: Описание, type: long_text, required: true }
+        - { key: participants, title: Участники, type: short_text, required: true }
+  - key: microtransactions
+    type: table
+    title: Микротранзакции
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: macro, title: Макротранзакция, type: short_text, required: true }
+        - { key: name, title: Микротранзакция, type: short_text, required: true }
+        - { key: frequency, title: Массовость, type: scale, min: 1, max: 4 }
+        - { key: repeatability, title: Повторяемость, type: scale, min: 1, max: 5 }
+        - { key: standardization, title: Стандартизированность, type: scale, min: 1, max: 5 }
+        - { key: potential, title: Возможность платформизации, type: long_text }
+  - key: target_2036
+    type: long_text
+    title: Какой должна стать модель транзакций к 2036 году?
+    required: true

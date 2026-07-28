@@ -1,0 +1,39 @@
+slug: barriers
+version: 1
+order: 5
+title: Барьеры для развития платформ
+description: Системные препятствия и практические способы их устранения.
+theory: |
+  # Барьеры для развития платформ
+  Описывайте конкретные барьеры, затронутые стороны, последствия и реализуемые
+  меры. Отделяйте симптомы проблемы от ее причины.
+questions:
+  - key: barriers
+    type: table
+    title: Карточки барьеров
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: name, title: Название, type: short_text, required: true }
+        - key: kind
+          title: Тип
+          type: select
+          required: true
+          options:
+            - { value: structural, label: Структурный }
+            - { value: regulatory, label: Регуляторный }
+            - { value: technology, label: Технологический }
+            - { value: financial, label: Финансовый }
+            - { value: people, label: Кадровый }
+        - { key: description, title: Описание, type: long_text, required: true }
+        - { key: affected, title: Кого затрагивает, type: long_text }
+        - { key: consequences, title: Последствия, type: long_text }
+        - { key: example, title: Пример, type: long_text }
+        - { key: solution, title: Предложение по устранению, type: long_text, required: true }
+        - { key: state_role, title: Роль государства, type: long_text }
+        - { key: business_role, title: Роль бизнеса, type: long_text }
+  - key: target_2036
+    type: long_text
+    title: Какие барьеры должны быть устранены к 2036 году?
+    required: true

@@ -1,0 +1,35 @@
+slug: effects
+version: 1
+order: 6
+title: Эффекты платформизации отрасли
+description: Измеримые экономические, социальные и бюджетные эффекты.
+theory: |
+  # Эффекты платформизации
+  Формулируйте эффекты так, чтобы их можно было измерить. Укажите исходный
+  уровень, целевой показатель, источник и метод оценки.
+questions:
+  - key: effects
+    type: table
+    title: Эффекты платформизации
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: effect, title: Эффект, type: short_text, required: true }
+        - key: kind
+          title: Тип
+          type: select
+          required: true
+          options:
+            - { value: economic, label: Экономический }
+            - { value: social, label: Социальный }
+            - { value: budget, label: Бюджетный }
+        - { key: description, title: Описание, type: long_text }
+        - { key: current, title: Текущий показатель, type: short_text, required: true }
+        - { key: target, title: Целевой показатель 2036, type: short_text, required: true }
+        - { key: source, title: Источник данных, type: link }
+        - { key: method, title: Метод оценки, type: long_text }
+  - key: assumptions
+    type: long_text
+    title: Какие допущения лежат в основе оценки?
+    required: true

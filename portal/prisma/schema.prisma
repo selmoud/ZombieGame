@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  EXPERT
+  LEAD
+  ADMIN
+}
+
+enum SubmissionStatus {
+  NOT_STARTED
+  DRAFT
+  SUBMITTED
+  NEEDS_REVISION
+  ACCEPTED
+}
+
+enum QuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  NUMBER
+  SCALE
+  SELECT
+  MULTI_SELECT
+  TABLE
+  FILE
+  LINK
+}
+
+model Company {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
+
+model Subgroup {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("subgroups")
+}
+
+model User {
+  id              String             @id @default(uuid()) @db.Uuid
+  fullName        String             @map("full_name")
+  position        String?
+  direction       String?
+  role            UserRole           @default(EXPERT)
+  isActive        Boolean            @default(false) @map("is_active")
+  activatedAt     DateTime?          @map("activated_at")
+  companyId       String?            @map("company_id") @db.Uuid
+  subgroupId      String?            @map("subgroup_id") @db.Uuid
+  company         Company?           @relation(fields: [companyId], references: [id])
+  subgroup        Subgroup?          @relation(fields: [subgroupId], references: [id])
+  invitations     InvitationToken[]  @relation("Invitee")
+  createdInvites  InvitationToken[]  @relation("InviteCreator")
+  sessions        Session[]
+  assignments     ModuleAssignment[] @relation("ExpertAssignments")
+  assignedModules ModuleAssignment[] @relation("AssignmentCreator")
+  updatedAnswers  Answer[]
+  comments        ReviewComment[]
+  statusChanges   StatusHistory[]
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([subgroupId])
+  @@map("users")
+}
+
+model InvitationToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdById String?   @map("created_by_id") @db.Uuid
+  user        User      @relation("Invitee", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User?     @relation("InviteCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("invitation_tokens")
+}
+
+model Session {
+  id         String    @id @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Module {
+  id          String             @id @default(uuid()) @db.Uuid
+  slug        String             @unique
+  order       Int                @unique
+  title       String
+  isActive    Boolean            @default(true) @map("is_active")
+  versions    ModuleVersion[]
+  assignments ModuleAssignment[]
+
+  @@map("modules")
+}
+
+model ModuleVersion {
+  id             String             @id @default(uuid()) @db.Uuid
+  moduleId       String             @map("module_id") @db.Uuid
+  version        Int
+  description    String
+  theoryMarkdown String             @map("theory_markdown")
+  sourceChecksum String             @map("source_checksum")
+  publishedAt    DateTime?          @map("published_at")
+  module         Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions      Question[]
+  assignments    ModuleAssignment[]
+
+  @@unique([moduleId, version])
+  @@map("module_versions")
+}
+
+model Question {
+  id              String          @id @default(uuid()) @db.Uuid
+  moduleVersionId String          @map("module_version_id") @db.Uuid
+  key             String
+  type            QuestionType
+  title           String
+  description     String?
+  required        Boolean         @default(false)
+  order           Int
+  config          Json
+  moduleVersion   ModuleVersion   @relation(fields: [moduleVersionId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+  comments        ReviewComment[]
+
+  @@unique([moduleVersionId, key])
+  @@map("questions")
+}
+
+model ModuleAssignment {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  moduleId        String        @map("module_id") @db.Uuid
+  moduleVersionId String        @map("module_version_id") @db.Uuid
+  assignedById    String?       @map("assigned_by_id") @db.Uuid
+  dueAt           DateTime?     @map("due_at")
+  user            User          @relation("ExpertAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  module          Module        @relation(fields: [moduleId], references: [id])
+  moduleVersion   ModuleVersion @relation(fields: [moduleVersionId], references: [id])
+  assignedBy      User?         @relation("AssignmentCreator", fields: [assignedById], references: [id])
+  submission      Submission?
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@unique([userId, moduleId])
+  @@index([userId])
+  @@map("module_assignments")
+}
+
+model Submission {
+  id           String           @id @default(uuid()) @db.Uuid
+  assignmentId String           @unique @map("assignment_id") @db.Uuid
+  status       SubmissionStatus @default(NOT_STARTED)
+  revision     Int              @default(0)
+  submittedAt  DateTime?        @map("submitted_at")
+  acceptedAt   DateTime?        @map("accepted_at")
+  assignment   ModuleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  answers      Answer[]
+  comments     ReviewComment[]
+  history      StatusHistory[]
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("submissions")
+}
+
+model Answer {
+  id           String       @id @default(uuid()) @db.Uuid
+  submissionId String       @map("submission_id") @db.Uuid
+  questionId   String       @map("question_id") @db.Uuid
+  value        Json
+  updatedById  String       @map("updated_by_id") @db.Uuid
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question     Question     @relation(fields: [questionId], references: [id])
+  updatedBy    User         @relation(fields: [updatedById], references: [id])
+  attachments  Attachment[]
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@unique([submissionId, questionId])
+  @@map("answers")
+}
+
+model Attachment {
+  id           String    @id @default(uuid()) @db.Uuid
+  answerId     String    @map("answer_id") @db.Uuid
+  storageKey   String    @unique @map("storage_key")
+  originalName String    @map("original_name")
+  mimeType     String    @map("mime_type")
+  sizeBytes    BigInt    @map("size_bytes")
+  checksum     String
+  answer       Answer    @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("attachments")
+}
+
+model ReviewComment {
+  id           String     @id @default(uuid()) @db.Uuid
+  submissionId String     @map("submission_id") @db.Uuid
+  questionId   String?    @map("question_id") @db.Uuid
+  authorId     String     @map("author_id") @db.Uuid
+  body         String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question     Question?  @relation(fields: [questionId], references: [id])
+  author       User       @relation(fields: [authorId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("review_comments")
+}
+
+model StatusHistory {
+  id           String            @id @default(uuid()) @db.Uuid
+  submissionId String            @map("submission_id") @db.Uuid
+  fromStatus   SubmissionStatus? @map("from_status")
+  toStatus     SubmissionStatus  @map("to_status")
+  actorId      String            @map("actor_id") @db.Uuid
+  reason       String?
+  submission   Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actor        User              @relation(fields: [actorId], references: [id])
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  @@map("status_history")
+}

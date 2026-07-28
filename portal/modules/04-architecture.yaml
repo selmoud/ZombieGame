@@ -1,0 +1,45 @@
+slug: architecture
+version: 1
+order: 4
+title: Архитектура взаимодействия
+description: Доступ платформ к данным, внешних сервисов к платформам и пользователей к услугам.
+theory: |
+  # Архитектура взаимодействия
+  Опишите необходимые интерфейсы и правила доступа. Отдельно учитывайте данные,
+  внешние сервисы и разные категории пользователей.
+questions:
+  - key: data_access
+    type: table
+    title: Доступ платформ к данным
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: data, title: Какие данные нужны, type: long_text, required: true }
+        - { key: owner, title: Владелец, type: short_text, required: true }
+        - { key: terms, title: Условия доступа, type: long_text }
+        - { key: limits, title: Ограничения, type: long_text }
+  - key: service_access
+    type: table
+    title: Доступ внешних сервисов к платформам
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: api, title: API или интеграция, type: short_text, required: true }
+        - { key: openness, title: Уровень открытости, type: long_text }
+        - { key: limits, title: Ограничения, type: long_text }
+  - key: user_access
+    type: table
+    title: Доступ пользователей
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: category, title: Категория, type: short_text, required: true }
+        - { key: connection, title: Механизм подключения, type: long_text }
+        - { key: limits, title: Ограничения, type: long_text }
+  - key: target_2036
+    type: long_text
+    title: Как должна выглядеть архитектура к 2036 году?
+    required: true

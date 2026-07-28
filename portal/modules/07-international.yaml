@@ -1,0 +1,42 @@
+slug: international
+version: 1
+order: 7
+title: Международная экспансия
+description: Текущее присутствие и условия выхода российских платформ на внешние рынки.
+theory: |
+  # Международная экспансия
+  Укажите фактическое присутствие, приоритетные рынки и конкретные условия,
+  необходимые для масштабирования платформы.
+questions:
+  - key: platforms
+    type: table
+    title: Международное присутствие платформ
+    required: true
+    config:
+      minRows: 1
+      columns:
+        - { key: platform, title: Платформа, type: short_text, required: true }
+        - key: presence
+          title: Есть зарубежное присутствие
+          type: select
+          required: true
+          options:
+            - { value: yes, label: Да }
+            - { value: no, label: Нет }
+        - { key: countries, title: Страны, type: short_text }
+        - key: potential
+          title: Потенциал
+          type: select
+          options:
+            - { value: very_high, label: Очень высокий }
+            - { value: high, label: Высокий }
+            - { value: medium, label: Средний }
+            - { value: low, label: Низкий }
+        - { key: needs, title: Что необходимо для выхода, type: long_text }
+  - key: state_support
+    type: long_text
+    title: Какая поддержка государства необходима?
+  - key: target_2036
+    type: long_text
+    title: Какой результат должен быть достигнут к 2036 году?
+    required: true
