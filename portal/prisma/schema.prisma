@@ -33,6 +33,12 @@ enum QuestionType {
   LINK
 }
 
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Company {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @unique
@@ -54,31 +60,49 @@ model Subgroup {
 }
 
 model User {
-  id              String             @id @default(uuid()) @db.Uuid
-  fullName        String             @map("full_name")
-  position        String?
-  direction       String?
-  role            UserRole           @default(EXPERT)
-  isActive        Boolean            @default(false) @map("is_active")
-  activatedAt     DateTime?          @map("activated_at")
-  companyId       String?            @map("company_id") @db.Uuid
-  subgroupId      String?            @map("subgroup_id") @db.Uuid
-  company         Company?           @relation(fields: [companyId], references: [id])
-  subgroup        Subgroup?          @relation(fields: [subgroupId], references: [id])
-  invitations     InvitationToken[]  @relation("Invitee")
-  createdInvites  InvitationToken[]  @relation("InviteCreator")
-  sessions        Session[]
-  assignments     ModuleAssignment[] @relation("ExpertAssignments")
-  assignedModules ModuleAssignment[] @relation("AssignmentCreator")
-  updatedAnswers  Answer[]
-  comments        ReviewComment[]
-  statusChanges   StatusHistory[]
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
+  id                    String                @id @default(uuid()) @db.Uuid
+  fullName              String                @map("full_name")
+  position              String?
+  direction             String?
+  role                  UserRole              @default(EXPERT)
+  isActive              Boolean               @default(false) @map("is_active")
+  passwordHash          String?               @map("password_hash")
+  activatedAt           DateTime?             @map("activated_at")
+  companyId             String?               @map("company_id") @db.Uuid
+  subgroupId            String?               @map("subgroup_id") @db.Uuid
+  company               Company?              @relation(fields: [companyId], references: [id])
+  subgroup              Subgroup?             @relation(fields: [subgroupId], references: [id])
+  invitations           InvitationToken[]     @relation("Invitee")
+  createdInvites        InvitationToken[]     @relation("InviteCreator")
+  sessions              Session[]
+  assignments           ModuleAssignment[]    @relation("ExpertAssignments")
+  assignedModules       ModuleAssignment[]    @relation("AssignmentCreator")
+  updatedAnswers        Answer[]
+  comments              ReviewComment[]
+  statusChanges         StatusHistory[]
+  reviewedRegistrations RegistrationRequest[] @relation("RegistrationReviewer")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
 
   @@index([companyId])
   @@index([subgroupId])
   @@map("users")
+}
+
+model RegistrationRequest {
+  id           String             @id @default(uuid()) @db.Uuid
+  fullName     String             @map("full_name")
+  companyName  String             @map("company_name")
+  passwordHash String             @map("password_hash")
+  status       RegistrationStatus @default(PENDING)
+  reviewedById String?            @map("reviewed_by_id") @db.Uuid
+  reviewedBy   User?              @relation("RegistrationReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?          @map("reviewed_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@map("registration_requests")
 }
 
 model InvitationToken {

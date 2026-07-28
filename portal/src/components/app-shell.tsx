@@ -23,7 +23,7 @@ export function AppShell({
             </span>
             <span>
               <span className="block text-sm font-semibold tracking-wide">
-                Стратегия платформ
+                Коммуникации, медиа и развлечения
               </span>
               <span className="block text-xs text-slate-300">
                 Экспертная группа · 2036

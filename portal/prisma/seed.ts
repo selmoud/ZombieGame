@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { loadModuleDefinitions, questionTypeToDatabase } from "../src/lib/modules";
+import { hashPassword } from "../src/lib/password";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is required");
@@ -18,6 +19,7 @@ function tokenHash(token: string) {
 }
 
 async function main() {
+  const adminPasswordHash = await hashPassword("Admin2036!");
   const company = await db.company.upsert({
     where: { name: "АО «Медиаплатформа»" },
     update: {},
@@ -31,13 +33,14 @@ async function main() {
 
   const admin = await db.user.upsert({
     where: { id: "00000000-0000-4000-8000-000000000001" },
-    update: { isActive: false },
+    update: { isActive: true, passwordHash: adminPasswordHash },
     create: {
       id: "00000000-0000-4000-8000-000000000001",
       fullName: "Анна Смирнова",
       position: "Администратор рабочей группы",
       role: "ADMIN",
-      isActive: false,
+      isActive: true,
+      passwordHash: adminPasswordHash,
       companyId: company.id,
       subgroupId: subgroup.id,
     },

@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createInvitationToken, hashInvitationToken, requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -77,4 +78,92 @@ export async function createExpert(
     link: `${process.env.APP_URL ?? "http://localhost:3000"}/invite/${rawToken}`,
     expert: fullName,
   };
+}
+
+export async function approveRegistration(formData: FormData) {
+  const admin = await requireRole("ADMIN");
+  const requestId = String(formData.get("requestId") ?? "");
+  const request = await db.registrationRequest.findUnique({
+    where: { id: requestId },
+  });
+  if (!request || request.status !== "PENDING") {
+    redirect("/admin?registration=unavailable");
+  }
+  const existingUser = await db.user.findFirst({
+    where: { fullName: { equals: request.fullName, mode: "insensitive" } },
+  });
+  if (existingUser) {
+    redirect("/admin?registration=duplicate");
+  }
+
+  await db.$transaction(async (tx) => {
+    const company = await tx.company.upsert({
+      where: { name: request.companyName },
+      update: {},
+      create: { name: request.companyName },
+    });
+    const subgroup = await tx.subgroup.upsert({
+      where: { name: "Медиа и контент" },
+      update: {},
+      create: { name: "Медиа и контент" },
+    });
+    const expert = await tx.user.create({
+      data: {
+        fullName: request.fullName,
+        companyId: company.id,
+        subgroupId: subgroup.id,
+        direction: "Коммуникации, медиа и развлечения",
+        role: "EXPERT",
+        isActive: true,
+        activatedAt: new Date(),
+        passwordHash: request.passwordHash,
+      },
+    });
+    const modules = await tx.module.findMany({
+      where: { isActive: true },
+      include: {
+        versions: {
+          where: { publishedAt: { not: null } },
+          orderBy: { version: "desc" },
+          take: 1,
+        },
+      },
+    });
+    for (const moduleRecord of modules) {
+      const version = moduleRecord.versions[0];
+      if (!version) continue;
+      const assignment = await tx.moduleAssignment.create({
+        data: {
+          userId: expert.id,
+          moduleId: moduleRecord.id,
+          moduleVersionId: version.id,
+          assignedById: admin.id,
+        },
+      });
+      await tx.submission.create({ data: { assignmentId: assignment.id } });
+    }
+    await tx.registrationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "APPROVED",
+        reviewedById: admin.id,
+        reviewedAt: new Date(),
+      },
+    });
+  });
+  redirect("/admin?registration=approved");
+}
+
+export async function rejectRegistration(formData: FormData) {
+  const admin = await requireRole("ADMIN");
+  const requestId = String(formData.get("requestId") ?? "");
+  await db.registrationRequest.updateMany({
+    where: { id: requestId, status: "PENDING" },
+    data: {
+      status: "REJECTED",
+      reviewedById: admin.id,
+      reviewedAt: new Date(),
+    },
+  });
+  redirect("/admin?registration=rejected");
 }

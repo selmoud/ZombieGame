@@ -4,10 +4,16 @@ import { CreateExpertForm } from "@/components/create-expert-form";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { statusLabels, statusStyles } from "@/lib/status";
+import { approveRegistration, rejectRegistration } from "./actions";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const admin = await requireRole("ADMIN");
-  const [users, submissions, companies] = await Promise.all([
+  const query = await searchParams;
+  const [users, submissions, companies, registrations] = await Promise.all([
     db.user.findMany({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
@@ -25,6 +31,10 @@ export default async function AdminPage() {
       take: 6,
     }),
     db.company.count(),
+    db.registrationRequest.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
   const submittedCount = submissions.filter((item) =>
     ["SUBMITTED", "ACCEPTED"].includes(item.status),
@@ -71,6 +81,77 @@ export default async function AdminPage() {
             <p className="mt-2 text-4xl text-[#183a4a]">{value}</p>
           </div>
         ))}
+      </section>
+
+      <section className="paper mt-7 overflow-hidden rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
+          <div>
+            <h2 className="text-2xl font-bold text-[#183a4a]">
+              Заявки на регистрацию
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Ожидают согласования: {registrations.length}
+            </p>
+          </div>
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+            Пароли защищены и не отображаются
+          </span>
+        </div>
+        {query.registration && (
+          <p className="border-b border-slate-100 bg-slate-50 px-6 py-3 text-sm text-slate-600">
+            {query.registration === "approved"
+              ? "Заявка согласована, кабинет эксперта создан."
+              : query.registration === "rejected"
+                ? "Заявка отклонена."
+                : query.registration === "duplicate"
+                  ? "Пользователь с таким именем уже существует."
+                  : "Заявка уже была обработана."}
+          </p>
+        )}
+        <div className="divide-y divide-slate-100">
+          {registrations.map((request) => (
+            <div
+              key={request.id}
+              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_auto]"
+            >
+              <div>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Фамилия Имя
+                </p>
+                <p className="mt-1 font-bold text-[#183a4a]">
+                  {request.fullName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Компания
+                </p>
+                <p className="mt-1 font-medium text-slate-700">
+                  {request.companyName}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <form action={approveRegistration}>
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <button className="rounded-lg bg-[#16877c] px-4 py-2.5 text-sm font-bold text-white">
+                    Согласовать
+                  </button>
+                </form>
+                <form action={rejectRegistration}>
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <button className="rounded-lg border border-rose-200 px-4 py-2.5 text-sm font-bold text-rose-700">
+                    Отклонить
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {!registrations.length && (
+            <p className="px-6 py-9 text-center text-sm text-slate-500">
+              Новых заявок нет.
+            </p>
+          )}
+        </div>
       </section>
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_23rem]">
