@@ -883,6 +883,125 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     });
     return true;
   };
+  const renderFinalTables = (question: Question) => {
+    if (!Array.isArray(question.value)) return false;
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+
+    if (question.key === "target_transactions") {
+      renderReportTable({
+        title: "Целевая модель отраслевых транзакций к 2036 году",
+        headers: [
+          "Макротранзакция",
+          "Текущее проникновение",
+          "Целевая доля через платформы",
+          "Необходимость стандартизации",
+          "Сокращение издержек",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macro"),
+          cell(row, "currentShare"),
+          cell(row, "targetShare"),
+          cell(row, "standardization"),
+          cell(row, "costReduction"),
+          cell(row, "targetDescription"),
+        ]),
+        weights: [1.5, 1.2, 1.2, 1.6, 1.2, 2.4],
+      });
+      return true;
+    }
+    if (question.key === "target_model") {
+      renderReportTable({
+        title: "Целевая модель платформенного взаимодействия",
+        headers: [
+          "Элемент модели",
+          "Целевое состояние",
+          "Связанные барьеры",
+          "Ожидаемые эффекты",
+          "Критерий достижения",
+          "Условия и риски",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "dimension"),
+          cell(row, "targetState"),
+          cell(row, "linkedBarriers"),
+          cell(row, "linkedEffects"),
+          cell(row, "successCriteria"),
+          cell(row, "assumptions"),
+        ]),
+        weights: [1.3, 2.3, 1.5, 1.5, 1.8, 1.8],
+      });
+      return true;
+    }
+    if (question.key === "recommendations") {
+      renderReportTable({
+        title: "Приоритетные практические рекомендации",
+        headers: [
+          "Приоритет",
+          "Направление",
+          "Рекомендация",
+          "Связанные барьеры",
+          "Ожидаемые эффекты",
+          "Горизонт",
+        ],
+        rows: rows.map((row, index) => [
+          String(index + 1),
+          cell(row, "direction"),
+          cell(row, "title"),
+          cell(row, "barriers"),
+          cell(row, "effects"),
+          cell(row, "horizon"),
+        ]),
+        weights: [0.6, 1.3, 1.8, 1.6, 1.6, 0.9],
+      });
+      renderReportTable({
+        title: "Механизм реализации рекомендаций",
+        headers: [
+          "Рекомендация",
+          "Содержание и механизм",
+          "Участники",
+          "Первый шаг",
+          "Проверяемый результат",
+          "Риски",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "title"),
+          cell(row, "action"),
+          cell(row, "responsible"),
+          cell(row, "firstStep"),
+          cell(row, "expectedResult"),
+          cell(row, "risks"),
+        ]),
+        weights: [1.3, 2.2, 1.5, 1.7, 2, 1.4],
+      });
+      return true;
+    }
+    if (question.key === "disagreements") {
+      renderReportTable({
+        title: "Вопросы, по которым сохраняются разногласия",
+        headers: [
+          "Предмет",
+          "Альтернативные позиции",
+          "Аргументы",
+          "Возможный способ разрешения",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "issue"),
+          cell(row, "positions"),
+          cell(row, "arguments"),
+          cell(row, "resolution"),
+        ]),
+        weights: [1.4, 2.3, 2.3, 2],
+      });
+      return true;
+    }
+    return false;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -921,7 +1040,8 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       (data.moduleOrder === 4 && renderArchitectureTables(question)) ||
       (data.moduleOrder === 5 && renderBarrierTables(question)) ||
       (data.moduleOrder === 6 && renderEffectTables(question)) ||
-      (data.moduleOrder === 7 && renderInternationalTables(question));
+      (data.moduleOrder === 7 && renderInternationalTables(question)) ||
+      (data.moduleOrder === 8 && renderFinalTables(question));
     if (tableRendered) {
       methodologyTablesRendered = true;
       return;

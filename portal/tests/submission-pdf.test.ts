@@ -391,4 +391,104 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style final target model tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 8,
+      moduleTitle: "Выводы и рекомендации",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "target_transactions",
+          title: "Целевая модель отраслевых транзакций",
+          config: {
+            columns: [
+              { key: "macro", title: "Макротранзакция" },
+              { key: "currentShare", title: "Текущее проникновение" },
+              { key: "targetShare", title: "Целевая доля" },
+              { key: "standardization", title: "Стандартизация" },
+              { key: "costReduction", title: "Сокращение издержек" },
+              { key: "targetDescription", title: "Обоснование" },
+            ],
+          },
+          value: [
+            {
+              macro: "Монетизация видео через рекламу",
+              currentShare: "30–50%",
+              targetShare: "Более 50%",
+              standardization:
+                "Требуется стандартизация отдельных элементов",
+              costReduction: "10–25%",
+              targetDescription:
+                "Через платформы проходят подбор, согласование и отчётность.",
+            },
+          ],
+        },
+        {
+          key: "target_model",
+          title: "Целевая модель платформенного взаимодействия",
+          config: {
+            columns: [
+              { key: "dimension", title: "Элемент модели" },
+              { key: "targetState", title: "Целевое состояние" },
+              { key: "linkedBarriers", title: "Барьеры" },
+              { key: "linkedEffects", title: "Эффекты" },
+              { key: "successCriteria", title: "Критерий" },
+              { key: "assumptions", title: "Условия и риски" },
+            ],
+          },
+          value: [
+            {
+              dimension: "Распределение ролей государства и рынка",
+              targetState: "Государство задаёт единые требования к измерению.",
+              linkedBarriers: ["Нет единого стандарта измерения"],
+              linkedEffects: ["Снижение издержек согласования"],
+              successCriteria: "Участники применяют сопоставимые показатели.",
+              assumptions: "Необходим отраслевой консенсус.",
+            },
+          ],
+        },
+        {
+          key: "recommendations",
+          title: "Практические рекомендации",
+          config: {
+            columns: [
+              { key: "direction", title: "Направление" },
+              { key: "title", title: "Рекомендация" },
+              { key: "barriers", title: "Барьеры" },
+              { key: "action", title: "Механизм" },
+              { key: "responsible", title: "Участники" },
+              { key: "firstStep", title: "Первый шаг" },
+              { key: "horizon", title: "Горизонт" },
+              { key: "effects", title: "Эффекты" },
+              { key: "expectedResult", title: "Результат" },
+              { key: "risks", title: "Риски" },
+            ],
+          },
+          value: [
+            {
+              direction: "Транзакции и стандартизация",
+              title: "Согласовать стандарт измерения аудитории",
+              barriers: ["Нет единого стандарта измерения"],
+              action: "Сформировать и апробировать отраслевую методику.",
+              responsible: ["Операторы платформ", "Отраслевые объединения"],
+              firstStep: "Создать рабочую группу.",
+              horizon: "2026–2028",
+              effects: ["Снижение издержек согласования"],
+              expectedResult: "Методику применяют крупнейшие платформы.",
+              risks: "Несопоставимость исходных данных.",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });

@@ -530,4 +530,66 @@ describe("module definitions", () => {
       allowCustom: false,
     });
   });
+
+  it("builds the final target model from accepted findings", async () => {
+    const modules = await loadModuleDefinitions();
+    const targetState = modules.find(
+      (module) => module.slug === "target-state",
+    );
+
+    expect(targetState?.questions.map((question) => question.key)).toEqual([
+      "target_transactions",
+      "target_model",
+      "recommendations",
+      "disagreements",
+      "final_materials",
+    ]);
+    expect(
+      targetState?.questions.some((question) => question.key === "priorities"),
+    ).toBe(false);
+    expect(targetState?.questions[0]).toMatchObject({
+      required: true,
+      config: {
+        minRows: 1,
+        maxRows: 15,
+        lockRows: true,
+      },
+    });
+    expect(targetState?.questions[1]).toMatchObject({
+      required: true,
+      config: {
+        minRows: 3,
+        maxRows: 3,
+        lockRows: true,
+      },
+    });
+    expect(
+      targetState?.questions[1].config.columns?.find(
+        (column) => column.key === "linkedBarriers",
+      ),
+    ).toMatchObject({
+      contextKey: "acceptedBarriers",
+      allowCustom: false,
+    });
+    expect(
+      targetState?.questions[1].config.columns?.find(
+        (column) => column.key === "linkedEffects",
+      ),
+    ).toMatchObject({
+      contextKey: "acceptedEffects",
+      allowCustom: false,
+    });
+    expect(targetState?.questions[2]).toMatchObject({
+      required: true,
+      config: {
+        minRows: 3,
+        maxRows: 10,
+        sortableRows: true,
+      },
+    });
+    expect(targetState?.questions[3]).toMatchObject({
+      required: false,
+      config: { minRows: 0 },
+    });
+  });
 });

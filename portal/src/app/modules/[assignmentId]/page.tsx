@@ -67,7 +67,9 @@ export default async function ModulePage({
               ? [1, 2, 3, 4, 5]
               : assignment.module.order === 7
                 ? [1, 2, 3, 4, 5, 6]
-                : [];
+                : assignment.module.order === 8
+                  ? [1, 2, 3, 4, 5, 6, 7]
+                  : [];
   const foundationAssignments = foundationOrders.length
     ? await db.moduleAssignment.findMany({
         where: {
@@ -100,6 +102,7 @@ export default async function ModulePage({
   const sectionFourAnswers = answersForOrder(4);
   const sectionFiveAnswers = answersForOrder(5);
   const sectionSixAnswers = answersForOrder(6);
+  const sectionSevenAnswers = answersForOrder(7);
   const boundaryRows = Array.isArray(sectionOneAnswers.analysis_object)
     ? (sectionOneAnswers.analysis_object as Array<Record<string, unknown>>)
     : [];
@@ -226,6 +229,26 @@ export default async function ModulePage({
   const acceptedEffects = effectRows
     .map((row) => String(row.name ?? "").trim())
     .filter(Boolean);
+  const penetrationRows = Array.isArray(
+    sectionThreeAnswers.platform_penetration,
+  )
+    ? (sectionThreeAnswers.platform_penetration as Array<
+        Record<string, unknown>
+      >)
+    : [];
+  const penetrationByMacro = new Map(
+    penetrationRows.map((row) => [
+      String(row.macro ?? "").trim(),
+      String(row.share ?? "").trim(),
+    ]),
+  );
+  const internationalRows = Array.isArray(
+    sectionSevenAnswers.international_platforms,
+  )
+    ? (sectionSevenAnswers.international_platforms as Array<
+        Record<string, unknown>
+      >)
+    : [];
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -436,6 +459,53 @@ export default async function ModulePage({
         rationale: "",
       }),
     );
+  }
+  const targetTransactionsQuestion = questions.find(
+    (question) => question.key === "target_transactions",
+  );
+  const savedTargetTransactions = targetTransactionsQuestion
+    ? initialAnswers[targetTransactionsQuestion.id]
+    : undefined;
+  if (
+    assignment.module.order === 8 &&
+    targetTransactionsQuestion &&
+    (!Array.isArray(savedTargetTransactions) ||
+      savedTargetTransactions.length === 0)
+  ) {
+    initialAnswers[targetTransactionsQuestion.id] = macroTransactions.map(
+      (macro) => ({
+        macro,
+        currentShare: penetrationByMacro.get(macro) || "Не заполнено",
+        targetShare: "",
+        standardization: "",
+        costReduction: "",
+        targetDescription: "",
+      }),
+    );
+  }
+  const targetModelQuestion = questions.find(
+    (question) => question.key === "target_model",
+  );
+  const savedTargetModel = targetModelQuestion
+    ? initialAnswers[targetModelQuestion.id]
+    : undefined;
+  if (
+    assignment.module.order === 8 &&
+    targetModelQuestion &&
+    (!Array.isArray(savedTargetModel) || savedTargetModel.length === 0)
+  ) {
+    initialAnswers[targetModelQuestion.id] = [
+      "Распределение ролей государства и рынка",
+      "Архитектура доступа к данным, сервисам и платформам",
+      "Международное развитие российских платформ",
+    ].map((dimension) => ({
+      dimension,
+      targetState: "",
+      linkedBarriers: [],
+      linkedEffects: [],
+      successCriteria: "",
+      assumptions: "",
+    }));
   }
 
   return (
@@ -822,6 +892,73 @@ export default async function ModulePage({
                     <div className="mt-3 space-y-2 text-sm text-black">
                       {acceptedBarriers.map((barrier) => (
                         <p key={barrier}>{barrier}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          {assignment.module.order === 8 &&
+            [1, 2, 3, 4, 5, 6, 7].every((order) =>
+              foundationAssignments.some(
+                (foundation) => foundation.module.order === order,
+              ),
+            ) && (
+              <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Основа из разделов 1–7
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-black">
+                  Принятые выводы для целевой модели
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Используйте эти выводы как исходное состояние. В итоговом
+                  разделе нужно определить желаемую модель 2036 года и
+                  практический путь перехода к ней.
+                </p>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-xl bg-[#E0EEFF] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Текущее проникновение платформ
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {penetrationRows.map((row) => (
+                        <p key={String(row.macro ?? "")}>
+                          {String(row.macro ?? "")}: {String(row.share ?? "—")}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#DDF8FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Барьеры
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedBarriers.map((barrier) => (
+                        <p key={barrier}>{barrier}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#F1E5FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6815A8]">
+                      Эффекты
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedEffects.map((effect) => (
+                        <p key={effect}>{effect}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[#FF2E88] bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#D6005B]">
+                      Международный потенциал
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {internationalRows.map((row) => (
+                        <p key={String(row.platform ?? "")}>
+                          {String(row.platform ?? "")}:{" "}
+                          {String(row.potential ?? "не оценён")}
+                        </p>
                       ))}
                     </div>
                   </div>
