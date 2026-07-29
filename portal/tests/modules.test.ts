@@ -578,6 +578,16 @@ describe("module definitions", () => {
     ).toMatchObject({
       contextKey: "acceptedBarriers",
       allowCustom: false,
+      requiredWhenAny: [
+        {
+          columnKey: "dimension",
+          equals: "Распределение ролей государства и рынка",
+        },
+        {
+          columnKey: "dimension",
+          equals: "Архитектура доступа к данным, сервисам и платформам",
+        },
+      ],
     });
     expect(
       targetState?.questions[1].config.columns?.find(

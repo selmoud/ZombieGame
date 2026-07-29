@@ -144,7 +144,7 @@ questions:
           allowCustom: false
           requiredWhenAny:
             - { columnKey: dimension, equals: Распределение ролей государства и рынка }
-            - { columnKey: dimension, equals: Архитектура доступа к данным, сервисам и платформам }
+            - { columnKey: dimension, equals: "Архитектура доступа к данным, сервисам и платформам" }
           fullWidth: true
           sortOptions: true
         - key: internationalConstraints
