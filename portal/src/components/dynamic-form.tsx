@@ -1085,6 +1085,8 @@ export function DynamicForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitConfirmationOpen, setSubmitConfirmationOpen] = useState(false);
   const revisionRef = useRef(initialRevision);
   const firstRender = useRef(true);
   const readOnly = !["NOT_STARTED", "DRAFT", "NEEDS_REVISION"].includes(status);
@@ -1153,6 +1155,23 @@ export function DynamicForm({
       }),
     );
   }, [assignmentId, revision, saveError, saveState, status]);
+
+  useEffect(() => {
+    if (!submitConfirmationOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setSubmitConfirmationOpen(false);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [submitConfirmationOpen]);
 
   function setAnswer(questionId: string, value: unknown) {
     setSaveError("");
@@ -1242,6 +1261,7 @@ export function DynamicForm({
 
   async function submit() {
     setMessage("");
+    setSubmitting(true);
     try {
       await saveDraft();
       const response = await fetch(`/api/assignments/${assignmentId}/submit`, {
@@ -1261,11 +1281,13 @@ export function DynamicForm({
       }
       if (!response.ok) throw new Error(result.error);
       setStatus("SUBMITTED");
-      setMessage("Ответ отправлен администратору.");
+      setErrors({});
+      setSubmitConfirmationOpen(true);
       router.refresh();
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      if (!message) setMessage("Не удалось отправить ответ.");
+      setMessage("Не удалось отправить ответ.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -1306,6 +1328,50 @@ export function DynamicForm({
 
   return (
     <div>
+      {submitConfirmationOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSubmitConfirmationOpen(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="submit-confirmation-title"
+            aria-describedby="submit-confirmation-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+          >
+            <div className="flex size-12 items-center justify-center rounded-full bg-[#DDF8FB] text-2xl font-bold text-[#00616C]">
+              ✓
+            </div>
+            <h2
+              id="submit-confirmation-title"
+              className="mt-5 text-2xl font-bold text-black"
+            >
+              Отправлено на проверку
+            </h2>
+            <p
+              id="submit-confirmation-description"
+              className="mt-3 leading-7 text-neutral-600"
+            >
+              Ответы переданы модератору. До завершения проверки редактирование
+              модуля будет недоступно.
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setSubmitConfirmationOpen(false)}
+              className="mt-6 w-full rounded-xl bg-[#0059C7] px-6 py-3 font-semibold text-white transition hover:bg-[#00479F]"
+            >
+              Понятно
+            </button>
+          </section>
+        </div>
+      )}
+
       {message && (
         <div
           className={`mb-5 rounded-xl border px-4 py-3 text-sm ${
@@ -1485,10 +1551,11 @@ export function DynamicForm({
             {!superExpertMode && (
               <button
                 type="button"
-                onClick={submit}
-                className="rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7]"
+                disabled={submitting}
+                onClick={() => void submit()}
+                className="rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7] disabled:cursor-wait disabled:opacity-60"
               >
-                Отправить на проверку
+                {submitting ? "Отправляем…" : "Отправить на проверку"}
               </button>
             )}
           </div>
