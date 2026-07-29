@@ -21,6 +21,11 @@ type Config = {
   coverSourceColumns?: string[];
   coverTargetColumns?: string[];
   coverageError?: string;
+  requiredColumnValues?: {
+    columnKey: string;
+    values: string[];
+    error?: string;
+  };
   columns?: Array<{
     key: string;
     title: string;
@@ -131,6 +136,28 @@ export function validateAnswers(
         errors[question.id] =
           `Значения в поле «${duplicateColumn.title}» не должны повторяться`;
         continue;
+      }
+      if (config.requiredColumnValues) {
+        const presentValues = new Set(
+          value
+            .map((row) =>
+              String(
+                (row as Record<string, unknown>)[
+                  config.requiredColumnValues!.columnKey
+                ] ?? "",
+              ).trim(),
+            )
+            .filter(Boolean),
+        );
+        const missingValues = config.requiredColumnValues.values.filter(
+          (requiredValue) => !presentValues.has(requiredValue),
+        );
+        if (missingValues.length > 0) {
+          errors[question.id] =
+            config.requiredColumnValues.error ??
+            `Добавьте строки для значений: ${missingValues.join(", ")}`;
+          continue;
+        }
       }
       if (
         config.coverSourceQuestionKey &&

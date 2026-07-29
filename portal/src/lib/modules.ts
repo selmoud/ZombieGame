@@ -100,6 +100,13 @@ const questionSchema = z.object({
       coverTargetColumns: z.array(z.string().min(1)).optional(),
       coverageWarning: z.string().optional(),
       coverageError: z.string().optional(),
+      requiredColumnValues: z
+        .object({
+          columnKey: z.string().min(1),
+          values: z.array(z.string().min(1)).min(1),
+          error: z.string().optional(),
+        })
+        .optional(),
       autoRowsFromQuestionKey: z.string().optional(),
       autoRowMappings: z
         .array(

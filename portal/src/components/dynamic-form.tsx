@@ -65,6 +65,11 @@ type Question = {
     coverTargetColumns?: string[];
     coverageWarning?: string;
     coverageError?: string;
+    requiredColumnValues?: {
+      columnKey: string;
+      values: string[];
+      error?: string;
+    };
     autoRowsFromQuestionKey?: string;
     autoRowMappings?: Array<{
       sourceColumnKey: string;

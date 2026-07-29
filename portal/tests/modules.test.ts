@@ -433,4 +433,51 @@ describe("module definitions", () => {
       },
     });
   });
+
+  it("covers all methodology effect categories without forcing invented targets", async () => {
+    const modules = await loadModuleDefinitions();
+    const effects = modules.find((module) => module.slug === "effects");
+
+    expect(effects?.questions.map((question) => question.key)).toEqual([
+      "effects",
+      "effect_materials",
+    ]);
+    expect(
+      effects?.questions.some((question) => question.key === "assumptions"),
+    ).toBe(false);
+    expect(effects?.questions[0]).toMatchObject({
+      required: true,
+      config: {
+        minRows: 3,
+        maxRows: 15,
+        sortableRows: true,
+        requiredColumnValues: {
+          columnKey: "category",
+          values: ["Экономический", "Социальный", "Бюджетный"],
+        },
+      },
+    });
+    expect(
+      effects?.questions[0].config.columns?.find(
+        (column) => column.key === "quantitativeEstimate",
+      ),
+    ).toMatchObject({
+      visibleWhen: {
+        columnKey: "assessmentFormat",
+        equals: "Количественная оценка",
+      },
+      requiredWhen: {
+        columnKey: "assessmentFormat",
+        equals: "Количественная оценка",
+      },
+    });
+    expect(
+      effects?.questions[0].config.columns?.find(
+        (column) => column.key === "relatedBarriers",
+      ),
+    ).toMatchObject({
+      contextKey: "acceptedBarriers",
+      allowCustom: false,
+    });
+  });
 });

@@ -325,4 +325,49 @@ describe("validateAnswers", () => {
       }),
     ).toEqual({});
   });
+
+  it("requires table rows to cover configured category values", () => {
+    const effectQuestion = {
+      id: "effects",
+      key: "effects",
+      type: "TABLE",
+      title: "Эффекты",
+      required: true,
+      config: {
+        minRows: 3,
+        requiredColumnValues: {
+          columnKey: "category",
+          values: ["Экономический", "Социальный", "Бюджетный"],
+          error: "Добавьте эффекты всех категорий",
+        },
+        columns: [
+          {
+            key: "category",
+            title: "Категория",
+            type: "select",
+            required: true,
+          },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([effectQuestion], {
+        effects: [
+          { category: "Экономический" },
+          { category: "Социальный" },
+          { category: "Социальный" },
+        ],
+      }),
+    ).toEqual({ effects: "Добавьте эффекты всех категорий" });
+    expect(
+      validateAnswers([effectQuestion], {
+        effects: [
+          { category: "Экономический" },
+          { category: "Социальный" },
+          { category: "Бюджетный" },
+        ],
+      }),
+    ).toEqual({});
+  });
 });

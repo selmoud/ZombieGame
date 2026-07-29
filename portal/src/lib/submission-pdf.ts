@@ -737,6 +737,81 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     });
     return true;
   };
+  const renderEffectTables = (question: Question) => {
+    if (question.key !== "effects" || !Array.isArray(question.value)) {
+      return false;
+    }
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+    const effectType = (row: Record<string, unknown>) =>
+      ["economicType", "socialType", "budgetType"]
+        .map((key) => row[key])
+        .find((value) => value !== undefined && value !== "")
+        ?.toString() ?? "Не заполнено";
+
+    renderReportTable({
+      title: "Приоритетный перечень эффектов платформизации",
+      headers: [
+        "Приоритет",
+        "Категория",
+        "Тип",
+        "Эффект",
+        "Ключевые показатели",
+        "Платформы",
+        "Макротранзакции",
+        "Участники",
+        "Связанные барьеры",
+      ],
+      rows: rows.map((row, index) => [
+        String(index + 1),
+        cell(row, "category"),
+        effectType(row),
+        cell(row, "name"),
+        cell(row, "relatedMetrics"),
+        cell(row, "platforms"),
+        cell(row, "macros"),
+        cell(row, "participants"),
+        cell(row, "relatedBarriers"),
+      ]),
+      weights: [0.5, 0.9, 1.2, 1.6, 1.2, 1, 1.2, 1.2, 1.2],
+    });
+    renderReportTable({
+      title: "Механизм и масштаб эффектов",
+      headers: ["Эффект", "Статус", "Масштаб", "Механизм возникновения"],
+      rows: rows.map((row) => [
+        cell(row, "name"),
+        cell(row, "status"),
+        cell(row, "scale"),
+        cell(row, "mechanism"),
+      ]),
+      weights: [1.5, 1.5, 1, 3.2],
+    });
+    renderReportTable({
+      title: "Основания оценки эффектов",
+      headers: [
+        "Эффект",
+        "Формат оценки",
+        "Количественная оценка",
+        "Основание",
+        "Обоснование",
+        "Условия реализации",
+      ],
+      rows: rows.map((row) => [
+        cell(row, "name"),
+        cell(row, "assessmentFormat"),
+        cell(row, "quantitativeEstimate"),
+        cell(row, "basis"),
+        cell(row, "rationale"),
+        cell(row, "conditions"),
+      ]),
+      weights: [1.3, 1.2, 1.5, 1.2, 2.2, 1.8],
+    });
+    return true;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -773,7 +848,8 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       (data.moduleOrder === 2 && renderTransactionTables(question)) ||
       (data.moduleOrder === 3 && renderStateMarketTables(question)) ||
       (data.moduleOrder === 4 && renderArchitectureTables(question)) ||
-      (data.moduleOrder === 5 && renderBarrierTables(question));
+      (data.moduleOrder === 5 && renderBarrierTables(question)) ||
+      (data.moduleOrder === 6 && renderEffectTables(question));
     if (tableRendered) {
       methodologyTablesRendered = true;
       return;

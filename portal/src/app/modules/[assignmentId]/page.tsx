@@ -63,7 +63,9 @@ export default async function ModulePage({
           ? [1, 2, 3]
           : assignment.module.order === 5
             ? [1, 2, 3, 4]
-            : [];
+            : assignment.module.order === 6
+              ? [1, 2, 3, 4, 5]
+              : [];
   const foundationAssignments = foundationOrders.length
     ? await db.moduleAssignment.findMany({
         where: {
@@ -94,6 +96,7 @@ export default async function ModulePage({
   const sectionTwoAnswers = answersForOrder(2);
   const sectionThreeAnswers = answersForOrder(3);
   const sectionFourAnswers = answersForOrder(4);
+  const sectionFiveAnswers = answersForOrder(5);
   const boundaryRows = Array.isArray(sectionOneAnswers.analysis_object)
     ? (sectionOneAnswers.analysis_object as Array<Record<string, unknown>>)
     : [];
@@ -113,6 +116,12 @@ export default async function ModulePage({
       economicShare: String(row.economicShare ?? ""),
     }))
     .filter((segment) => segment.name);
+  const keyMetricRows = Array.isArray(sectionOneAnswers.key_metrics)
+    ? (sectionOneAnswers.key_metrics as Array<Record<string, unknown>>)
+    : [];
+  const keyMetrics = keyMetricRows
+    .map((row) => String(row.metric ?? "").trim())
+    .filter(Boolean);
   const participantRows = Array.isArray(sectionTwoAnswers.participants)
     ? (sectionTwoAnswers.participants as Array<Record<string, unknown>>)
     : [];
@@ -194,6 +203,12 @@ export default async function ModulePage({
         ),
     ),
   );
+  const barrierRows = Array.isArray(sectionFiveAnswers.barriers)
+    ? (sectionFiveAnswers.barriers as Array<Record<string, unknown>>)
+    : [];
+  const acceptedBarriers = barrierRows
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -259,6 +274,14 @@ export default async function ModulePage({
       value: name,
       label: name,
     })),
+    acceptedBarriers: acceptedBarriers.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    keyMetrics: keyMetrics.map((name) => ({
+      value: name,
+      label: name,
+    })),
   };
   const questions = assignment.moduleVersion.questions
     .filter((question) => !isQuestionHidden(question.config))
@@ -287,6 +310,11 @@ export default async function ModulePage({
       coverTargetColumns?: string[];
       coverageWarning?: string;
       coverageError?: string;
+      requiredColumnValues?: {
+        columnKey: string;
+        values: string[];
+        error?: string;
+      };
       columns?: Array<{
         key: string;
         title: string;
@@ -633,6 +661,58 @@ export default async function ModulePage({
                           зафиксированы.
                         </p>
                       )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          {assignment.module.order === 6 &&
+            [1, 2, 3, 4, 5].every((order) =>
+              foundationAssignments.some(
+                (foundation) => foundation.module.order === order,
+              ),
+            ) && (
+              <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Основа из разделов 1–5
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-black">
+                  Контекст для оценки эффектов
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Связывайте эффект с принятыми показателями, платформами и
+                  барьерами. Это помогает отделить обоснованную причинную связь
+                  от общего ожидания положительного результата.
+                </p>
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl bg-[#E0EEFF] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Ключевые показатели
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {keyMetrics.map((metric) => (
+                        <p key={metric}>{metric}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#DDF8FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Платформы
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedPlatforms.map((platform) => (
+                        <p key={platform}>{platform}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#F1E5FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6815A8]">
+                      Барьеры
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedBarriers.map((barrier) => (
+                        <p key={barrier}>{barrier}</p>
+                      ))}
                     </div>
                   </div>
                 </div>

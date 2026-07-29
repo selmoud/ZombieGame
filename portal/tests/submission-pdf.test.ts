@@ -262,4 +262,70 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style effect tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 6,
+      moduleTitle: "Эффекты платформизации отрасли",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "effects",
+          title: "Реестр эффектов платформизации",
+          config: {
+            columns: [
+              { key: "category", title: "Категория" },
+              { key: "economicType", title: "Тип" },
+              { key: "name", title: "Эффект" },
+              { key: "relatedMetrics", title: "Показатели" },
+              { key: "platforms", title: "Платформы" },
+              { key: "macros", title: "Макротранзакции" },
+              { key: "participants", title: "Участники" },
+              { key: "relatedBarriers", title: "Барьеры" },
+              { key: "status", title: "Статус" },
+              { key: "scale", title: "Масштаб" },
+              { key: "mechanism", title: "Механизм" },
+              { key: "assessmentFormat", title: "Формат" },
+              { key: "quantitativeEstimate", title: "Оценка" },
+              { key: "basis", title: "Основание" },
+              { key: "rationale", title: "Обоснование" },
+              { key: "conditions", title: "Условия" },
+            ],
+          },
+          value: [
+            {
+              category: "Экономический",
+              economicType: "Снижение транзакционных издержек",
+              name: "Сокращение времени согласования размещения",
+              relatedMetrics: ["Эффективность монетизации"],
+              platforms: ["VK Видео"],
+              macros: ["Монетизация видео через рекламу"],
+              participants: ["Рекламодатели"],
+              relatedBarriers: ["Нет единого стандарта измерения"],
+              status: "Начинает проявляться",
+              scale: "Высокий",
+              mechanism: "Платформа автоматизирует подбор и отчётность",
+              assessmentFormat: "Экспертная качественная оценка",
+              basis: "Экспертная оценка",
+              rationale: "Часть операций выполняется автоматически",
+            },
+          ],
+        },
+        {
+          key: "effect_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: null,
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });
