@@ -9,6 +9,11 @@ services:
       DATABASE_URL: postgresql://portal:${PORTAL_DB_PASSWORD:-portal}@db:5432/portal?schema=public
       APP_URL: ${APP_URL:-http://localhost:3000}
       INVITATION_TOKEN_PEPPER: ${INVITATION_TOKEN_PEPPER:?Set INVITATION_TOKEN_PEPPER in .env}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+      MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
+      MAX_WORKER_SECRET: ${MAX_WORKER_SECRET:-}
+      MAX_LINK_TOKEN_PEPPER: ${MAX_LINK_TOKEN_PEPPER:-}
       UPLOAD_DIR: data/uploads
       MAX_UPLOAD_SIZE_MB: 20
     depends_on:
