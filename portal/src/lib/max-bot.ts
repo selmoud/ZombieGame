@@ -1,7 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { resolve4 } from "node:dns/promises";
 import { request as httpsRequest } from "node:https";
-import type { LookupFunction } from "node:net";
 import { db } from "@/lib/db";
 export {
   createMaxLinkToken,
@@ -77,20 +76,17 @@ async function sendMaxMessage(
     let status: number | undefined;
     try {
       status = await new Promise<number>((resolve, reject) => {
-        const lookup: LookupFunction | undefined = address
-          ? (_hostname, _options, callback) =>
-              callback(null, address, 4)
-          : undefined;
         const request = httpsRequest(
           {
             protocol: "https:",
-            hostname: MAX_API_HOST,
+            hostname: address ?? MAX_API_HOST,
+            servername: MAX_API_HOST,
             port: 443,
             path: `/messages?chat_id=${maxChatId.toString()}`,
             method: "POST",
-            lookup,
             headers: {
               Authorization: token,
+              Host: MAX_API_HOST,
               "Content-Type": "application/json",
               "Content-Length": Buffer.byteLength(body),
             },
