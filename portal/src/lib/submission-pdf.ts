@@ -1124,12 +1124,14 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     metrics: Array<{ label: string; value: number }>,
   ) => {
     const gap = 10;
-    const cardWidth = (document.page.width - 96 - gap) / 2;
+    const columns = metrics.length === 3 ? 3 : 2;
+    const cardWidth =
+      (document.page.width - 96 - gap * (columns - 1)) / columns;
     const cardHeight = 58;
     const startY = document.y;
     metrics.forEach((metric, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
+      const column = index % columns;
+      const row = Math.floor(index / columns);
       const x = 48 + column * (cardWidth + gap);
       const y = startY + row * (cardHeight + gap);
       document
@@ -1154,7 +1156,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         });
     });
     document.y =
-      startY + Math.ceil(metrics.length / 2) * (cardHeight + gap);
+      startY + Math.ceil(metrics.length / columns) * (cardHeight + gap);
     document.x = 48;
   };
   const renderModuleSummary = () => {
@@ -1186,16 +1188,6 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           { label: "сегменты отрасли", value: segments.length },
           { label: "этапы ретроспективы", value: stages.length },
           { label: "ключевые показатели", value: keyMetrics.length },
-          {
-            label: "подтверждающие материалы",
-            value: data.questions.some(
-              (question) =>
-                question.key === "segment_assessment_file" &&
-                Boolean(attachmentInfo(question.value)),
-            )
-              ? 1
-              : 0,
-          },
         ];
         highlightLabel = "КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ";
         highlights = keyMetrics.map((row) => String(row.metric ?? "").trim());
@@ -1260,7 +1252,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           { label: "внешние сервисы", value: serviceAccess.length },
           { label: "модели доступа участников", value: userAccess.length },
           {
-            label: "отмеченные ограничения",
+            label: "архитектурные ограничения",
             value: uniqueCount(restrictions),
           },
         ];
@@ -1342,7 +1334,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
             ).length,
           },
           {
-            label: "отмеченные ограничения",
+            label: "ограничения экспансии",
             value: uniqueCount(platforms.map((row) => row.constraints)),
           },
         ];
