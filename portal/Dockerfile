@@ -15,6 +15,7 @@ RUN apk add --no-cache ca-certificates font-dejavu
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/russian-trusted-root-ca.crt \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 COPY --from=builder --chown=node:node /app/.next/standalone ./
