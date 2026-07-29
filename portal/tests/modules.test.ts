@@ -480,4 +480,54 @@ describe("module definitions", () => {
       allowCustom: false,
     });
   });
+
+  it("assesses international expansion for inherited Russian platforms", async () => {
+    const modules = await loadModuleDefinitions();
+    const international = modules.find(
+      (module) => module.slug === "international",
+    );
+
+    expect(international?.questions.map((question) => question.key)).toEqual([
+      "international_platforms",
+      "international_materials",
+    ]);
+    expect(
+      international?.questions.some(
+        (question) =>
+          question.key === "state_support" || question.key === "target_2036",
+      ),
+    ).toBe(false);
+    expect(international?.questions[0]).toMatchObject({
+      required: true,
+      config: {
+        minRows: 1,
+        maxRows: 15,
+        lockRows: true,
+      },
+    });
+    expect(
+      international?.questions[0].config.columns?.find(
+        (column) => column.key === "platform",
+      ),
+    ).toMatchObject({
+      type: "readonly",
+      required: true,
+    });
+    expect(
+      international?.questions[0].config.columns?.find(
+        (column) => column.key === "countries",
+      ),
+    ).toMatchObject({
+      visibleWhen: { columnKey: "presence", equals: "Да" },
+      requiredWhen: { columnKey: "presence", equals: "Да" },
+    });
+    expect(
+      international?.questions[0].config.columns?.find(
+        (column) => column.key === "relatedEffects",
+      ),
+    ).toMatchObject({
+      contextKey: "acceptedEffects",
+      allowCustom: false,
+    });
+  });
 });

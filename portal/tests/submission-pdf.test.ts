@@ -328,4 +328,67 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style international expansion tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 7,
+      moduleTitle: "Международная экспансия",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "international_platforms",
+          title: "Международное присутствие и потенциал платформ",
+          config: {
+            columns: [
+              { key: "platform", title: "Платформа" },
+              { key: "presence", title: "Присутствие" },
+              { key: "countries", title: "Страны" },
+              { key: "pilotCountries", title: "Пилотные страны" },
+              { key: "channels", title: "Каналы" },
+              { key: "targetMarkets", title: "Рынки" },
+              { key: "potential", title: "Потенциал" },
+              { key: "indicators", title: "Показатели" },
+              { key: "advantages", title: "Преимущества" },
+              { key: "relatedEffects", title: "Эффекты" },
+              { key: "constraints", title: "Ограничения" },
+              { key: "conditions", title: "Условия" },
+              { key: "basis", title: "Основание" },
+              { key: "rationale", title: "Обоснование" },
+            ],
+          },
+          value: [
+            {
+              platform: "VK Видео",
+              presence: "Ограниченное или пилотное присутствие",
+              pilotCountries: ["Казахстан", "Беларусь"],
+              channels: ["Иностранные пользователи на зарубежных рынках"],
+              targetMarkets: ["СНГ"],
+              potential: "Средний",
+              indicators: "",
+              advantages: "Русскоязычный контент и рекомендательные технологии",
+              relatedEffects: ["Рост доходов авторов"],
+              constraints: ["Языковая и продуктовая локализация"],
+              conditions: "Локальные партнёрства и продвижение",
+              basis: "Экспертная оценка",
+              rationale: "Потенциал выше на русскоязычных рынках",
+            },
+          ],
+        },
+        {
+          key: "international_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: null,
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });

@@ -812,6 +812,77 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     });
     return true;
   };
+  const renderInternationalTables = (question: Question) => {
+    if (
+      question.key !== "international_platforms" ||
+      !Array.isArray(question.value)
+    ) {
+      return false;
+    }
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+    const presenceCountries = (row: Record<string, unknown>) =>
+      [
+        Array.isArray(row.countries) && row.countries.length
+          ? `Устойчивое присутствие: ${cell(row, "countries")}`
+          : "",
+        Array.isArray(row.pilotCountries) && row.pilotCountries.length
+          ? `Пилотное присутствие: ${cell(row, "pilotCountries")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("; ") || "—";
+
+    renderReportTable({
+      title: "Международное присутствие российских платформ",
+      headers: [
+        "Платформа",
+        "Текущее присутствие",
+        "Страны",
+        "Каналы экспансии",
+        "Перспективные рынки",
+        "Потенциал",
+        "Доступные показатели",
+      ],
+      rows: rows.map((row) => [
+        cell(row, "platform"),
+        cell(row, "presence"),
+        presenceCountries(row),
+        cell(row, "channels"),
+        cell(row, "targetMarkets"),
+        cell(row, "potential"),
+        cell(row, "indicators"),
+      ]),
+      weights: [1.2, 1.2, 1.5, 1.7, 1.3, 1, 1.6],
+    });
+    renderReportTable({
+      title: "Обоснование потенциала международной экспансии",
+      headers: [
+        "Платформа",
+        "Основания потенциала",
+        "Связанные эффекты",
+        "Ограничения",
+        "Необходимые условия",
+        "Основание оценки",
+        "Обоснование",
+      ],
+      rows: rows.map((row) => [
+        cell(row, "platform"),
+        cell(row, "advantages"),
+        cell(row, "relatedEffects"),
+        cell(row, "constraints"),
+        cell(row, "conditions"),
+        cell(row, "basis"),
+        cell(row, "rationale"),
+      ]),
+      weights: [1.1, 1.8, 1.2, 1.6, 1.8, 1.2, 1.8],
+    });
+    return true;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -849,7 +920,8 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       (data.moduleOrder === 3 && renderStateMarketTables(question)) ||
       (data.moduleOrder === 4 && renderArchitectureTables(question)) ||
       (data.moduleOrder === 5 && renderBarrierTables(question)) ||
-      (data.moduleOrder === 6 && renderEffectTables(question));
+      (data.moduleOrder === 6 && renderEffectTables(question)) ||
+      (data.moduleOrder === 7 && renderInternationalTables(question));
     if (tableRendered) {
       methodologyTablesRendered = true;
       return;
