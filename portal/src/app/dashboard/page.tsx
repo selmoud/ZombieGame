@@ -105,6 +105,7 @@ export default async function DashboardPage({
           const locked = !isModuleUnlockedFromAssignments(
             assignments,
             module.order,
+            user.unlockAllModules,
           );
           const canDownload = canDownloadSubmissionResults(status);
           const content = (

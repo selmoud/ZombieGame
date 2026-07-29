@@ -72,6 +72,7 @@ model User {
   expertiseReason       String?               @map("expertise_reason")
   role                  UserRole              @default(EXPERT)
   isActive              Boolean               @default(false) @map("is_active")
+  unlockAllModules      Boolean               @default(false) @map("unlock_all_modules")
   passwordHash          String?               @map("password_hash")
   activatedAt           DateTime?             @map("activated_at")
   companyId             String?               @map("company_id") @db.Uuid

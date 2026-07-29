@@ -6,7 +6,9 @@ type SequencedAssignment = {
 export function isModuleUnlockedFromAssignments(
   assignments: SequencedAssignment[],
   currentModuleOrder: number,
+  unlockAllModules = false,
 ) {
+  if (unlockAllModules) return true;
   if (currentModuleOrder <= 1) return true;
   const previousByOrder = new Map(
     assignments

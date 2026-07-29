@@ -52,4 +52,18 @@ describe("sequential module access", () => {
       ),
     ).toBe(false);
   });
+
+  it("opens every assigned module when the personal override is enabled", () => {
+    expect(
+      isModuleUnlockedFromAssignments(
+        [
+          assignment(1, "NOT_STARTED"),
+          assignment(2, "NOT_STARTED"),
+          assignment(8, "NOT_STARTED"),
+        ],
+        8,
+        true,
+      ),
+    ).toBe(true);
+  });
 });
