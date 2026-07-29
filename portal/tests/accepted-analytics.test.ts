@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAcceptedAnalytics,
+  buildSubgroupComparisons,
   type AnalyticsSubmission,
 } from "../src/lib/accepted-analytics";
 
@@ -141,7 +142,13 @@ describe("accepted analytics", () => {
         data_access: [{ restrictions: ["Нет единого формата данных"] }],
       }),
       submission(5, "Эксперт", {
-        barriers: [{ category: "Технологический", name: "Нет стандарта" }],
+        barriers: [
+          {
+            category: "Технологический",
+            technologyType: "Недостаточная интероперабельность систем",
+            name: "Нет стандарта",
+          },
+        ],
       }),
       submission(6, "Эксперт", {
         effects: [{ category: "Экономический", status: "Уже наблюдается" }],
@@ -179,6 +186,11 @@ describe("accepted analytics", () => {
       category: "Технологический",
       mentions: 1,
     });
+    expect(result.barrierTypes[0]).toEqual({
+      category: "Технологический",
+      type: "Недостаточная интероперабельность систем",
+      mentions: 1,
+    });
     expect(result.effectCategories[0].category).toBe("Экономический");
     expect(result.internationalPlatforms[0]).toMatchObject({
       platform: "VK Видео",
@@ -193,5 +205,88 @@ describe("accepted analytics", () => {
       direction: "Международная экспансия",
       mentions: 1,
     });
+  });
+
+  it("groups controlled actions and normalized platform names", () => {
+    const result = buildAcceptedAnalytics([
+      submission(2, "Эксперт 1", {
+        transaction_assessments: [
+          {
+            macro: "Публикация контента — Белова 1",
+            micro: "Согласование решения",
+            frequency: "Высокая",
+            repeatability: "Высокая",
+            standardization: "Низкая",
+            resourceIntensity: "Высокая",
+            costLevel: "Высокий",
+            executionMode: "Частично автоматизировано",
+          },
+        ],
+      }),
+      submission(2, "Эксперт 2", {
+        transaction_assessments: [
+          {
+            macro: "Монетизация контента — Петров 2",
+            micro: "Согласование решения",
+            frequency: "Высокая",
+            repeatability: "Высокая",
+            standardization: "Низкая",
+            resourceIntensity: "Высокая",
+            costLevel: "Высокий",
+            executionMode: "Частично автоматизировано",
+          },
+        ],
+      }),
+      submission(3, "Эксперт 1", {
+        platforms: [{ name: "VK Видео", type: "Рыночная" }],
+      }),
+      submission(3, "Эксперт 2", {
+        platforms: [{ name: "VK Видео (Медиа)", type: "Рыночная" }],
+      }),
+    ]);
+
+    expect(result.actionPriorities).toHaveLength(1);
+    expect(result.actionPriorities[0].responses).toBe(2);
+    expect(result.platforms).toEqual([
+      { name: "VK Видео", mentions: 2, types: ["Рыночная"] },
+    ]);
+  });
+
+  it("builds a rule-based comparison for every subgroup", () => {
+    const first = submission(1, "Эксперт 1", {
+      industry_boundaries: [
+        {
+          segment: "Онлайн-видео",
+          userActivityShare: "Крупная — 25–50%",
+          economicShare: "Заметная — 10–25%",
+        },
+      ],
+    });
+    first.assignment.user!.subgroupMemberships = [
+      { subgroup: { name: "Коммуникации" } },
+      { subgroup: { name: "Авторский контент" } },
+    ];
+    const second = submission(1, "Эксперт 2", {
+      industry_boundaries: [
+        {
+          segment: "Мессенджеры",
+          userActivityShare: "Доминирующая — более 50%",
+          economicShare: "Крупная — 25–50%",
+        },
+      ],
+    });
+    second.assignment.user!.subgroupMemberships = [
+      { subgroup: { name: "Коммуникации" } },
+    ];
+
+    const comparison = buildSubgroupComparisons([first, second]);
+
+    expect(comparison).toHaveLength(2);
+    expect(
+      comparison.find((item) => item.name === "Коммуникации"),
+    ).toMatchObject({ experts: 2, acceptedModules: 2 });
+    expect(
+      comparison.find((item) => item.name === "Авторский контент"),
+    ).toMatchObject({ experts: 1, acceptedModules: 1 });
   });
 });

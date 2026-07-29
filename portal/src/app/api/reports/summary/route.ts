@@ -55,7 +55,17 @@ export async function GET(request: Request) {
           assignment: {
             include: {
               module: true,
-              user: { select: { id: true, fullName: true } },
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  subgroupMemberships: {
+                    select: {
+                      subgroup: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
             },
           },
           answers: {
@@ -89,7 +99,7 @@ export async function GET(request: Request) {
     ]);
 
   const pdf = await createGroupSummaryPdf({
-    scopeTitle: subgroup?.name ?? "Все подгруппы",
+    scopeTitle: subgroup?.name ?? "Вся рабочая группа",
     scopeKind: subgroup ? "subgroup" : "all",
     generatedBy: user.fullName,
     memberCount,

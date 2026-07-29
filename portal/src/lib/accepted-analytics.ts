@@ -1,7 +1,11 @@
 export type AnalyticsSubmission = {
   assignment: {
     module: { order: number };
-    user?: { id: string; fullName: string };
+    user?: {
+      id: string;
+      fullName: string;
+      subgroupMemberships?: Array<{ subgroup: { id?: string; name: string } }>;
+    };
   };
   answers: Array<{
     value: unknown;
@@ -32,6 +36,15 @@ const PLATFORM_SHARE_LABELS = [
   "Более 50%",
 ];
 
+const SHARE_SHORT_LABELS = [
+  "—",
+  "<5%",
+  "5–10%",
+  "10–25%",
+  "25–50%",
+  ">50%",
+];
+
 function rows(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value)
     ? value.filter(
@@ -43,6 +56,16 @@ function rows(value: unknown): Record<string, unknown>[] {
 
 function text(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function normalizedPlatformName(value: unknown) {
+  return text(value).replace(/\s+\([^()]+\)\s*$/u, "").trim();
+}
+
+function normalizedMacroName(value: unknown) {
+  return text(value)
+    .replace(/\s+—\s+[А-ЯЁ][а-яё-]+\s+\d+\s*$/u, "")
+    .trim();
 }
 
 export function deduplicateAnalyticsSubmissions(
@@ -144,6 +167,25 @@ function combinedAgreement(dimensions: number[][]) {
   return "Недостаточно оценок";
 }
 
+function distribution(values: number[]) {
+  const counts = values
+    .filter(Boolean)
+    .reduce((map, value) => {
+      map.set(value, (map.get(value) ?? 0) + 1);
+      return map;
+    }, new Map<number, number>());
+  return (
+    Array.from(counts, ([value, count]) => ({
+      value,
+      label: SHARE_SHORT_LABELS[value] ?? "—",
+      count,
+    }))
+      .sort((a, b) => b.value - a.value)
+      .map((item) => `${item.label}: ${item.count}`)
+      .join("; ") || "—"
+  );
+}
+
 function influenceKind(value: unknown) {
   const normalized = text(value).toLocaleLowerCase("ru");
   if (normalized.includes("негатив")) return "negative";
@@ -190,6 +232,8 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
       responses: new Set(matching.map((row) => row.submissionIndex)).size,
       activity: SHARE_LABELS[median(activity)],
       economy: SHARE_LABELS[median(economy)],
+      activityDistribution: distribution(activity),
+      economyDistribution: distribution(economy),
       agreement: combinedAgreement([activity, economy]),
       gap: median(activity) - median(economy),
       rationales: matching
@@ -302,7 +346,7 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     string,
     {
       name: string;
-      macro: string;
+      macros: Set<string>;
       count: number;
       totalScore: number;
       costSources: Map<string, number>;
@@ -324,16 +368,17 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     const score = parts.length
       ? parts.reduce((sum, item) => sum + item, 0) / parts.length
       : 0;
-    const key = `${text(row.macro)}\u0000${name}`;
+    const key = name.toLocaleLowerCase("ru");
     const current = actionMap.get(key) ?? {
       name,
-      macro: text(row.macro),
+      macros: new Set<string>(),
       count: 0,
       totalScore: 0,
       costSources: new Map<string, number>(),
     };
     current.count += 1;
     current.totalScore += score;
+    if (text(row.macro)) current.macros.add(normalizedMacroName(row.macro));
     const sources = Array.isArray(row.costSources)
       ? row.costSources
       : [row.costSources];
@@ -350,7 +395,11 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
       const score = action.count ? action.totalScore / action.count : 0;
       return {
         name: action.name,
-        macro: action.macro,
+        macro:
+          Array.from(action.macros)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join("; ") || "—",
         responses: action.count,
         score,
         priority: score >= 4 ? "Высокий" : score >= 3 ? "Средний" : "Низкий",
@@ -373,7 +422,7 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     { name: string; mentions: number; types: Set<string> }
   >();
   platformRows.forEach((row) => {
-    const name = text(row.name);
+    const name = normalizedPlatformName(row.name);
     if (!name) return;
     const current = platformMap.get(name) ?? {
       name,
@@ -393,12 +442,16 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     .sort((a, b) => b.mentions - a.mentions || a.name.localeCompare(b.name, "ru"));
 
   const penetrationMacros = Array.from(
-    new Set(penetrationRows.map((row) => text(row.macro)).filter(Boolean)),
+    new Set(
+      penetrationRows
+        .map((row) => normalizedMacroName(row.macro))
+        .filter(Boolean),
+    ),
   );
   const platformPenetration = penetrationMacros
     .map((macro) => {
       const matching = penetrationRows.filter(
-        (row) => text(row.macro) === macro,
+        (row) => normalizedMacroName(row.macro) === macro,
       );
       const values = matching.map((row) => platformShareLevel(row.share));
       return {
@@ -458,6 +511,31 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     (a, b) =>
       b.mentions - a.mentions || a.name.localeCompare(b.name, "ru"),
   );
+  const barrierTypeKeys: Record<string, string> = {
+    Структурный: "structuralType",
+    Регуляторный: "regulatoryType",
+    Технологический: "technologyType",
+    Иной: "otherType",
+  };
+  const barrierTypes = Array.from(
+    barrierRows
+      .reduce((map, row) => {
+        const category = text(row.category);
+        const type = text(row[barrierTypeKeys[category] ?? ""]);
+        if (!type) return map;
+        const key = `${category}\u0000${type}`;
+        const current = map.get(key) ?? { category, type, mentions: 0 };
+        current.mentions += 1;
+        map.set(key, current);
+        return map;
+      }, new Map<string, { category: string; type: string; mentions: number }>())
+      .values(),
+  ).sort(
+    (a, b) =>
+      b.mentions - a.mentions ||
+      a.category.localeCompare(b.category, "ru") ||
+      a.type.localeCompare(b.type, "ru"),
+  );
 
   const effectRows = questionRows(uniqueSubmissions, 6, "effects");
   const effectCategories = Array.from(
@@ -483,11 +561,15 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     "international_platforms",
   );
   const internationalPlatforms = Array.from(
-    new Set(internationalRows.map((row) => text(row.platform)).filter(Boolean)),
+    new Set(
+      internationalRows
+        .map((row) => normalizedPlatformName(row.platform))
+        .filter(Boolean),
+    ),
   )
     .map((platform) => {
       const matching = internationalRows.filter(
-        (row) => text(row.platform) === platform,
+        (row) => normalizedPlatformName(row.platform) === platform,
       );
       const potentials = matching.map((row) => level(row.potential));
       const constraintMap = new Map<string, number>();
@@ -537,11 +619,15 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     "target_transactions",
   );
   const targetMacros = Array.from(
-    new Set(targetRows.map((row) => text(row.macro)).filter(Boolean)),
+    new Set(
+      targetRows.map((row) => normalizedMacroName(row.macro)).filter(Boolean),
+    ),
   );
   const targetTransactions = targetMacros
     .map((macro) => {
-      const matching = targetRows.filter((row) => text(row.macro) === macro);
+      const matching = targetRows.filter(
+        (row) => normalizedMacroName(row.macro) === macro,
+      );
       const transactionShares = matching.map((row) =>
         platformShareLevel(row.targetShare),
       );
@@ -593,6 +679,7 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     platformPenetration,
     architectureConstraints,
     barrierCategories,
+    barrierTypes,
     barrierNames,
     effectCategories,
     effectStatuses,
@@ -600,4 +687,45 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     targetTransactions,
     recommendationDirections,
   };
+}
+
+export function buildSubgroupComparisons(
+  submissions: AnalyticsSubmission[],
+) {
+  const subgroupNames = Array.from(
+    new Set(
+      submissions.flatMap(
+        (submission) =>
+          submission.assignment.user?.subgroupMemberships?.map(
+            (membership) => membership.subgroup.name,
+          ) ?? [],
+      ),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "ru"));
+
+  return subgroupNames.map((name) => {
+    const scoped = submissions.filter((submission) =>
+      submission.assignment.user?.subgroupMemberships?.some(
+        (membership) => membership.subgroup.name === name,
+      ),
+    );
+    const unique = deduplicateAnalyticsSubmissions(scoped);
+    const analytics = buildAcceptedAnalytics(unique);
+    return {
+      name,
+      experts: new Set(
+        unique
+          .map((submission) => submission.assignment.user?.id)
+          .filter(Boolean),
+      ).size,
+      acceptedModules: unique.length,
+      segments: analytics.segmentComparison.slice(0, 3).map((item) => item.name),
+      metrics: analytics.priorityMetrics.slice(0, 3).map((item) => item.name),
+      barriers: analytics.barrierTypes.slice(0, 3).map((item) => item.type),
+      effects: analytics.effectStatuses.slice(0, 2).map((item) => item.status),
+      recommendations: analytics.recommendationDirections
+        .slice(0, 3)
+        .map((item) => item.direction),
+    };
+  });
 }

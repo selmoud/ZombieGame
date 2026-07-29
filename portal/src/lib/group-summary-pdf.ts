@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import PDFDocument from "pdfkit";
 import {
   buildAcceptedAnalytics,
+  buildSubgroupComparisons,
   deduplicateAnalyticsSubmissions,
   type AnalyticsSubmission,
 } from "./accepted-analytics";
@@ -50,6 +51,14 @@ function list(values: Array<{ name: string; mentions?: number; count?: number }>
   );
 }
 
+function joined(values: string[], limit = 3) {
+  return values.slice(0, limit).join("; ") || "—";
+}
+
+function limitedTitle(title: string, total: number, limit: number) {
+  return total > limit ? `${title} · топ-${limit} из ${total}` : title;
+}
+
 export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
   const generatedAt = new Date();
   const uniqueSubmissions = deduplicateAnalyticsSubmissions(data.submissions);
@@ -68,6 +77,12 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
   const completedExperts = Array.from(experts.values()).filter(
     (expert) => expert.modules.size === data.moduleCount,
   ).length;
+  const expectedModules = data.memberCount * data.moduleCount;
+  const completionRate = expectedModules
+    ? Math.round((uniqueSubmissions.length / expectedModules) * 100)
+    : 0;
+  const subgroupComparisons =
+    data.scopeKind === "all" ? buildSubgroupComparisons(uniqueSubmissions) : [];
   const moduleCoverage = Array.from({ length: data.moduleCount }, (_, index) => {
     const order = index + 1;
     return {
@@ -99,15 +114,15 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
   document.font("Roboto");
 
   const metricCards = (
-    metrics: Array<{ value: number; label: string }>,
+    metrics: Array<{ value: number | string; label: string }>,
   ) => {
     const gap = 10;
-    const width = (document.page.width - 96 - gap) / 2;
+    const width = (document.page.width - 96 - gap * 2) / 3;
     const height = 62;
     const startY = document.y;
     metrics.forEach((metric, index) => {
-      const x = 48 + (index % 2) * (width + gap);
-      const y = startY + Math.floor(index / 2) * (height + gap);
+      const x = 48 + (index % 3) * (width + gap);
+      const y = startY + Math.floor(index / 3) * (height + gap);
       document
         .roundedRect(x, y, width, height, 8)
         .fillAndStroke("#F3F7FC", "#C7D8EF");
@@ -116,21 +131,21 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
         .fontSize(21)
         .fillColor("#0059C7")
         .text(String(metric.value), x + 14, y + 11, {
-          width: 50,
+          width: 58,
           height: 28,
         });
       document
         .font("Roboto")
         .fontSize(9.5)
         .fillColor("#333333")
-        .text(metric.label, x + 66, y + 15, {
-          width: width - 80,
+        .text(metric.label, x + 76, y + 15, {
+          width: width - 88,
           height: 34,
           lineGap: 1.5,
         });
     });
     document.y =
-      startY + Math.ceil(metrics.length / 2) * (height + gap);
+      startY + Math.ceil(metrics.length / 3) * (height + gap);
     document.x = 48;
   };
 
@@ -147,7 +162,12 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     .font("RobotoBold")
     .fontSize(23)
     .fillColor("#000000")
-    .text(data.scopeTitle, { lineGap: 3 });
+    .text(
+      data.scopeKind === "all"
+        ? "Итоговый отчёт рабочей группы"
+        : data.scopeTitle,
+      { lineGap: 3 },
+    );
   document.moveDown(0.7);
   document
     .font("Roboto")
@@ -170,10 +190,9 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     .stroke();
   document.moveDown(1);
   metricCards([
-    { value: data.memberCount, label: "участники в выбранном контуре" },
-    { value: experts.size, label: "эксперты с принятыми ответами" },
-    { value: uniqueSubmissions.length, label: "принятые экспертные модули" },
-    { value: completedExperts, label: "эксперты, завершившие все модули" },
+    { value: data.memberCount, label: "экспертов в выбранном контуре" },
+    { value: `${completionRate}%`, label: "покрытие принятыми ответами" },
+    { value: completedExperts, label: "завершили все модули" },
   ]);
   document
     .font("RobotoBold")
@@ -351,9 +370,111 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     });
   };
 
+  const prioritySegments = [...analytics.segmentComparison].sort(
+    (a, b) =>
+      b.responses - a.responses || a.name.localeCompare(b.name, "ru"),
+  );
+  const disagreementRows = analytics.segmentComparison
+    .filter((item) => item.agreement === "Мнения расходятся")
+    .map((item) => [
+      item.name,
+      item.activityDistribution,
+      item.economyDistribution,
+      String(item.responses),
+    ]);
+
+  startSection(
+    "Краткий аналитический обзор",
+    "Приоритеты и зоны расхождения рассчитаны по принятым ответам. Формулировки не создаются системой и не заменяют содержательную интерпретацию рабочей группы.",
+  );
+  renderTable({
+    title: "Основные сигналы по модулям",
+    headers: ["Контур анализа", "Результаты по частоте и приоритету"],
+    rows: [
+      [
+        "Наиболее часто оценённые сегменты",
+        joined(prioritySegments.slice(0, 5).map((item) => item.name), 5),
+      ],
+      [
+        "Приоритетные действия",
+        joined(analytics.actionPriorities.slice(0, 5).map((item) => item.name), 5),
+      ],
+      [
+        "Основные типы барьеров",
+        joined(analytics.barrierTypes.slice(0, 5).map((item) => item.type), 5),
+      ],
+      [
+        "Статусы ожидаемых эффектов",
+        joined(analytics.effectStatuses.slice(0, 4).map((item) => item.status), 4),
+      ],
+      [
+        "Направления рекомендаций",
+        joined(
+          analytics.recommendationDirections
+            .slice(0, 5)
+            .map((item) => item.direction),
+          5,
+        ),
+      ],
+    ],
+    weights: [1.5, 4.5],
+  });
+  renderTable({
+    title: "Зоны расхождения в оценках сегментов",
+    headers: [
+      "Сегмент",
+      "Пользовательская активность · распределение",
+      "Экономическая доля · распределение",
+      "Оценок",
+    ],
+    rows: disagreementRows.slice(0, 8),
+    weights: [2, 2.1, 2.1, 0.7],
+  });
+
+  if (subgroupComparisons.length > 0) {
+    startSection(
+      "Сравнение подгрупп",
+      "Эксперт, состоящий в нескольких подгруппах, учитывается в каждой из них; в своде рабочей группы его ответ по модулю учитывается один раз.",
+    );
+    renderTable({
+      title: "Охват и фокус экспертной оценки",
+      headers: [
+        "Подгруппа",
+        "Экспертов",
+        "Принято модулей",
+        "Приоритетные сегменты",
+        "Ключевые показатели",
+      ],
+      rows: subgroupComparisons.map((item) => [
+        item.name,
+        String(item.experts),
+        String(item.acceptedModules),
+        joined(item.segments),
+        joined(item.metrics),
+      ]),
+      weights: [1.3, 0.6, 0.8, 2.2, 2.4],
+    });
+    renderTable({
+      title: "Различия в барьерах, эффектах и рекомендациях",
+      headers: [
+        "Подгруппа",
+        "Типы барьеров",
+        "Статусы эффектов",
+        "Направления рекомендаций",
+      ],
+      rows: subgroupComparisons.map((item) => [
+        item.name,
+        joined(item.barriers),
+        joined(item.effects, 2),
+        joined(item.recommendations),
+      ]),
+      weights: [1.3, 2.2, 1.8, 2.4],
+    });
+  }
+
   startSection(
     "Охват данных",
-    "Количество принятых модулей и прогресс экспертов в выбранном контуре.",
+    "Покрытие по модулям и только те эксперты, у которых остаются незавершённые модули.",
   );
   renderTable({
     title: "Покрытие по модулям",
@@ -365,15 +486,21 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [3, 1],
   });
   renderTable({
-    title: "Прогресс экспертов",
+    title: "Незавершённые прохождения",
     headers: ["Эксперт", "Принято модулей", "Завершение"],
-    rows: Array.from(experts.values())
-      .sort((a, b) => a.name.localeCompare(b.name, "ru"))
-      .map((expert) => [
-        expert.name,
-        `${expert.modules.size} из ${data.moduleCount}`,
-        expert.modules.size === data.moduleCount ? "Завершил" : "В работе",
-      ]),
+    rows: (() => {
+      const incomplete = Array.from(experts.values())
+        .filter((expert) => expert.modules.size < data.moduleCount)
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+        .map((expert) => [
+          expert.name,
+          `${expert.modules.size} из ${data.moduleCount}`,
+          "В работе",
+        ]);
+      return incomplete.length
+        ? incomplete
+        : [["Все эксперты завершили программу", `${data.moduleCount} из ${data.moduleCount}`, "Завершили"]];
+    })(),
     weights: [3, 1.2, 1.2],
   });
 
@@ -411,22 +538,30 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     title: "Карта сегментов",
     headers: [
       "Сегмент",
-      "Пользовательская активность",
-      "Экономическая доля",
+      "Активность · медиана",
+      "Распределение активности",
+      "Экономика · медиана",
+      "Распределение экономики",
       "Оценок",
       "Согласованность",
     ],
     rows: analytics.segmentComparison.map((item) => [
       item.name,
       item.activity,
+      item.activityDistribution,
       item.economy,
+      item.economyDistribution,
       String(item.responses),
       item.agreement,
     ]),
-    weights: [1.8, 1.6, 1.6, 0.7, 1.3],
+    weights: [1.7, 1.3, 1.4, 1.3, 1.4, 0.6, 1.1],
   });
   renderTable({
-    title: "Ретроспективные факторы",
+    title: limitedTitle(
+      "Ретроспективные факторы",
+      analytics.factors.length,
+      8,
+    ),
     headers: [
       "Фактор",
       "Период",
@@ -434,7 +569,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
       "Нейтральное",
       "Позитивное",
     ],
-    rows: analytics.factors.map((item) => [
+    rows: analytics.factors.slice(0, 8).map((item) => [
       item.factor,
       item.period,
       String(item.negative),
@@ -444,9 +579,13 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [2.8, 1.2, 1, 1, 1],
   });
   renderTable({
-    title: "Приоритет ключевых показателей",
+    title: limitedTitle(
+      "Приоритет ключевых показателей",
+      analytics.priorityMetrics.length,
+      8,
+    ),
     headers: ["Показатель", "Выборов", "Взвешенный балл"],
-    rows: analytics.priorityMetrics.map((item) => [
+    rows: analytics.priorityMetrics.slice(0, 8).map((item) => [
       item.name,
       String(item.selections),
       String(item.score),
@@ -459,9 +598,13 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     "Устойчивые маршруты взаимодействия и действия, требующие первоочередной цифровизации.",
   );
   renderTable({
-    title: "Маршруты взаимодействия",
+    title: limitedTitle(
+      "Маршруты взаимодействия",
+      analytics.routes.length,
+      8,
+    ),
     headers: ["Инициатор", "Получатель", "Тип", "Упоминаний"],
-    rows: analytics.routes.map((item) => [
+    rows: analytics.routes.slice(0, 8).map((item) => [
       item.initiator,
       item.recipient,
       item.type || "—",
@@ -470,7 +613,11 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [2, 2, 1.2, 0.8],
   });
   renderTable({
-    title: "Приоритетные действия",
+    title: limitedTitle(
+      "Приоритетные действия",
+      analytics.actionPriorities.length,
+      10,
+    ),
     headers: [
       "Макротранзакция",
       "Действие",
@@ -478,7 +625,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
       "Приоритет",
       "Основные источники издержек",
     ],
-    rows: analytics.actionPriorities.map((item) => [
+    rows: analytics.actionPriorities.slice(0, 10).map((item) => [
       item.macro,
       item.name,
       String(item.responses),
@@ -493,9 +640,13 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     "Действующие платформы и медианная оценка проникновения в макротранзакции.",
   );
   renderTable({
-    title: "Действующие платформы",
+    title: limitedTitle(
+      "Действующие платформы",
+      analytics.platforms.length,
+      10,
+    ),
     headers: ["Платформа", "Типы", "Упоминаний"],
-    rows: analytics.platforms.map((item) => [
+    rows: analytics.platforms.slice(0, 10).map((item) => [
       item.name,
       item.types.join(", ") || "—",
       String(item.mentions),
@@ -503,9 +654,13 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [2.5, 2.5, 1],
   });
   renderTable({
-    title: "Уровень проникновения платформ",
+    title: limitedTitle(
+      "Уровень проникновения платформ",
+      analytics.platformPenetration.length,
+      10,
+    ),
     headers: ["Макротранзакция", "Медиана", "Оценок", "Согласованность"],
-    rows: analytics.platformPenetration.map((item) => [
+    rows: analytics.platformPenetration.slice(0, 10).map((item) => [
       item.macro,
       item.share,
       String(item.responses),
@@ -515,25 +670,25 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
   });
 
   startSection(
-    "Модуль 04 · Архитектура взаимодействия",
-    "Наиболее часто отмечаемые ограничения доступа к данным, сервисам и платформам.",
+    "Модули 04–06 · Ограничения, барьеры и эффекты",
+    "Связанный обзор архитектурных ограничений, методических типов барьеров и ожидаемых эффектов платформизации.",
   );
   renderTable({
-    title: "Ограничения архитектуры",
+    title: limitedTitle(
+      "Модуль 04 · Ограничения архитектуры",
+      analytics.architectureConstraints.length,
+      10,
+    ),
     headers: ["Ограничение", "Упоминаний"],
-    rows: analytics.architectureConstraints.map((item) => [
+    rows: analytics.architectureConstraints.slice(0, 10).map((item) => [
       item.name,
       String(item.mentions),
     ]),
     weights: [5, 1],
   });
 
-  startSection(
-    "Модуль 05 · Барьеры для развития платформ",
-    "Распределение барьеров по категориям и наиболее часто названные барьеры.",
-  );
   renderTable({
-    title: "Категории барьеров",
+    title: "Модуль 05 · Категории барьеров",
     headers: ["Категория", "Упоминаний"],
     rows: analytics.barrierCategories.map((item) => [
       item.category,
@@ -542,21 +697,22 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [4, 1],
   });
   renderTable({
-    title: "Приоритетные барьеры",
-    headers: ["Барьер", "Упоминаний"],
-    rows: analytics.barrierNames.map((item) => [
-      item.name,
+    title: limitedTitle(
+      "Модуль 05 · Приоритетные типы барьеров",
+      analytics.barrierTypes.length,
+      10,
+    ),
+    headers: ["Категория", "Тип барьера", "Упоминаний"],
+    rows: analytics.barrierTypes.slice(0, 10).map((item) => [
+      item.category,
+      item.type,
       String(item.mentions),
     ]),
-    weights: [5, 1],
+    weights: [1.3, 4, 1],
   });
 
-  startSection(
-    "Модуль 06 · Эффекты платформизации",
-    "Распределение эффектов по категориям и статусам реализации.",
-  );
   renderTable({
-    title: "Категории эффектов",
+    title: "Модуль 06 · Категории эффектов",
     headers: ["Категория", "Упоминаний"],
     rows: analytics.effectCategories.map((item) => [
       item.category,
@@ -565,7 +721,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [4, 1],
   });
   renderTable({
-    title: "Статусы эффектов",
+    title: "Модуль 06 · Статусы эффектов",
     headers: ["Статус", "Упоминаний"],
     rows: analytics.effectStatuses.map((item) => [
       item.status,
@@ -579,7 +735,11 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     "Оценка потенциала российских платформ, перспективные рынки и ограничения.",
   );
   renderTable({
-    title: "Потенциал международной экспансии",
+    title: limitedTitle(
+      "Потенциал международной экспансии",
+      analytics.internationalPlatforms.length,
+      10,
+    ),
     headers: [
       "Платформа",
       "Потенциал",
@@ -588,7 +748,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
       "Рынки",
       "Ограничения",
     ],
-    rows: analytics.internationalPlatforms.map((item) => [
+    rows: analytics.internationalPlatforms.slice(0, 10).map((item) => [
       item.platform,
       item.potential,
       String(item.responses),
@@ -604,7 +764,11 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     "Медианные целевые параметры и распределение практических рекомендаций по направлениям.",
   );
   renderTable({
-    title: "Целевые параметры транзакций",
+    title: limitedTitle(
+      "Целевые параметры транзакций",
+      analytics.targetTransactions.length,
+      10,
+    ),
     headers: [
       "Макротранзакция",
       "Доля через платформы",
@@ -613,7 +777,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
       "Оценок",
       "Согласованность",
     ],
-    rows: analytics.targetTransactions.map((item) => [
+    rows: analytics.targetTransactions.slice(0, 10).map((item) => [
       item.macro,
       item.transactionShare,
       item.participantShare,
