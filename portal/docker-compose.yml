@@ -13,7 +13,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${PORTAL_APP_BIND_ADDRESS:-0.0.0.0}:${PORTAL_APP_HOST_PORT:-3000}:3000"
     volumes:
       - portal_uploads:/app/data/uploads
     security_opt:
@@ -43,7 +43,7 @@ services:
       POSTGRES_USER: portal
       POSTGRES_PASSWORD: ${PORTAL_DB_PASSWORD:-portal}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${PORTAL_DB_BIND_ADDRESS:-127.0.0.1}:${PORTAL_DB_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U portal -d portal"]
       interval: 3s
