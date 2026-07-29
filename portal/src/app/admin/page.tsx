@@ -94,13 +94,19 @@ export default async function AdminPage({
             Эксперты, ответы и подготовка материалов доклада.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/analytics"
             className="rounded-xl border border-[#0059C7] bg-white px-4 py-3 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
           >
             Сводная аналитика
           </Link>
+          <a
+            href="/api/reports/summary?scope=all"
+            className="rounded-xl border border-[#0059C7] bg-white px-4 py-3 text-sm font-semibold text-[#0059C7] hover:bg-[#E0EEFF]"
+          >
+            Итоговый PDF
+          </a>
           <Link
             href="/api/admin/export"
             className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-[#000000] hover:bg-neutral-50"

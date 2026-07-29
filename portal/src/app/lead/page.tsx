@@ -98,9 +98,9 @@ export default async function LeadPage({
             принятым модератором.
           </p>
         </div>
-        {ledSubgroups.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            {ledSubgroups.map((subgroup) => (
+        <div className="flex max-w-2xl flex-wrap justify-end gap-2">
+          {ledSubgroups.length > 1 &&
+            ledSubgroups.map((subgroup) => (
               <Link
                 key={subgroup.id}
                 href={`/lead?subgroup=${subgroup.id}`}
@@ -113,8 +113,13 @@ export default async function LeadPage({
                 {subgroup.name}
               </Link>
             ))}
-          </div>
-        )}
+          <a
+            href={`/api/reports/summary?subgroup=${selected.id}`}
+            className="rounded-xl bg-[#0059C7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#00479F]"
+          >
+            Сформировать итоговый PDF
+          </a>
+        </div>
       </div>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

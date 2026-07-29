@@ -80,12 +80,24 @@ export default async function AdminAnalyticsPage({
             даже если эксперт состоит в нескольких подгруппах.
           </p>
         </div>
-        <Link
-          href="/admin"
-          className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-neutral-50"
-        >
-          Вернуться в админку
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={
+              selected
+                ? `/api/reports/summary?subgroup=${selected.id}`
+                : "/api/reports/summary?scope=all"
+            }
+            className="rounded-xl bg-[#0059C7] px-4 py-3 text-sm font-semibold text-white hover:bg-[#00479F]"
+          >
+            Сформировать итоговый PDF
+          </a>
+          <Link
+            href="/admin"
+            className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-neutral-50"
+          >
+            Вернуться в админку
+          </Link>
+        </div>
       </div>
 
       <nav className="mt-7 flex flex-wrap gap-2">

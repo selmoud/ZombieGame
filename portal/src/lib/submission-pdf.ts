@@ -1157,9 +1157,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       startY + Math.ceil(metrics.length / 2) * (cardHeight + gap);
     document.x = 48;
   };
-  const renderPilotSummary = () => {
-    if (data.moduleOrder !== 2 && data.moduleOrder !== 8) return;
-
+  const renderModuleSummary = () => {
     document
       .font("RobotoLikeBold")
       .fontSize(14)
@@ -1167,90 +1165,248 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       .text("Краткая структура ответа");
     document.moveDown(0.65);
 
-    if (data.moduleOrder === 2) {
-      const participants = questionRows("participants");
-      const macros = questionRows("macrotransactions");
-      const micros = questionRows("microtransactions");
-      const assessments = questionRows("transaction_assessments");
-      const highCostActions = assessments.filter((row) =>
-        String(row.costLevel ?? "")
-          .toLocaleLowerCase("ru-RU")
-          .includes("высок"),
-      ).length;
-      renderMetricCards([
-        { label: "группы участников", value: participants.length },
-        { label: "макротранзакции", value: macros.length },
-        { label: "действия в сценариях", value: micros.length },
-        { label: "действия с высокими издержками", value: highCostActions },
-      ]);
-      const macroNames = macros
-        .map((row) => String(row.name ?? "").trim())
-        .filter(Boolean);
-      if (macroNames.length) {
-        document
-          .font("RobotoLikeBold")
-          .fontSize(10)
-          .fillColor("#555555")
-          .text("ОПИСАННЫЕ МАКРОТРАНЗАКЦИИ");
-        document.moveDown(0.35);
-        macroNames.slice(0, 6).forEach((name, index) => {
-          document
-            .font("RobotoLike")
-            .fontSize(10)
-            .fillColor("#222222")
-            .text(`${index + 1}. ${name}`, { lineGap: 2 });
-        });
-        document.moveDown(0.6);
+    let metrics: Array<{ label: string; value: number }> = [];
+    let highlightLabel = "";
+    let highlights: string[] = [];
+    let description = "";
+    const uniqueCount = (values: unknown[]) =>
+      new Set(
+        values
+          .flatMap((value) => (Array.isArray(value) ? value : [value]))
+          .map((value) => String(value ?? "").trim())
+          .filter(Boolean),
+      ).size;
+
+    switch (data.moduleOrder) {
+      case 1: {
+        const segments = questionRows("industry_boundaries");
+        const stages = questionRows("current_state");
+        const keyMetrics = questionRows("key_metrics");
+        metrics = [
+          { label: "сегменты отрасли", value: segments.length },
+          { label: "этапы ретроспективы", value: stages.length },
+          { label: "ключевые показатели", value: keyMetrics.length },
+          {
+            label: "подтверждающие материалы",
+            value: data.questions.some(
+              (question) =>
+                question.key === "segment_assessment_file" &&
+                Boolean(attachmentInfo(question.value)),
+            )
+              ? 1
+              : 0,
+          },
+        ];
+        highlightLabel = "КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ";
+        highlights = keyMetrics.map((row) => String(row.metric ?? "").trim());
+        description =
+          "Далее приведены границы и сегменты отрасли, ретроспективная оценка и перечень ключевых показателей.";
+        break;
       }
-      document
-        .font("RobotoLike")
-        .fontSize(9.5)
-        .fillColor("#666666")
-        .text(
-          "Далее приведены структура участников, сценарии взаимодействия, последовательности действий и оценка транзакционных издержек.",
-          { lineGap: 2 },
-        );
-    } else {
-      const targetTransactions = questionRows("target_transactions");
-      const targetModel = questionRows("target_model");
-      const recommendations = questionRows("recommendations");
-      const disagreements = questionRows("disagreements");
-      renderMetricCards([
-        { label: "целевые макротранзакции", value: targetTransactions.length },
-        { label: "элементы целевой модели", value: targetModel.length },
-        { label: "практические рекомендации", value: recommendations.length },
-        { label: "зафиксированные разногласия", value: disagreements.length },
-      ]);
-      if (recommendations.length) {
-        document
-          .font("RobotoLikeBold")
-          .fontSize(10)
-          .fillColor("#555555")
-          .text("ПРИОРИТЕТНЫЕ РЕКОМЕНДАЦИИ");
-        document.moveDown(0.35);
-        recommendations.slice(0, 5).forEach((row, index) => {
-          const title = String(row.title ?? "").trim() || "Не заполнено";
+      case 2: {
+        const participants = questionRows("participants");
+        const macros = questionRows("macrotransactions");
+        const micros = questionRows("microtransactions");
+        const assessments = questionRows("transaction_assessments");
+        metrics = [
+          { label: "группы участников", value: participants.length },
+          { label: "макротранзакции", value: macros.length },
+          { label: "действия в сценариях", value: micros.length },
+          {
+            label: "действия с высокими издержками",
+            value: assessments.filter((row) =>
+              String(row.costLevel ?? "")
+                .toLocaleLowerCase("ru-RU")
+                .includes("высок"),
+            ).length,
+          },
+        ];
+        highlightLabel = "ОПИСАННЫЕ МАКРОТРАНЗАКЦИИ";
+        highlights = macros.map((row) => String(row.name ?? "").trim());
+        description =
+          "Далее приведены структура участников, сценарии взаимодействия, последовательности действий и оценка транзакционных издержек.";
+        break;
+      }
+      case 3: {
+        const stateFunctions = questionRows("state_functions");
+        const formats = questionRows("interaction_formats");
+        const platforms = questionRows("platforms");
+        const penetration = questionRows("platform_penetration");
+        metrics = [
+          { label: "функции государства", value: stateFunctions.length },
+          { label: "форматы взаимодействия", value: formats.length },
+          { label: "действующие платформы", value: platforms.length },
+          { label: "оценки проникновения", value: penetration.length },
+        ];
+        highlightLabel = "ДЕЙСТВУЮЩИЕ ПЛАТФОРМЫ";
+        highlights = platforms.map((row) => String(row.name ?? "").trim());
+        description =
+          "Далее приведены роли государства и рынка, форматы взаимодействия, действующие платформы и оценка их проникновения.";
+        break;
+      }
+      case 4: {
+        const dataAccess = questionRows("data_access");
+        const serviceAccess = questionRows("service_access");
+        const userAccess = questionRows("user_access");
+        const restrictions = [...dataAccess, ...serviceAccess, ...userAccess]
+          .flatMap((row) =>
+            Array.isArray(row.restrictions)
+              ? row.restrictions
+              : [row.restrictions],
+          )
+          .filter(Boolean);
+        metrics = [
+          { label: "категории данных", value: dataAccess.length },
+          { label: "внешние сервисы", value: serviceAccess.length },
+          { label: "модели доступа участников", value: userAccess.length },
+          {
+            label: "отмеченные ограничения",
+            value: uniqueCount(restrictions),
+          },
+        ];
+        highlightLabel = "КЛЮЧЕВЫЕ ОГРАНИЧЕНИЯ";
+        highlights = restrictions.map((value) => String(value ?? "").trim());
+        description =
+          "Далее приведены модели доступа к данным, внешним сервисам и платформам, а также их ограничения.";
+        break;
+      }
+      case 5: {
+        const barriers = questionRows("barriers");
+        metrics = [
+          { label: "приоритетные барьеры", value: barriers.length },
+          {
+            label: "категории барьеров",
+            value: uniqueCount(barriers.map((row) => row.category)),
+          },
+          {
+            label: "предложения по устранению",
+            value: barriers.filter((row) => String(row.solution ?? "").trim())
+              .length,
+          },
+          {
+            label: "барьеры с ожидаемым результатом",
+            value: barriers.filter((row) =>
+              String(row.expectedResult ?? "").trim(),
+            ).length,
+          },
+        ];
+        highlightLabel = "ПРИОРИТЕТНЫЕ БАРЬЕРЫ";
+        highlights = barriers.map((row) => String(row.name ?? "").trim());
+        description =
+          "Далее каждый барьер раскрыт через причину, последствия, предложение по устранению и ожидаемый результат.";
+        break;
+      }
+      case 6: {
+        const effects = questionRows("effects");
+        metrics = [
+          { label: "эффекты платформизации", value: effects.length },
+          {
+            label: "категории эффектов",
+            value: uniqueCount(effects.map((row) => row.category)),
+          },
+          {
+            label: "уже наблюдаемые эффекты",
+            value: effects.filter((row) =>
+              String(row.status ?? "")
+                .toLocaleLowerCase("ru-RU")
+                .includes("наблю"),
+            ).length,
+          },
+          {
+            label: "количественные оценки",
+            value: effects.filter((row) =>
+              String(row.quantitativeEstimate ?? "").trim(),
+            ).length,
+          },
+        ];
+        highlightLabel = "ПРИОРИТЕТНЫЕ ЭФФЕКТЫ";
+        highlights = effects.map((row) => String(row.name ?? "").trim());
+        description =
+          "Далее эффекты раскрыты через механизм возникновения, масштаб, основания оценки и условия реализации.";
+        break;
+      }
+      case 7: {
+        const platforms = questionRows("international_platforms");
+        metrics = [
+          { label: "российские платформы", value: platforms.length },
+          {
+            label: "перспективные рынки",
+            value: uniqueCount(platforms.map((row) => row.targetMarkets)),
+          },
+          {
+            label: "платформы с высоким потенциалом",
+            value: platforms.filter((row) =>
+              String(row.potential ?? "")
+                .toLocaleLowerCase("ru-RU")
+                .includes("высок"),
+            ).length,
+          },
+          {
+            label: "отмеченные ограничения",
+            value: uniqueCount(platforms.map((row) => row.constraints)),
+          },
+        ];
+        highlightLabel = "ПЛАТФОРМЫ ДЛЯ МЕЖДУНАРОДНОЙ ЭКСПАНСИИ";
+        highlights = platforms.map((row) => String(row.platform ?? "").trim());
+        description =
+          "Далее приведены текущее международное присутствие, перспективные рынки, ограничения и необходимые условия.";
+        break;
+      }
+      case 8: {
+        const targetTransactions = questionRows("target_transactions");
+        const targetModel = questionRows("target_model");
+        const recommendations = questionRows("recommendations");
+        const disagreements = questionRows("disagreements");
+        metrics = [
+          {
+            label: "целевые макротранзакции",
+            value: targetTransactions.length,
+          },
+          { label: "элементы целевой модели", value: targetModel.length },
+          {
+            label: "практические рекомендации",
+            value: recommendations.length,
+          },
+          {
+            label: "зафиксированные разногласия",
+            value: disagreements.length,
+          },
+        ];
+        highlightLabel = "ПРИОРИТЕТНЫЕ РЕКОМЕНДАЦИИ";
+        highlights = recommendations.map((row) => {
+          const title = String(row.title ?? "").trim();
           const horizon = String(row.horizon ?? "").trim();
-          document
-            .font("RobotoLike")
-            .fontSize(10)
-            .fillColor("#222222")
-            .text(
-              `${index + 1}. ${title}${horizon ? ` · ${horizon}` : ""}`,
-              { lineGap: 2 },
-            );
+          return `${title}${title && horizon ? ` · ${horizon}` : ""}`;
         });
-        document.moveDown(0.6);
+        description =
+          "Далее приведены целевые параметры, элементы модели, практические рекомендации, механизмы реализации и зафиксированные разногласия.";
+        break;
       }
-      document
-        .font("RobotoLike")
-        .fontSize(9.5)
-        .fillColor("#666666")
-        .text(
-          "Далее приведены целевые параметры, элементы модели, практические рекомендации, механизмы реализации и зафиксированные разногласия.",
-          { lineGap: 2 },
-        );
     }
+
+    renderMetricCards(metrics);
+    const visibleHighlights = Array.from(new Set(highlights.filter(Boolean)));
+    if (visibleHighlights.length) {
+      document
+        .font("RobotoLikeBold")
+        .fontSize(10)
+        .fillColor("#555555")
+        .text(highlightLabel);
+      document.moveDown(0.35);
+      visibleHighlights.slice(0, 6).forEach((name, index) => {
+        document
+          .font("RobotoLike")
+          .fontSize(10)
+          .fillColor("#222222")
+          .text(`${index + 1}. ${name}`, { lineGap: 2 });
+      });
+      document.moveDown(0.6);
+    }
+    document
+      .font("RobotoLike")
+      .fontSize(9.5)
+      .fillColor("#666666")
+      .text(description, { lineGap: 2 });
   };
 
   document
@@ -1281,7 +1437,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     .text(`Статус: ${data.statusLabel}`);
   document.moveDown(1);
   divider();
-  renderPilotSummary();
+  renderModuleSummary();
 
   let methodologyTablesRendered = false;
   data.questions.forEach((question, questionIndex) => {
@@ -1297,12 +1453,15 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       methodologyTablesRendered = true;
       return;
     }
-    const isCompactPilotSection =
-      (data.moduleOrder === 2 || data.moduleOrder === 8) &&
+    const isMaterialsQuestion = question.title
+      .toLocaleLowerCase("ru-RU")
+      .includes("материал");
+    if (isMaterialsQuestion && !attachmentInfo(question.value)) return;
+    const isCompactTableSection =
       methodologyTablesRendered &&
-      (question.title.toLocaleLowerCase("ru-RU").includes("материал") ||
+      (isMaterialsQuestion ||
         (data.moduleOrder === 8 && question.key === "disagreements"));
-    if (isCompactPilotSection) {
+    if (isCompactTableSection) {
       const attachment = attachmentInfo(question.value);
       if (!attachment) return;
       if (document.y + 92 > document.page.height - 50) {
@@ -1338,7 +1497,56 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       landscapePageActive = false;
       methodologyTablesRendered = false;
     }
-    ensureSpace(90);
+    const genericRows =
+      Array.isArray(question.value) &&
+      (question.config.columns?.length ?? 0) > 0
+        ? (question.value as Array<Record<string, unknown>>)
+        : [];
+    const estimateGenericRowHeight = (row: Record<string, unknown>) => {
+      const width =
+        document.page.width -
+        document.page.margins.left -
+        document.page.margins.right;
+      const columns = (question.config.columns ?? []).filter(
+        (column) =>
+          !column.visibleWhen ||
+          matchesFieldCondition(row, column.visibleWhen),
+      );
+      return (
+        28 +
+        columns.reduce((height, column) => {
+          const rawValue =
+            row[column.key] === undefined
+              ? column.defaultValue
+              : row[column.key];
+          const labelHeight = document
+            .font("RobotoLikeBold")
+            .fontSize(9)
+            .heightOfString(column.title, { width });
+          const valueHeight = document
+            .font("RobotoLike")
+            .fontSize(10)
+            .heightOfString(printableValue(rawValue, column.options), {
+              width,
+              lineGap: 2,
+            });
+          return height + labelHeight + valueHeight + 10;
+        }, 0)
+      );
+    };
+    const firstRowHeight = genericRows[0]
+      ? estimateGenericRowHeight(genericRows[0])
+      : 0;
+    const availablePageHeight =
+      document.page.height -
+      document.page.margins.top -
+      document.page.margins.bottom;
+    ensureSpace(
+      Math.min(
+        availablePageHeight,
+        firstRowHeight ? firstRowHeight + 62 : 90,
+      ),
+    );
     document
       .font("RobotoLikeBold")
       .fontSize(9)
@@ -1351,10 +1559,11 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     document.moveDown(0.5);
 
     if (
-      Array.isArray(question.value) &&
-      (question.config.columns?.length ?? 0) > 0
+      genericRows.length > 0 ||
+      (Array.isArray(question.value) &&
+        (question.config.columns?.length ?? 0) > 0)
     ) {
-      const rows = question.value as Array<Record<string, unknown>>;
+      const rows = genericRows;
       if (!rows.length) {
         document
           .font("RobotoLike")
@@ -1363,7 +1572,12 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           .text("Не заполнено");
       }
       rows.forEach((row, rowIndex) => {
-        ensureSpace(70);
+        const estimatedHeight = estimateGenericRowHeight(row);
+        ensureSpace(
+          estimatedHeight <= availablePageHeight
+            ? estimatedHeight
+            : 70,
+        );
         document
           .font("RobotoLikeBold")
           .fontSize(10)
