@@ -24,15 +24,16 @@ export default async function AdminAnalyticsPage({
     where: {
       status: "ACCEPTED",
       assignment: {
-        ...(selected
-          ? {
-              user: {
+        user: {
+          role: { in: ["EXPERT", "LEAD"] },
+          ...(selected
+            ? {
                 subgroupMemberships: {
                   some: { subgroupId: selected.id },
                 },
-              },
-            }
-          : {}),
+              }
+            : {}),
+        },
       },
     },
     include: {

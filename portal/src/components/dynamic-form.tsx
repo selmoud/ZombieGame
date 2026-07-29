@@ -1064,6 +1064,7 @@ export function DynamicForm({
   initialRevision,
   initialStatus,
   contextualOptions = {},
+  superExpertMode = false,
 }: {
   assignmentId: string;
   questions: Question[];
@@ -1071,6 +1072,7 @@ export function DynamicForm({
   initialRevision: number;
   initialStatus: string;
   contextualOptions?: Record<string, Option[]>;
+  superExpertMode?: boolean;
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState(() =>
@@ -1451,9 +1453,13 @@ export function DynamicForm({
       {!readOnly && (
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#000000] p-6 text-white sm:flex-row sm:items-center">
           <div>
-            <h3 className="text-xl">Раздел заполнен?</h3>
+            <h3 className="text-xl">
+              {superExpertMode ? "Проверка модуля" : "Раздел заполнен?"}
+            </h3>
             <p className="mt-1 text-sm text-neutral-300">
-              После отправки редактирование будет недоступно до возврата на доработку.
+              {superExpertMode
+                ? "Черновик сохраняется только для вашей проверки и не попадёт в экспертную аналитику."
+                : "После отправки редактирование будет недоступно до возврата на доработку."}
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:items-end">
@@ -1475,13 +1481,15 @@ export function DynamicForm({
                 Станет доступен после заполнения всех обязательных полей *
               </p>
             )}
-            <button
-              type="button"
-              onClick={submit}
-              className="rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7]"
-            >
-              Отправить на проверку
-            </button>
+            {!superExpertMode && (
+              <button
+                type="button"
+                onClick={submit}
+                className="rounded-xl bg-[#8125C8] px-6 py-3 font-semibold text-white hover:bg-[#0059C7]"
+              >
+                Отправить на проверку
+              </button>
+            )}
           </div>
         </div>
       )}

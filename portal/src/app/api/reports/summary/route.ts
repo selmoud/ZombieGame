@@ -35,21 +35,23 @@ export async function GET(request: Request) {
     }
   }
 
-  const subgroupFilter = subgroup
-    ? {
-        user: {
-          subgroupMemberships: {
-            some: { subgroupId: subgroup.id },
-          },
-        },
-      }
-    : {};
   const [submissions, moduleCount, memberCount, economicData] =
     await Promise.all([
       db.submission.findMany({
         where: {
           status: "ACCEPTED",
-          assignment: subgroupFilter,
+          assignment: {
+            user: {
+              role: { in: ["EXPERT", "LEAD"] },
+              ...(subgroup
+                ? {
+                    subgroupMemberships: {
+                      some: { subgroupId: subgroup.id },
+                    },
+                  }
+                : {}),
+            },
+          },
         },
         include: {
           assignment: {

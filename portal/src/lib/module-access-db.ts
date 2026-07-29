@@ -8,7 +8,7 @@ export async function isModuleUnlocked(
   const [user, previousAssignments] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
-      select: { unlockAllModules: true },
+      select: { role: true, unlockAllModules: true },
     }),
     db.moduleAssignment.findMany({
       where: {
@@ -24,6 +24,6 @@ export async function isModuleUnlocked(
   return isModuleUnlockedFromAssignments(
     previousAssignments,
     currentModuleOrder,
-    user?.unlockAllModules ?? false,
+    user?.role === "ADMIN" || (user?.unlockAllModules ?? false),
   );
 }

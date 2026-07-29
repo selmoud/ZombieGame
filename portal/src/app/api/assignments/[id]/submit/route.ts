@@ -14,6 +14,12 @@ export async function POST(
   }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  if (user.role === "ADMIN") {
+    return Response.json(
+      { error: "SUPER_EXPERT_DRAFT_ONLY" },
+      { status: 403 },
+    );
+  }
   const { id } = await context.params;
   const assignment = await db.moduleAssignment.findUnique({
     where: { id },

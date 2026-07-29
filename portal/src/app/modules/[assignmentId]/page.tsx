@@ -21,6 +21,7 @@ export default async function ModulePage({
   params: Promise<{ assignmentId: string }>;
 }) {
   const user = await requireUser();
+  const isSuperExpert = user.role === "ADMIN";
   const { assignmentId } = await params;
   const assignment = await db.moduleAssignment.findUnique({
     where: { id: assignmentId },
@@ -75,7 +76,7 @@ export default async function ModulePage({
         where: {
           userId: user.id,
           module: { order: { in: foundationOrders } },
-          submission: { status: "ACCEPTED" },
+          ...(isSuperExpert ? {} : { submission: { status: "ACCEPTED" } }),
         },
         include: {
           module: true,
@@ -532,7 +533,7 @@ export default async function ModulePage({
   }
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} mode={isSuperExpert ? "superExpert" : undefined}>
       <Link href="/dashboard" className="text-sm font-semibold text-[#0059C7]">
         ← Все разделы
       </Link>
@@ -1028,6 +1029,7 @@ export default async function ModulePage({
               initialRevision={assignment.submission.revision}
               initialStatus={status}
               contextualOptions={contextualOptions}
+              superExpertMode={isSuperExpert}
             />
           </div>
         </div>
@@ -1041,7 +1043,12 @@ export default async function ModulePage({
               <li><strong className="text-[#000000]">1.</strong> Изучите методические материалы.</li>
               <li><strong className="text-[#000000]">2.</strong> Заполните вопросы и таблицы.</li>
               <li><strong className="text-[#000000]">3.</strong> Проверьте ответы в предварительном PDF.</li>
-              <li><strong className="text-[#000000]">4.</strong> Отправьте раздел на проверку.</li>
+              <li>
+                <strong className="text-[#000000]">4.</strong>{" "}
+                {isSuperExpert
+                  ? "Перейдите к проверке следующего модуля."
+                  : "Отправьте раздел на проверку."}
+              </li>
             </ol>
           </section>
           <GlossaryModal />

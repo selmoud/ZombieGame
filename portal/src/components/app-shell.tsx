@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { enterSuperExpertMode } from "@/app/super-expert-actions";
 import { logout } from "@/lib/auth";
 
 export function AppShell({
@@ -12,7 +13,7 @@ export function AppShell({
     ledSubgroups?: Array<{ id: string; name: string }>;
   };
   children: React.ReactNode;
-  mode?: "expert" | "lead" | "admin";
+  mode?: "expert" | "lead" | "admin" | "superExpert";
 }) {
   async function logoutAction() {
     "use server";
@@ -32,7 +33,7 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <header className="border-b border-white/10 bg-black text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-4 lg:px-8">
           <Link href={homeHref}>
             <span>
               <span className="block text-sm font-semibold tracking-wide">
@@ -43,7 +44,32 @@ export function AppShell({
               </span>
             </span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-end gap-4">
+            {user.role === "ADMIN" && (
+              <nav className="flex rounded-xl border border-white/20 p-1">
+                <Link
+                  href="/admin"
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                    currentMode === "admin"
+                      ? "bg-white text-black"
+                      : "text-white hover:bg-white/10"
+                  }`}
+                >
+                  Администратор
+                </Link>
+                <form action={enterSuperExpertMode}>
+                  <button
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                      currentMode === "superExpert"
+                        ? "bg-white text-black"
+                        : "text-white hover:bg-white/10"
+                    }`}
+                  >
+                    Суперэксперт
+                  </button>
+                </form>
+              </nav>
+            )}
             {user.role !== "ADMIN" && hasLeaderMode && (
               <nav className="flex rounded-xl border border-white/20 p-1">
                 <Link
@@ -73,6 +99,8 @@ export function AppShell({
               <p className="text-xs text-neutral-300">
                 {currentMode === "admin"
                   ? "Администратор"
+                  : currentMode === "superExpert"
+                    ? "Суперэксперт"
                   : currentMode === "lead"
                     ? "Руководитель подгруппы"
                     : "Эксперт"}

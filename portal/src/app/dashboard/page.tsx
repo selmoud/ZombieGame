@@ -17,6 +17,7 @@ export default async function DashboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
+  const isSuperExpert = user.role === "ADMIN";
   const query = await searchParams;
   const assignments = await db.moduleAssignment.findMany({
     where: { userId: user.id },
@@ -26,7 +27,17 @@ export default async function DashboardPage({
   const progress = acceptedModuleProgress(assignments);
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} mode={isSuperExpert ? "superExpert" : undefined}>
+      {isSuperExpert && (
+        <div className="mb-6 rounded-2xl border border-[#0D78F8] bg-[#E0EEFF] px-5 py-4 text-sm leading-6 text-[#003E8A]">
+          <strong className="block text-base text-[#000000]">
+            Режим суперэксперта
+          </strong>
+          Здесь можно проверить содержание всех модулей, наследование данных и
+          предварительный PDF. Черновики видны только вам и не включаются в
+          экспертную аналитику.
+        </div>
+      )}
       {query.locked && (
         <p className="mb-5 rounded-xl border border-[#D8B1F5] bg-[#F1E5FB] px-4 py-3 text-sm text-[#6815A8]">
           Этот модуль пока недоступен. Сначала отправьте предыдущий модуль и
@@ -42,26 +53,32 @@ export default async function DashboardPage({
             Добрый день, {user.fullName}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-neutral-600">
-            Заполняйте модули последовательно. Следующий откроется после того,
-            как администратор примет предыдущий. Черновики сохраняются
-            автоматически.
+            {isSuperExpert
+              ? "Все модули открыты для проверки. Черновики сохраняются автоматически, но не отправляются на модерацию."
+              : "Заполняйте модули последовательно. Следующий откроется после того, как администратор примет предыдущий. Черновики сохраняются автоматически."}
           </p>
         </section>
         <aside className="paper rounded-2xl p-5">
           <div className="flex items-end justify-between">
-            <span className="text-sm text-neutral-500">Общий прогресс</span>
+            <span className="text-sm text-neutral-500">
+              {isSuperExpert ? "Доступно модулей" : "Общий прогресс"}
+            </span>
             <strong className="text-2xl text-[#000000]">
-              {progress.percent}%
+              {isSuperExpert ? assignments.length : `${progress.percent}%`}
             </strong>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
             <div
               className="h-full rounded-full bg-[#0D78F8]"
-              style={{ width: `${progress.percent}%` }}
+              style={{
+                width: isSuperExpert ? "100%" : `${progress.percent}%`,
+              }}
             />
           </div>
           <p className="mt-3 text-xs text-neutral-500">
-            Принято разделов: {progress.accepted} из {progress.total}
+            {isSuperExpert
+              ? "Все модули открыты для проверки"
+              : `Принято разделов: ${progress.accepted} из ${progress.total}`}
           </p>
         </aside>
       </div>
@@ -73,9 +90,11 @@ export default async function DashboardPage({
           ["Подгруппы", formatSubgroups(user.subgroupMemberships)],
           [
             "Роль",
-            user.ledSubgroups.length
-              ? "Эксперт и руководитель подгруппы"
-              : "Эксперт",
+            isSuperExpert
+              ? "Суперэксперт"
+              : user.ledSubgroups.length
+                ? "Эксперт и руководитель подгруппы"
+                : "Эксперт",
           ],
         ].map(([label, value]) => (
           <div key={label}>
@@ -105,7 +124,7 @@ export default async function DashboardPage({
           const locked = !isModuleUnlockedFromAssignments(
             assignments,
             module.order,
-            user.unlockAllModules,
+            isSuperExpert || user.unlockAllModules,
           );
           const canDownload = canDownloadSubmissionResults(status);
           const content = (

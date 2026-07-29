@@ -24,6 +24,7 @@ export default async function SubmissionsPage({
         assignment: {
           ...(moduleId ? { moduleId } : {}),
           user: {
+            role: { in: ["EXPERT", "LEAD"] },
             ...(company ? { companyId: company } : {}),
             ...(subgroup
               ? {

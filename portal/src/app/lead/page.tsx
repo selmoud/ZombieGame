@@ -54,6 +54,7 @@ export default async function LeadPage({
         status: "ACCEPTED",
         assignment: {
           user: {
+            role: { in: ["EXPERT", "LEAD"] },
             subgroupMemberships: {
               some: { subgroupId: selected.id },
             },

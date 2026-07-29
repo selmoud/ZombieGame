@@ -17,6 +17,11 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 });
   }
   const submissions = await db.submission.findMany({
+    where: {
+      assignment: {
+        user: { role: { in: ["EXPERT", "LEAD"] } },
+      },
+    },
     include: {
       assignment: {
         include: {
