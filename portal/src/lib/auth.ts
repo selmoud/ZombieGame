@@ -6,7 +6,7 @@ import { shouldUseSecureCookies } from "@/lib/session-cookie";
 import type { UserRole } from "@/generated/prisma/enums";
 
 const SESSION_COOKIE = "portal_session";
-const SESSION_DAYS = 30;
+const SESSION_DAYS = 7;
 
 export function hashInvitationToken(token: string) {
   const pepper = process.env.INVITATION_TOKEN_PEPPER;
@@ -29,9 +29,10 @@ export async function createSession(userId: string) {
   const store = await cookies();
   store.set(SESSION_COOKIE, id, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: shouldUseSecureCookies(),
     path: "/",
+    priority: "high",
     expires: expiresAt,
   });
 }

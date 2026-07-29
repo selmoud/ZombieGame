@@ -5,7 +5,7 @@ import { loginWithPassword, type LoginState } from "@/app/public-actions";
 
 const initialState: LoginState = {};
 
-export function LoginForm({ admin }: { admin: boolean }) {
+export function LoginForm() {
   const [state, action, pending] = useActionState(
     loginWithPassword,
     initialState,
@@ -25,7 +25,6 @@ export function LoginForm({ admin }: { admin: boolean }) {
           className="field"
           name="fullName"
           autoComplete="username"
-          defaultValue={admin ? "Тимофей Мальцев" : ""}
           required
         />
       </label>

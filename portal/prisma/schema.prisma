@@ -119,7 +119,7 @@ model RegistrationRequest {
   id                  String                        @id @default(uuid()) @db.Uuid
   fullName            String                        @map("full_name")
   companyName         String                        @map("company_name")
-  passwordHash        String                        @map("password_hash")
+  passwordHash        String?                       @map("password_hash")
   experienceSummary   String?                       @map("experience_summary")
   expertiseReason     String?                       @map("expertise_reason")
   subgroupMemberships RegistrationRequestSubgroup[]

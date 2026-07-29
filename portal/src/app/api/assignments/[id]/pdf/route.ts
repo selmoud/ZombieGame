@@ -9,6 +9,11 @@ import {
 } from "@/lib/status";
 import { createSubmissionPdf } from "@/lib/submission-pdf";
 import { formatSubgroups } from "@/lib/subgroups";
+import {
+  isSafeJsonValue,
+  isTrustedMutationRequest,
+  readLimitedJson,
+} from "@/lib/request-security";
 
 export const runtime = "nodejs";
 
@@ -149,10 +154,25 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/assignments/[id]/pdf">,
 ) {
-  const body = (await request.json().catch(() => null)) as {
+  if (!isTrustedMutationRequest(request)) {
+    return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  }
+  const parsed = await readLimitedJson<{
     answers?: Record<string, unknown>;
-  } | null;
-  if (!body?.answers || typeof body.answers !== "object") {
+  }>(request);
+  if (!parsed.ok) {
+    return Response.json(
+      { error: parsed.error },
+      { status: parsed.error === "PAYLOAD_TOO_LARGE" ? 413 : 400 },
+    );
+  }
+  const body = parsed.value;
+  if (
+    !body.answers ||
+    typeof body.answers !== "object" ||
+    Array.isArray(body.answers) ||
+    !isSafeJsonValue(body.answers)
+  ) {
     return Response.json({ error: "INVALID_BODY" }, { status: 400 });
   }
   return renderPdf(request, context, body.answers);

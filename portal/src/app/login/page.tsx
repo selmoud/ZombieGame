@@ -28,7 +28,7 @@ export default async function LoginPage({
         <p className="mt-3 leading-7 text-neutral-600">
           Введите имя и пароль, указанные при регистрации.
         </p>
-        <LoginForm admin={admin} />
+        <LoginForm />
       </section>
     </main>
   );

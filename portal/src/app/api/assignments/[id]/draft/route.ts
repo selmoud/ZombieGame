@@ -2,22 +2,39 @@ import type { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
+import {
+  isSafeJsonValue,
+  isTrustedMutationRequest,
+  readLimitedJson,
+} from "@/lib/request-security";
 
 export async function PUT(
   request: Request,
   context: RouteContext<"/api/assignments/[id]/draft">,
 ) {
+  if (!isTrustedMutationRequest(request)) {
+    return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const { id } = await context.params;
-  const body = (await request.json()) as {
+  const parsed = await readLimitedJson<{
     revision?: number;
     answers?: Record<string, unknown>;
-  };
+  }>(request);
+  if (!parsed.ok) {
+    return Response.json(
+      { error: parsed.error },
+      { status: parsed.error === "PAYLOAD_TOO_LARGE" ? 413 : 400 },
+    );
+  }
+  const body = parsed.value;
   if (
     typeof body.revision !== "number" ||
     !body.answers ||
-    typeof body.answers !== "object"
+    typeof body.answers !== "object" ||
+    Array.isArray(body.answers) ||
+    !isSafeJsonValue(body.answers)
   ) {
     return Response.json({ error: "INVALID_BODY" }, { status: 400 });
   }

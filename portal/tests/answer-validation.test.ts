@@ -53,6 +53,25 @@ describe("validateAnswers", () => {
     ).toEqual({});
   });
 
+  it("rejects non-http links", () => {
+    const linkQuestion = {
+      id: "source",
+      key: "source",
+      type: "LINK",
+      title: "Источник",
+      required: true,
+      config: {},
+    };
+    expect(
+      validateAnswers([linkQuestion], { source: "javascript:alert(1)" }),
+    ).toEqual({
+      source: "Укажите полную ссылку, например https://…",
+    });
+    expect(
+      validateAnswers([linkQuestion], { source: "https://example.ru/report" }),
+    ).toEqual({});
+  });
+
   it("requires a conditional table cell only when its option is selected", () => {
     const conditionalQuestion = {
       id: "boundaries",

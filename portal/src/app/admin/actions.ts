@@ -16,6 +16,11 @@ export type CreateExpertState = {
 
 const INDUSTRY_NAME = "Коммуникации, медиа и развлечения";
 
+function boundedText(formData: FormData, key: string, maxLength: number) {
+  const value = String(formData.get(key) ?? "").trim();
+  return value.length <= maxLength ? value : null;
+}
+
 function optionalPercentage(formData: FormData, key: string) {
   const raw = String(formData.get(key) ?? "")
     .trim()
@@ -39,18 +44,37 @@ export async function saveMinistryEconomicData(formData: FormData) {
   ) {
     redirect("/admin?economy=invalid#economic-data");
   }
+  const reportingPeriod = boundedText(formData, "reportingPeriod", 120);
+  const investmentActivity = boundedText(
+    formData,
+    "investmentActivity",
+    4_000,
+  );
+  const productivityComparison = boundedText(
+    formData,
+    "productivityComparison",
+    4_000,
+  );
+  const source = boundedText(formData, "source", 2_000);
+  const comment = boundedText(formData, "comment", 10_000);
+  if (
+    reportingPeriod === null ||
+    investmentActivity === null ||
+    productivityComparison === null ||
+    source === null ||
+    comment === null
+  ) {
+    redirect("/admin?economy=invalid#economic-data");
+  }
   const data = {
-    reportingPeriod:
-      String(formData.get("reportingPeriod") ?? "").trim() || null,
+    reportingPeriod: reportingPeriod || null,
     gdpShare,
     gvaShare,
     employmentShare,
-    investmentActivity:
-      String(formData.get("investmentActivity") ?? "").trim() || null,
-    productivityComparison:
-      String(formData.get("productivityComparison") ?? "").trim() || null,
-    source: String(formData.get("source") ?? "").trim() || null,
-    comment: String(formData.get("comment") ?? "").trim() || null,
+    investmentActivity: investmentActivity || null,
+    productivityComparison: productivityComparison || null,
+    source: source || null,
+    comment: comment || null,
     updatedById: admin.id,
   };
   await db.ministryEconomicData.upsert({
@@ -71,8 +95,14 @@ export async function createExpert(
   formData: FormData,
 ): Promise<CreateExpertState> {
   const admin = await requireRole("ADMIN");
-  const fullName = String(formData.get("fullName") ?? "").trim();
-  const companyName = String(formData.get("company") ?? "").trim();
+  const fullName = String(formData.get("fullName") ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+  const companyName = String(formData.get("company") ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
   const subgroupIds = [
     ...new Set(formData.getAll("subgroupIds").map(String).filter(Boolean)),
   ];
@@ -80,12 +110,19 @@ export async function createExpert(
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
-  if (fullName.split(/\s+/).length < 2 || !companyName || !subgroupIds.length) {
+  if (
+    fullName.length > 120 ||
+    companyName.length > 160 ||
+    subgroupIds.length > 10 ||
+    fullName.split(/\s+/).length < 2 ||
+    !companyName ||
+    !subgroupIds.length
+  ) {
     return {
       error: "Укажите фамилию, имя, компанию и хотя бы одну подгруппу.",
     };
   }
-  if (password.length < 8) {
+  if (password.length < 8 || password.length > 128) {
     return { error: "Пароль должен содержать не менее 8 символов." };
   }
   if (password !== passwordConfirmation) {
@@ -246,7 +283,7 @@ export async function resetExpertPassword(
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
-  if (password.length < 8) {
+  if (password.length < 8 || password.length > 128) {
     return { error: "Пароль должен содержать не менее 8 символов." };
   }
   if (password !== passwordConfirmation) {
@@ -357,7 +394,7 @@ export async function approveRegistration(formData: FormData) {
     where: { id: requestId },
     include: { subgroupMemberships: true },
   });
-  if (!request || request.status !== "PENDING") {
+  if (!request || request.status !== "PENDING" || !request.passwordHash) {
     redirect("/admin?registration=unavailable");
   }
   const existingUser = await db.user.findFirst({
@@ -430,6 +467,7 @@ export async function approveRegistration(formData: FormData) {
       where: { id: request.id },
       data: {
         status: "APPROVED",
+        passwordHash: null,
         reviewedById: admin.id,
         reviewedAt: new Date(),
       },
@@ -445,6 +483,7 @@ export async function rejectRegistration(formData: FormData) {
     where: { id: requestId, status: "PENDING" },
     data: {
       status: "REJECTED",
+      passwordHash: null,
       reviewedById: admin.id,
       reviewedAt: new Date(),
     },

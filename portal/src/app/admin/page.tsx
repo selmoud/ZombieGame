@@ -35,7 +35,12 @@ export default async function AdminPage({
     }),
     db.registrationRequest.findMany({
       where: { status: "PENDING" },
-      include: {
+      select: {
+        id: true,
+        fullName: true,
+        companyName: true,
+        experienceSummary: true,
+        expertiseReason: true,
         subgroupMemberships: { include: { subgroup: true } },
       },
       orderBy: { createdAt: "asc" },

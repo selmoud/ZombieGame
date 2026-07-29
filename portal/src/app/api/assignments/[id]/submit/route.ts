@@ -3,11 +3,15 @@ import { validateAnswers } from "@/lib/answer-validation";
 import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
+import { isTrustedMutationRequest } from "@/lib/request-security";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/assignments/[id]/submit">,
 ) {
+  if (!isTrustedMutationRequest(request)) {
+    return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const { id } = await context.params;

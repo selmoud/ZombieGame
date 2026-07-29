@@ -1190,8 +1190,11 @@ export function DynamicForm({
       };
       if (!response.ok) {
         const description =
-          result.error === "FILE_NOT_ALLOWED"
+          result.error === "FILE_NOT_ALLOWED" ||
+          result.error === "FILE_CONTENT_MISMATCH"
             ? "Файл не загружен. Поддерживаемые форматы: PDF, DOCX, XLSX, PNG, JPG и JPEG. Максимальный размер — 20 МБ."
+            : result.error === "PAYLOAD_TOO_LARGE"
+              ? "Файл не загружен: размер файла превышает 20 МБ."
             : result.error === "UNAUTHORIZED"
               ? "Сессия завершена. Войдите в портал повторно и загрузите файл."
               : result.error === "NOT_ALLOWED"

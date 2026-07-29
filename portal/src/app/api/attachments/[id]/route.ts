@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { leadsExpertSubgroup } from "@/lib/leader-access";
 import { isModuleUnlocked } from "@/lib/module-access-db";
+import { isTrustedMutationRequest } from "@/lib/request-security";
 
 export async function GET(
   _request: Request,
@@ -38,26 +39,35 @@ export async function GET(
   if (user.role !== "ADMIN" && !isOwner && !isLeaderViewer) {
     return new Response("Not found", { status: 404 });
   }
+  if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(attachment.storageKey)) {
+    return new Response("Not found", { status: 404 });
+  }
   const data = await readFile(
     path.join(
       /*turbopackIgnore: true*/ process.cwd(),
       process.env.UPLOAD_DIR ?? "data/uploads",
       attachment.storageKey,
     ),
-  );
+  ).catch(() => null);
+  if (!data) return new Response("Not found", { status: 404 });
   return new Response(data, {
     headers: {
       "Content-Type": attachment.mimeType,
       "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(attachment.originalName)}`,
       "Cache-Control": "private, no-store",
+      "Content-Security-Policy": "sandbox",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/attachments/[id]">,
 ) {
+  if (!isTrustedMutationRequest(request)) {
+    return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const { id } = await context.params;

@@ -13,6 +13,16 @@ import { isQuestionHidden } from "../src/lib/questions";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is required");
+if (process.env.ALLOW_FUNCTIONAL_TEST_RESET !== "I_UNDERSTAND_DATA_WILL_BE_DELETED") {
+  throw new Error(
+    "Set ALLOW_FUNCTIONAL_TEST_RESET=I_UNDERSTAND_DATA_WILL_BE_DELETED to run the destructive reset",
+  );
+}
+const functionalTestPasswordSecret =
+  process.env.FUNCTIONAL_TEST_PASSWORD_SECRET ?? "";
+if (functionalTestPasswordSecret.length < 16) {
+  throw new Error("FUNCTIONAL_TEST_PASSWORD_SECRET must contain at least 16 characters");
+}
 
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
@@ -32,7 +42,6 @@ type SubgroupName = (typeof SUBGROUPS)[number];
 type Profile = {
   id: string;
   fullName: string;
-  password: string;
   company: string;
   position: string;
   direction: string;
@@ -67,7 +76,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000001",
     fullName: "Анна Белова",
-    password: "Test001!",
     company: "VK Видео",
     position: "Директор по развитию коммуникационных продуктов",
     direction: "Цифровые коммуникации",
@@ -81,7 +89,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000002",
     fullName: "Борис Воронцов",
-    password: "Test002!",
     company: "МТС Медиа",
     position: "Руководитель продуктовой аналитики",
     direction: "Аналитика аудитории",
@@ -94,7 +101,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000003",
     fullName: "Вера Громова",
-    password: "Test003!",
     company: "Яндекс",
     position: "Руководитель направления доверия и безопасности",
     direction: "Безопасность платформ",
@@ -107,7 +113,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000004",
     fullName: "Глеб Данилов",
-    password: "Test004!",
     company: "Ростелеком",
     position: "Директор по платформенной архитектуре",
     direction: "Инфраструктура и данные",
@@ -121,7 +126,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000005",
     fullName: "Дарья Ершова",
-    password: "Test005!",
     company: "Дзен",
     position: "Директор по работе с авторами",
     direction: "Авторские экосистемы",
@@ -135,7 +139,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000006",
     fullName: "Егор Жуков",
-    password: "Test006!",
     company: "RUTUBE",
     position: "Руководитель видеопродукта",
     direction: "Онлайн-видео",
@@ -148,7 +151,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000007",
     fullName: "Ирина Зайцева",
-    password: "Test007!",
     company: "ЛитРес",
     position: "Директор по цифровому контенту",
     direction: "Издательские платформы",
@@ -161,7 +163,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000008",
     fullName: "Кирилл Ильин",
-    password: "Test008!",
     company: "Газпром-Медиа",
     position: "Директор по цифровой дистрибуции",
     direction: "Дистрибуция и монетизация",
@@ -175,7 +176,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000009",
     fullName: "Лидия Котова",
-    password: "Test009!",
     company: "Яндекс Афиша",
     position: "Директор по развитию",
     direction: "Развлекательные сервисы",
@@ -189,7 +189,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000010",
     fullName: "Максим Лебедев",
-    password: "Test010!",
     company: "Kassir.ru",
     position: "Руководитель коммерческих продуктов",
     direction: "Билетные платформы",
@@ -202,7 +201,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000011",
     fullName: "Надежда Морозова",
-    password: "Test011!",
     company: "Lesta Games",
     position: "Директор по операционной стратегии",
     direction: "Игровые платформы",
@@ -215,7 +213,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000012",
     fullName: "Олег Никитин",
-    password: "Test012!",
     company: "МТС Live",
     position: "Руководитель партнёрских программ",
     direction: "Мероприятия и партнёрства",
@@ -229,7 +226,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000013",
     fullName: "Полина Орлова",
-    password: "Test013!",
     company: "Национальная Медиа Группа",
     position: "Директор по стратегии",
     direction: "Телевидение и медиарынок",
@@ -243,7 +239,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000014",
     fullName: "Роман Петров",
-    password: "Test014!",
     company: "РБК",
     position: "Директор цифровых продуктов",
     direction: "Цифровые СМИ",
@@ -256,7 +251,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000015",
     fullName: "Софья Романова",
-    password: "Test015!",
     company: "ВГТРК",
     position: "Руководитель цифровой трансформации",
     direction: "Вещательные платформы",
@@ -269,7 +263,6 @@ const profiles: Profile[] = [
   {
     id: "10000000-0000-4000-8000-000000000016",
     fullName: "Тимур Соколов",
-    password: "Test016!",
     company: "Коммерсантъ",
     position: "Директор по развитию медиаплатформ",
     direction: "Издательские и рекламные продукты",
@@ -1093,7 +1086,10 @@ async function main() {
 
   const passwordHashes = new Map<string, string>();
   for (const profile of profiles) {
-    passwordHashes.set(profile.id, await hashPassword(profile.password));
+    passwordHashes.set(
+      profile.id,
+      await hashPassword(`${functionalTestPasswordSecret}:${profile.id}`),
+    );
   }
 
   const before = {
@@ -1335,7 +1331,7 @@ async function main() {
   console.log("\nTest experts:");
   for (const profile of profiles) {
     console.log(
-      `${profile.fullName} | ${profile.password} | ${profile.primarySubgroup}` +
+      `${profile.fullName} | ${profile.primarySubgroup}` +
         (profile.secondarySubgroup ? ` + ${profile.secondarySubgroup}` : "") +
         (profile.isLeader ? " | руководитель" : ""),
     );

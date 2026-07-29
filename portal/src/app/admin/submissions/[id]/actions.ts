@@ -8,7 +8,7 @@ export async function addComment(formData: FormData) {
   const admin = await requireRole("ADMIN");
   const submissionId = String(formData.get("submissionId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
-  if (body) {
+  if (body && body.length <= 5_000) {
     await db.reviewComment.create({
       data: { submissionId, authorId: admin.id, body },
     });
@@ -21,7 +21,12 @@ export async function requestRevision(formData: FormData) {
   const submissionId = String(formData.get("submissionId") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
   const submission = await db.submission.findUnique({ where: { id: submissionId } });
-  if (!submission || submission.status !== "SUBMITTED" || !reason) {
+  if (
+    !submission ||
+    submission.status !== "SUBMITTED" ||
+    !reason ||
+    reason.length > 5_000
+  ) {
     redirect(`/admin/submissions/${submissionId}?error=revision`);
   }
   await db.$transaction([

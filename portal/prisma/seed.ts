@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { createHmac } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { loadModuleDefinitions, questionTypeToDatabase } from "../src/lib/modules";
@@ -12,15 +11,7 @@ const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
 
-function tokenHash(token: string) {
-  const pepper = process.env.INVITATION_TOKEN_PEPPER;
-  if (!pepper) throw new Error("INVITATION_TOKEN_PEPPER is required");
-  return createHmac("sha256", pepper).update(token).digest("hex");
-}
-
 async function main() {
-  const timofeyPasswordHash = await hashPassword("Admin007");
-  const vitaliyPasswordHash = await hashPassword("Admin008");
   await db.subgroup.upsert({
     where: { name: "Коммуникации" },
     update: {},
@@ -32,45 +23,55 @@ async function main() {
     create: { name: "VK" },
   });
 
-  const admin = await db.user.upsert({
-    where: { id: "00000000-0000-4000-8000-000000000001" },
-    update: {
-      fullName: "Тимофей Мальцев",
+  async function ensureAdmin({
+    id,
+    fullName,
+    passwordEnvironmentVariable,
+  }: {
+    id: string;
+    fullName: string;
+    passwordEnvironmentVariable: string;
+  }) {
+    const existing = await db.user.findUnique({ where: { id } });
+    const commonData = {
+      fullName,
       position: "Администратор рабочей группы",
-      role: "ADMIN",
+      role: "ADMIN" as const,
       isActive: true,
-      passwordHash: timofeyPasswordHash,
       companyId: vkCompany.id,
-    },
-    create: {
-      id: "00000000-0000-4000-8000-000000000001",
-      fullName: "Тимофей Мальцев",
-      position: "Администратор рабочей группы",
-      role: "ADMIN",
-      isActive: true,
-      passwordHash: timofeyPasswordHash,
-      companyId: vkCompany.id,
-    },
+    };
+    if (existing) {
+      return db.user.update({
+        where: { id },
+        data: commonData,
+      });
+    }
+    const bootstrapPassword =
+      process.env[passwordEnvironmentVariable] ?? "";
+    if (bootstrapPassword.length < 16 || bootstrapPassword.length > 128) {
+      throw new Error(
+        `${passwordEnvironmentVariable} must contain 16–128 characters for a new installation`,
+      );
+    }
+    return db.user.create({
+      data: {
+        id,
+        ...commonData,
+        activatedAt: new Date(),
+        passwordHash: await hashPassword(bootstrapPassword),
+      },
+    });
+  }
+
+  await ensureAdmin({
+    id: "00000000-0000-4000-8000-000000000001",
+    fullName: "Тимофей Мальцев",
+    passwordEnvironmentVariable: "BOOTSTRAP_ADMIN_1_PASSWORD",
   });
-  await db.user.upsert({
-    where: { id: "00000000-0000-4000-8000-000000000003" },
-    update: {
-      fullName: "Киселев Виталий",
-      position: "Администратор рабочей группы",
-      role: "ADMIN",
-      isActive: true,
-      passwordHash: vitaliyPasswordHash,
-      companyId: vkCompany.id,
-    },
-    create: {
-      id: "00000000-0000-4000-8000-000000000003",
-      fullName: "Киселев Виталий",
-      position: "Администратор рабочей группы",
-      role: "ADMIN",
-      isActive: true,
-      passwordHash: vitaliyPasswordHash,
-      companyId: vkCompany.id,
-    },
+  await ensureAdmin({
+    id: "00000000-0000-4000-8000-000000000003",
+    fullName: "Киселев Виталий",
+    passwordEnvironmentVariable: "BOOTSTRAP_ADMIN_2_PASSWORD",
   });
   const modules = await loadModuleDefinitions();
   for (const definition of modules) {
@@ -157,27 +158,17 @@ async function main() {
     }
   }
 
-  for (const [user, rawToken] of [[admin, "demo-admin"]] as const) {
-    await db.invitationToken.upsert({
-      where: { tokenHash: tokenHash(rawToken) },
-      update: {
-        userId: user.id,
-        usedAt: null,
-        revokedAt: null,
-        expiresAt: new Date("2036-12-31T23:59:59Z"),
-      },
-      create: {
-        userId: user.id,
-        tokenHash: tokenHash(rawToken),
-        expiresAt: new Date("2036-12-31T23:59:59Z"),
-        createdById: admin.id,
-      },
-    });
-  }
+  await db.invitationToken.updateMany({
+    where: {
+      user: { role: "ADMIN" },
+      usedAt: null,
+      revokedAt: null,
+    },
+    data: { revokedAt: new Date() },
+  });
 
   console.log("Seed complete");
-  console.log("Admin invitation: http://localhost:3000/invite/demo-admin");
-  console.log("Admins: Тимофей Мальцев / Admin007; Киселев Виталий / Admin008");
+  console.log("Existing administrator passwords were preserved");
 }
 
 main()

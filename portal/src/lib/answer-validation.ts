@@ -50,6 +50,15 @@ function isEmpty(value: unknown) {
   );
 }
 
+function isHttpUrl(value: unknown) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function validateAnswers(
   questions: QuestionForValidation[],
   answers: Record<string, unknown>,
@@ -66,9 +75,7 @@ export function validateAnswers(
     if (isEmpty(value)) continue;
 
     if (question.type === "LINK") {
-      try {
-        new URL(String(value));
-      } catch {
+      if (!isHttpUrl(value)) {
         errors[question.id] = "Укажите полную ссылку, например https://…";
       }
     }
@@ -229,6 +236,26 @@ export function validateAnswers(
       if (invalidNumber) {
         errors[question.id] =
           "Проверьте числовые значения и допустимый диапазон";
+        continue;
+      }
+      const invalidLink = value.some((row) =>
+        config.columns?.some((column) => {
+          const typedRow = row as Record<string, unknown>;
+          const cellValue = typedRow[column.key];
+          const isVisible =
+            !column.visibleWhen ||
+            matchesFieldCondition(typedRow, column.visibleWhen);
+          return (
+            isVisible &&
+            column.type === "link" &&
+            !isEmpty(cellValue) &&
+            !isHttpUrl(cellValue)
+          );
+        }),
+      );
+      if (invalidLink) {
+        errors[question.id] =
+          "Укажите полные ссылки с адресом http:// или https://";
         continue;
       }
       const invalidPeriod = value.some((row) =>

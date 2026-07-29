@@ -1,22 +1,31 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  isAllowedUploadMimeType,
+  validateUpload,
+} from "@/lib/file-security";
 import { isModuleUnlocked } from "@/lib/module-access-db";
-
-const allowedTypes = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "image/png",
-  "image/jpeg",
-]);
+import { isTrustedMutationRequest } from "@/lib/request-security";
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationRequest(request)) {
+    return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  const maxBytes = Number(process.env.MAX_UPLOAD_SIZE_MB ?? 20) * 1024 * 1024;
+  const contentLength = Number(request.headers.get("content-length"));
+  if (
+    !Number.isFinite(contentLength) ||
+    contentLength <= 0 ||
+    contentLength > maxBytes + 128 * 1024
+  ) {
+    return Response.json({ error: "PAYLOAD_TOO_LARGE" }, { status: 413 });
+  }
   const data = await request.formData();
   const assignmentId = String(data.get("assignmentId") ?? "");
   const questionId = String(data.get("questionId") ?? "");
@@ -24,8 +33,11 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return Response.json({ error: "FILE_REQUIRED" }, { status: 400 });
   }
-  const maxBytes = Number(process.env.MAX_UPLOAD_SIZE_MB ?? 20) * 1024 * 1024;
-  if (file.size > maxBytes || !allowedTypes.has(file.type)) {
+  if (
+    file.size <= 0 ||
+    file.size > maxBytes ||
+    !isAllowedUploadMimeType(file.type)
+  ) {
     return Response.json({ error: "FILE_NOT_ALLOWED" }, { status: 422 });
   }
   const assignment = await db.moduleAssignment.findUnique({
@@ -53,6 +65,10 @@ export async function POST(request: Request) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
+  const validatedFile = validateUpload(file.name, file.type, bytes);
+  if (!validatedFile.allowed) {
+    return Response.json({ error: "FILE_CONTENT_MISMATCH" }, { status: 422 });
+  }
   const checksum = createHash("sha256").update(bytes).digest("hex");
   const storageKey = `${assignment.id}/${randomUUID()}`;
   const destination = path.join(
@@ -61,47 +77,88 @@ export async function POST(request: Request) {
     storageKey,
   );
   await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, bytes, { flag: "wx" });
+  await writeFile(destination, bytes, { flag: "wx", mode: 0o600 });
 
-  const answer = await db.answer.upsert({
+  const previousAttachments = await db.attachment.findMany({
     where: {
-      submissionId_questionId: {
+      answer: {
         submissionId: assignment.submission.id,
         questionId,
       },
+      deletedAt: null,
     },
-    update: {
-      value: { name: file.name } as Prisma.InputJsonValue,
-      updatedById: user.id,
-    },
-    create: {
-      submissionId: assignment.submission.id,
-      questionId,
-      value: { name: file.name } as Prisma.InputJsonValue,
-      updatedById: user.id,
-    },
+    select: { storageKey: true },
   });
-  const attachment = await db.attachment.create({
-    data: {
-      answerId: answer.id,
-      storageKey,
-      originalName: file.name,
-      mimeType: file.type,
-      sizeBytes: file.size,
-      checksum,
-    },
-  });
-  await db.answer.update({
-    where: { id: answer.id },
-    data: {
-      value: {
-        id: attachment.id,
-        name: file.name,
-        size: file.size,
-      } as Prisma.InputJsonValue,
-    },
-  });
+  let attachment;
+  try {
+    attachment = await db.$transaction(async (tx) => {
+      const answer = await tx.answer.upsert({
+        where: {
+          submissionId_questionId: {
+            submissionId: assignment.submission!.id,
+            questionId,
+          },
+        },
+        update: {
+          value: { name: validatedFile.name } as Prisma.InputJsonValue,
+          updatedById: user.id,
+        },
+        create: {
+          submissionId: assignment.submission!.id,
+          questionId,
+          value: { name: validatedFile.name } as Prisma.InputJsonValue,
+          updatedById: user.id,
+        },
+      });
+      await tx.attachment.updateMany({
+        where: { answerId: answer.id, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+      const created = await tx.attachment.create({
+        data: {
+          answerId: answer.id,
+          storageKey,
+          originalName: validatedFile.name,
+          mimeType: validatedFile.mimeType,
+          sizeBytes: file.size,
+          checksum,
+        },
+      });
+      await tx.answer.update({
+        where: { id: answer.id },
+        data: {
+          value: {
+            id: created.id,
+            name: validatedFile.name,
+            size: file.size,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return created;
+    });
+  } catch (error) {
+    await unlink(destination).catch(() => undefined);
+    throw error;
+  }
+  await Promise.all(
+    previousAttachments.map(({ storageKey: previousStorageKey }) => {
+      if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(previousStorageKey)) {
+        return Promise.resolve();
+      }
+      return unlink(
+        path.join(
+          /*turbopackIgnore: true*/ process.cwd(),
+          process.env.UPLOAD_DIR ?? "data/uploads",
+          previousStorageKey,
+        ),
+      ).catch(() => undefined);
+    }),
+  );
   return Response.json({
-    value: { id: attachment.id, name: file.name, size: file.size },
+    value: {
+      id: attachment.id,
+      name: validatedFile.name,
+      size: file.size,
+    },
   });
 }

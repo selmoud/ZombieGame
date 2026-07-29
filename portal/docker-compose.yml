@@ -3,9 +3,9 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://portal:portal@db:5432/portal?schema=public
+      DATABASE_URL: postgresql://portal:${PORTAL_DB_PASSWORD:-portal}@db:5432/portal?schema=public
       APP_URL: ${APP_URL:-http://localhost:3000}
-      INVITATION_TOKEN_PEPPER: local-compose-pepper-change-in-production
+      INVITATION_TOKEN_PEPPER: ${INVITATION_TOKEN_PEPPER:?Set INVITATION_TOKEN_PEPPER in .env}
       UPLOAD_DIR: data/uploads
       MAX_UPLOAD_SIZE_MB: 20
     command: sh -c "npx prisma migrate deploy && npm run db:seed && npm start"
@@ -16,6 +16,24 @@ services:
       - "3000:3000"
     volumes:
       - portal_uploads:/app/data/uploads
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   db:
     image: postgres:17-alpine
@@ -23,7 +41,7 @@ services:
     environment:
       POSTGRES_DB: portal
       POSTGRES_USER: portal
-      POSTGRES_PASSWORD: portal
+      POSTGRES_PASSWORD: ${PORTAL_DB_PASSWORD:-portal}
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:

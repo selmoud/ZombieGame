@@ -12,7 +12,13 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(password: string, storedHash: string) {
   const [algorithm, salt, expectedHex] = storedHash.split("$");
-  if (algorithm !== "scrypt" || !salt || !expectedHex) return false;
+  if (
+    algorithm !== "scrypt" ||
+    !/^[0-9a-f]{32}$/i.test(salt ?? "") ||
+    !/^[0-9a-f]{128}$/i.test(expectedHex ?? "")
+  ) {
+    return false;
+  }
   const expected = Buffer.from(expectedHex, "hex");
   if (expected.length !== KEY_LENGTH) return false;
   const actual = (await scrypt(password, salt, KEY_LENGTH)) as Buffer;
