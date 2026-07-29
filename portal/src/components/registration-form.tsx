@@ -107,7 +107,7 @@ export function RegistrationForm({
       </label>
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-          Компания
+          Организация
         </span>
         <input
           className="field"
