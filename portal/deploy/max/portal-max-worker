@@ -1,9 +1,17 @@
 #!/bin/sh
 set -eu
 
-set -a
-. /srv/portal/.env
-set +a
+ENV_FILE=/srv/portal/.env
+MAX_WORKER_SECRET=$(
+  sed -n 's/^MAX_WORKER_SECRET=//p' "$ENV_FILE" | tail -n 1
+)
+
+case "$MAX_WORKER_SECRET" in
+  ""|*[!A-Za-z0-9_-]*)
+    echo "MAX_WORKER_SECRET is missing or contains unsupported characters" >&2
+    exit 1
+    ;;
+esac
 
 curl --fail --silent --show-error \
   --max-time 30 \

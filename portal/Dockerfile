@@ -11,7 +11,7 @@ COPY . .
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build npm run build
 
 FROM ${NODE_IMAGE} AS runner
-RUN apk add --no-cache font-dejavu
+RUN apk add --no-cache ca-certificates font-dejavu
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -20,6 +20,8 @@ ENV NODE_ENV=production \
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+COPY deploy/certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 RUN mkdir -p /app/data/uploads && chown -R node:node /app/data
 EXPOSE 3000
 USER node
