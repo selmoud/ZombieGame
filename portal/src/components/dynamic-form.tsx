@@ -1478,7 +1478,8 @@ export function DynamicForm({
             </button>
             {!canPreview && (
               <p className="max-w-64 text-right text-xs leading-5 text-neutral-300">
-                Станет доступен после заполнения всех обязательных полей *
+                Станет доступен после заполнения всех обязательных полей,
+                отмеченных звёздочкой (*).
               </p>
             )}
             {!superExpertMode && (

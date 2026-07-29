@@ -24,7 +24,7 @@ export function CreateExpertForm({
             Эксперт {state.expert} добавлен
           </p>
           <p className="mt-1 text-xs leading-5 text-[#00616C]">
-            Он может сразу войти с указанными именем и паролем.
+            Он может сразу войти с указанными ФИО и паролем.
           </p>
         </div>
       )}
@@ -36,7 +36,7 @@ export function CreateExpertForm({
       <form action={action} className="grid gap-4 md:grid-cols-2">
         <label>
           <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-            Фамилия Имя
+            Фамилия и имя
           </span>
           <input
             className="field"

@@ -300,7 +300,7 @@ export default async function AdminPage({
               : query.registration === "rejected"
                 ? "Заявка отклонена."
                 : query.registration === "duplicate"
-                  ? "Пользователь с таким именем уже существует."
+                  ? "Пользователь с такими ФИО уже существует."
                   : "Заявка уже была обработана."}
           </p>
         )}
@@ -312,7 +312,7 @@ export default async function AdminPage({
             >
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
-                  Фамилия Имя
+                  Фамилия и имя
                 </p>
                 <p className="mt-1 font-bold text-[#000000]">
                   {request.fullName}

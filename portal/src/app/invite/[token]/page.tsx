@@ -21,7 +21,7 @@ export default async function InvitationPage({
         </h1>
         <p className="mt-4 leading-7 text-neutral-600">
           После подтверждения откроется ваш личный кабинет. Повторная
-          регистрация и пароль не понадобятся.
+          регистрация не потребуется, вводить пароль также не нужно.
         </p>
         <form action={acceptInvitation} className="mt-8">
           <input type="hidden" name="token" value={token} />

@@ -83,8 +83,8 @@ export function RegistrationForm({
         </p>
         <h2 className="mt-3 text-3xl font-bold text-black">Подать заявку</h2>
         <p className="mt-4 leading-7 text-neutral-600">
-          Заполните данные. После согласования администратором вы сможете войти
-          и приступить к работе.
+          Заполните данные. После согласования заявки администратором вы сможете
+          войти и приступить к работе.
         </p>
       </div>
       <form action={action} className="mt-7 flex flex-col gap-4">
@@ -95,7 +95,7 @@ export function RegistrationForm({
       )}
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-          Фамилия Имя
+          Фамилия и имя
         </span>
         <input
           className="field"

@@ -48,7 +48,7 @@ export function SubgroupManager({
       <div className="border-b border-neutral-200 px-6 py-5">
         <h2 className="text-2xl font-bold text-black">Подгруппы</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Этот список используется в регистрации и при добавлении эксперта.
+          Этот список используется при регистрации и добавлении эксперта.
         </p>
       </div>
       {status && messages[status] && (

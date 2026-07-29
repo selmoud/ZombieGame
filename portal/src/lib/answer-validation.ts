@@ -98,11 +98,13 @@ export function validateAnswers(
         continue;
       }
       if (config.minRows !== undefined && value.length < config.minRows) {
-        errors[question.id] = `Добавьте минимум ${config.minRows} строку`;
+        errors[question.id] =
+          `Минимальное количество строк: ${config.minRows}`;
         continue;
       }
       if (config.maxRows !== undefined && value.length > config.maxRows) {
-        errors[question.id] = `Допустимо не более ${config.maxRows} строк`;
+        errors[question.id] =
+          `Максимальное количество строк: ${config.maxRows}`;
         continue;
       }
       const missing = value.some((row) =>

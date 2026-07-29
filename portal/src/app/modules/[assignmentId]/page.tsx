@@ -1017,7 +1017,9 @@ export default async function ModulePage({
                 Опирайтесь на собственную экспертизу, проверяемые данные и
                 конкретные примеры.
               </span>
-              <span className="block">Обязательные поля отмечены *</span>
+              <span className="block">
+                Обязательные поля отмечены звёздочкой (*).
+              </span>
               <span className="block">Черновик сохраняется автоматически.</span>
             </p>
           </section>

@@ -97,10 +97,10 @@ export async function submitRegistration(
     }),
   ]);
   if (existingUser) {
-    return { error: "Пользователь с таким именем уже существует. Используйте вход." };
+    return { error: "Пользователь с такими ФИО уже существует. Используйте вход." };
   }
   if (pendingRequest) {
-    return { error: "Заявка с таким именем уже ожидает согласования." };
+    return { error: "Заявка с такими ФИО уже ожидает согласования." };
   }
   if (subgroups.length !== subgroupIds.length) {
     return { error: "Одна из выбранных подгрупп больше недоступна." };
@@ -184,5 +184,5 @@ export async function loginWithPassword(
     await createSession(user.id);
     redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
   }
-  return { error: "Неверное имя, пароль или заявка ещё не согласована." };
+  return { error: "Неверные ФИО, пароль или заявка ещё не согласована." };
 }

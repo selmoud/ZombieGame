@@ -19,7 +19,7 @@ export function LoginForm() {
       )}
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-          Фамилия Имя
+          Фамилия и имя
         </span>
         <input
           className="field"

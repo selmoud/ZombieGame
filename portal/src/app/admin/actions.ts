@@ -140,7 +140,7 @@ export async function createExpert(
     }),
   ]);
   if (existingUser) {
-    return { error: "Пользователь с таким именем уже существует." };
+    return { error: "Пользователь с такими ФИО уже существует." };
   }
   if (selectedSubgroups.length !== subgroupIds.length) {
     return { error: "Одна из выбранных подгрупп больше недоступна." };
@@ -457,7 +457,7 @@ export async function approveRegistration(formData: FormData) {
         bindingId: request.maxBotBinding.id,
         eventType: "ACCESS_GRANTED",
         dedupeKey: `registration-approved:${request.id}`,
-        text: "Ваша заявка согласована. Доступ к порталу открыт — войдите с указанными при регистрации именем и паролем.",
+        text: "Ваша заявка согласована. Доступ к порталу открыт — войдите с указанными при регистрации ФИО и паролем.",
         linkUrl: portalLink("/login"),
         linkLabel: "Войти в портал",
       });
