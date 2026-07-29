@@ -665,6 +665,78 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     }
     return false;
   };
+  const renderBarrierTables = (question: Question) => {
+    if (question.key !== "barriers" || !Array.isArray(question.value)) {
+      return false;
+    }
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+    const barrierType = (row: Record<string, unknown>) =>
+      ["structuralType", "regulatoryType", "technologyType", "otherType"]
+        .map((key) => row[key])
+        .find((value) => value !== undefined && value !== "")
+        ?.toString() ?? "Не заполнено";
+
+    renderReportTable({
+      title: "Приоритетный перечень барьеров",
+      headers: [
+        "Приоритет",
+        "Категория",
+        "Тип",
+        "Наименование",
+        "Платформы",
+        "Макротранзакции",
+        "Участники",
+      ],
+      rows: rows.map((row, index) => [
+        String(index + 1),
+        cell(row, "category"),
+        barrierType(row),
+        cell(row, "name"),
+        cell(row, "platforms"),
+        cell(row, "macros"),
+        cell(row, "participants"),
+      ]),
+      weights: [0.6, 1, 1.4, 1.8, 1.2, 1.4, 1.4],
+    });
+    renderReportTable({
+      title: "Обоснование и последствия барьеров",
+      headers: [
+        "Наименование",
+        "Наблюдения из предыдущих разделов",
+        "Суть и причина",
+        "Последствия",
+      ],
+      rows: rows.map((row) => [
+        cell(row, "name"),
+        cell(row, "priorEvidence"),
+        cell(row, "description"),
+        cell(row, "consequences"),
+      ]),
+      weights: [1.4, 2, 2.4, 2.4],
+    });
+    renderReportTable({
+      title: "Предложения по устранению барьеров",
+      headers: [
+        "Наименование",
+        "Предложение",
+        "Участники реализации",
+        "Ожидаемый результат",
+      ],
+      rows: rows.map((row) => [
+        cell(row, "name"),
+        cell(row, "solution"),
+        cell(row, "responsible"),
+        cell(row, "expectedResult"),
+      ]),
+      weights: [1.4, 2.7, 1.8, 2.5],
+    });
+    return true;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -700,7 +772,8 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     const tableRendered =
       (data.moduleOrder === 2 && renderTransactionTables(question)) ||
       (data.moduleOrder === 3 && renderStateMarketTables(question)) ||
-      (data.moduleOrder === 4 && renderArchitectureTables(question));
+      (data.moduleOrder === 4 && renderArchitectureTables(question)) ||
+      (data.moduleOrder === 5 && renderBarrierTables(question));
     if (tableRendered) {
       methodologyTablesRendered = true;
       return;

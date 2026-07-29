@@ -61,7 +61,9 @@ export default async function ModulePage({
         ? [1, 2]
         : assignment.module.order === 4
           ? [1, 2, 3]
-          : [];
+          : assignment.module.order === 5
+            ? [1, 2, 3, 4]
+            : [];
   const foundationAssignments = foundationOrders.length
     ? await db.moduleAssignment.findMany({
         where: {
@@ -91,6 +93,7 @@ export default async function ModulePage({
   const sectionOneAnswers = answersForOrder(1);
   const sectionTwoAnswers = answersForOrder(2);
   const sectionThreeAnswers = answersForOrder(3);
+  const sectionFourAnswers = answersForOrder(4);
   const boundaryRows = Array.isArray(sectionOneAnswers.analysis_object)
     ? (sectionOneAnswers.analysis_object as Array<Record<string, unknown>>)
     : [];
@@ -151,6 +154,46 @@ export default async function ModulePage({
   const industryParticipants = Array.from(
     new Set([...participantGroups, ...stateParticipants]),
   );
+  const transactionAssessmentRows = Array.isArray(
+    sectionTwoAnswers.transaction_assessments,
+  )
+    ? (sectionTwoAnswers.transaction_assessments as Array<
+        Record<string, unknown>
+      >)
+    : [];
+  const networkEffectRows = Array.isArray(sectionThreeAnswers.network_effects)
+    ? (sectionThreeAnswers.network_effects as Array<Record<string, unknown>>)
+    : [];
+  const architectureRows = [
+    ...(Array.isArray(sectionFourAnswers.data_access)
+      ? (sectionFourAnswers.data_access as Array<Record<string, unknown>>)
+      : []),
+    ...(Array.isArray(sectionFourAnswers.user_access)
+      ? (sectionFourAnswers.user_access as Array<Record<string, unknown>>)
+      : []),
+  ];
+  const priorConstraints = Array.from(
+    new Set(
+      [
+        ...transactionAssessmentRows.flatMap((row) =>
+          Array.isArray(row.costSources) ? row.costSources.map(String) : [],
+        ),
+        ...networkEffectRows.flatMap((row) =>
+          Array.isArray(row.constraints) ? row.constraints.map(String) : [],
+        ),
+        ...architectureRows.flatMap((row) =>
+          Array.isArray(row.restrictions) ? row.restrictions.map(String) : [],
+        ),
+      ]
+        .map((value) => value.trim())
+        .filter(
+          (value) =>
+            value &&
+            value !== "Другое" &&
+            !value.startsWith("Существенных ограничений не выявлено"),
+        ),
+    ),
+  );
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -209,6 +252,10 @@ export default async function ModulePage({
       label: name,
     })),
     acceptedPlatforms: acceptedPlatforms.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    priorConstraints: priorConstraints.map((name) => ({
       value: name,
       label: name,
     })),
@@ -526,6 +573,66 @@ export default async function ModulePage({
                       {macroTransactions.map((macro) => (
                         <p key={macro}>{macro}</p>
                       ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          {assignment.module.order === 5 &&
+            [1, 2, 3, 4].every((order) =>
+              foundationAssignments.some(
+                (foundation) => foundation.module.order === order,
+              ),
+            ) && (
+              <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Основа из разделов 1–4
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-black">
+                  Контекст для выявления системных барьеров
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Используйте принятые данные как основание для выводов.
+                  Наблюдение из предыдущего раздела ещё не является барьером:
+                  в карточке нужно сформулировать его системную причину,
+                  последствия и способ устранения.
+                </p>
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl bg-[#E0EEFF] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Платформы
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedPlatforms.map((platform) => (
+                        <p key={platform}>{platform}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#DDF8FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Макротранзакции
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {macroTransactions.map((macro) => (
+                        <p key={macro}>{macro}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#F1E5FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6815A8]">
+                      Ранее выявленные ограничения
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {priorConstraints.length > 0 ? (
+                        priorConstraints.map((constraint) => (
+                          <p key={constraint}>{constraint}</p>
+                        ))
+                      ) : (
+                        <p className="leading-5 text-neutral-600">
+                          В принятых разделах отдельные ограничения не
+                          зафиксированы.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

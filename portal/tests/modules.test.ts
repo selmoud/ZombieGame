@@ -377,4 +377,60 @@ describe("module definitions", () => {
       required: true,
     });
   });
+
+  it("uses one prioritized barrier register linked to previous findings", async () => {
+    const modules = await loadModuleDefinitions();
+    const barriers = modules.find((module) => module.slug === "barriers");
+
+    expect(barriers?.questions.map((question) => question.key)).toEqual([
+      "barriers",
+      "barrier_materials",
+    ]);
+    expect(
+      barriers?.questions.some(
+        (question) => question.key === "target_2036",
+      ),
+    ).toBe(false);
+    expect(barriers?.questions[0]).toMatchObject({
+      title: "Реестр барьеров",
+      required: true,
+      config: {
+        minRows: 1,
+        maxRows: 15,
+        sortableRows: true,
+        numberRows: true,
+      },
+    });
+    expect(
+      barriers?.questions[0].config.columns?.find(
+        (column) => column.key === "priorEvidence",
+      ),
+    ).toMatchObject({
+      type: "multi_suggest",
+      contextKey: "priorConstraints",
+      allowCustom: true,
+    });
+    expect(
+      barriers?.questions[0].config.columns?.find(
+        (column) => column.key === "expectedResult",
+      ),
+    ).toMatchObject({
+      required: true,
+      type: "long_text",
+    });
+    expect(
+      barriers?.questions[0].config.columns?.find(
+        (column) => column.key === "technologyType",
+      ),
+    ).toMatchObject({
+      visibleWhen: {
+        columnKey: "category",
+        equals: "Технологический",
+      },
+      requiredWhen: {
+        columnKey: "category",
+        equals: "Технологический",
+      },
+    });
+  });
 });

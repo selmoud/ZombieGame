@@ -202,4 +202,64 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style barrier tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 5,
+      moduleTitle: "Барьеры для развития платформ",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "barriers",
+          title: "Реестр барьеров",
+          config: {
+            columns: [
+              { key: "category", title: "Категория" },
+              { key: "technologyType", title: "Тип" },
+              { key: "name", title: "Название" },
+              { key: "platforms", title: "Платформы" },
+              { key: "macros", title: "Макротранзакции" },
+              { key: "participants", title: "Участники" },
+              { key: "priorEvidence", title: "Наблюдения" },
+              { key: "description", title: "Суть" },
+              { key: "consequences", title: "Последствия" },
+              { key: "solution", title: "Предложение" },
+              { key: "responsible", title: "Участники реализации" },
+              { key: "expectedResult", title: "Результат" },
+            ],
+          },
+          value: [
+            {
+              category: "Технологический",
+              technologyType: "Недостаточная интероперабельность систем",
+              name: "Нет единого стандарта измерения аудитории",
+              platforms: ["VK Видео", "RUTUBE"],
+              macros: ["Монетизация видео через рекламу"],
+              participants: ["Рекламодатели"],
+              priorEvidence: ["Несовместимость систем"],
+              description: "Платформы используют несопоставимые показатели",
+              consequences: "Рекламодатели не могут сравнивать результат",
+              solution: "Согласовать отраслевой стандарт показателей",
+              responsible: ["Операторы платформ", "Отраслевые объединения"],
+              expectedResult: "Отчётность сопоставима между платформами",
+            },
+          ],
+        },
+        {
+          key: "barrier_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: null,
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });
