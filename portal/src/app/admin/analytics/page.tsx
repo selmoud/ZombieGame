@@ -19,11 +19,11 @@ export default async function AdminAnalyticsPage({
     typeof query.subgroup === "string" ? query.subgroup : "all";
   const selected = subgroups.find((item) => item.id === requested);
 
-  const acceptedSubmissions = await db.submission.findMany({
+  const [acceptedSubmissions, economicData] = await Promise.all([
+    db.submission.findMany({
     where: {
       status: "ACCEPTED",
       assignment: {
-        module: { order: { in: [1, 2] } },
         ...(selected
           ? {
               user: {
@@ -48,17 +48,23 @@ export default async function AdminAnalyticsPage({
         },
       },
     },
-  });
+    }),
+    db.ministryEconomicData.findUnique({
+      where: { industry: "Коммуникации, медиа и развлечения" },
+    }),
+  ]);
 
   const expertIds = new Set(
     acceptedSubmissions.map((item) => item.assignment.user.id),
   );
-  const sectionOne = acceptedSubmissions.filter(
-    (item) => item.assignment.module.order === 1,
-  ).length;
-  const sectionTwo = acceptedSubmissions.filter(
-    (item) => item.assignment.module.order === 2,
-  ).length;
+  const completedExperts = Array.from(expertIds).filter((expertId) => {
+    const acceptedOrders = new Set(
+      acceptedSubmissions
+        .filter((item) => item.assignment.user.id === expertId)
+        .map((item) => item.assignment.module.order),
+    );
+    return acceptedOrders.size === 8;
+  }).length;
 
   return (
     <AppShell user={admin} mode="admin">
@@ -111,14 +117,82 @@ export default async function AdminAnalyticsPage({
       <section className="mt-5 grid gap-4 sm:grid-cols-3">
         {[
           ["Экспертов в расчёте", expertIds.size],
-          ["Принято разделов 1", sectionOne],
-          ["Принято разделов 2", sectionTwo],
+          ["Принято модулей", acceptedSubmissions.length],
+          ["Завершили все модули", completedExperts],
         ].map(([label, value]) => (
           <div key={label} className="paper rounded-2xl p-5">
             <p className="text-sm text-neutral-500">{label}</p>
             <p className="mt-2 text-3xl text-black">{value}</p>
           </div>
         ))}
+      </section>
+
+      <section className="paper mt-7 overflow-hidden rounded-2xl">
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <h2 className="text-2xl font-bold text-black">
+            Место отрасли в экономике
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Данные Минэкономразвития, не относящиеся к ответам отдельных
+            экспертов.
+          </p>
+        </div>
+        {economicData ? (
+          <div className="grid gap-4 p-6 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              ["Период", economicData.reportingPeriod ?? "—"],
+              [
+                "Доля в ВВП",
+                economicData.gdpShare === null
+                  ? "—"
+                  : `${economicData.gdpShare}%`,
+              ],
+              [
+                "Доля в ВДС",
+                economicData.gvaShare === null
+                  ? "—"
+                  : `${economicData.gvaShare}%`,
+              ],
+              [
+                "Доля в занятости",
+                economicData.employmentShare === null
+                  ? "—"
+                  : `${economicData.employmentShare}%`,
+              ],
+              [
+                "Инвестиционная активность",
+                economicData.investmentActivity ?? "—",
+              ],
+              [
+                "Производительность труда",
+                economicData.productivityComparison ?? "—",
+              ],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-xl bg-neutral-50 p-4">
+                <p className="text-xs uppercase tracking-wider text-neutral-400">
+                  {label}
+                </p>
+                <p className="mt-2 font-semibold text-black">{value}</p>
+              </div>
+            ))}
+            {(economicData.source || economicData.comment) && (
+              <div className="sm:col-span-2 xl:col-span-4">
+                <p className="text-xs uppercase tracking-wider text-neutral-400">
+                  Источник и пояснение
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-600">
+                  {[economicData.source, economicData.comment]
+                    .filter(Boolean)
+                    .join("\n\n")}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="p-8 text-center text-sm text-neutral-400">
+            Данные пока не заполнены в административной панели.
+          </p>
+        )}
       </section>
 
       <AcceptedAnalyticsDashboard submissions={acceptedSubmissions} />

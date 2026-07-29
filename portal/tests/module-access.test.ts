@@ -43,4 +43,13 @@ describe("sequential module access", () => {
       ),
     ).toBe(false);
   });
+
+  it("keeps a later module locked if a previous assignment is missing", () => {
+    expect(
+      isModuleUnlockedFromAssignments(
+        [assignment(1, "ACCEPTED"), assignment(3, "NOT_STARTED")],
+        3,
+      ),
+    ).toBe(false);
+  });
 });

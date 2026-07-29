@@ -104,6 +104,262 @@ export function AcceptedAnalyticsDashboard({
         )}
       </section>
 
+      <section className="paper overflow-hidden rounded-2xl">
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <h2 className="text-2xl font-bold text-black">
+            Платформы и уровень проникновения
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Свод по принятым ответам раздела 3.
+          </p>
+        </div>
+        <div className="grid gap-0 lg:grid-cols-2 lg:divide-x lg:divide-neutral-100">
+          <div className="p-6">
+            <h3 className="font-semibold text-black">Действующие платформы</h3>
+            <div className="mt-4 space-y-3">
+              {analytics.platforms.slice(0, 12).map((platform) => (
+                <div key={platform.name} className="flex justify-between gap-4 text-sm">
+                  <p className="font-medium text-black">{platform.name}</p>
+                  <p className="text-right text-xs text-neutral-500">
+                    {platform.types.join(", ") || "Тип не указан"} ·{" "}
+                    {platform.mentions}
+                  </p>
+                </div>
+              ))}
+              {!analytics.platforms.length && <Empty />}
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            {analytics.platformPenetration.length ? (
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-[#E0EEFF] text-[#003F8F]">
+                  <tr>
+                    <th className="px-5 py-3">Макротранзакция</th>
+                    <th className="px-5 py-3">Медиана</th>
+                    <th className="px-5 py-3">Согласованность</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {analytics.platformPenetration.map((item) => (
+                    <tr key={item.macro}>
+                      <td className="px-5 py-4 font-medium text-black">
+                        {item.macro}
+                      </td>
+                      <td className="px-5 py-4">{item.share}</td>
+                      <td className="px-5 py-4">{item.agreement}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <Empty />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-7 xl:grid-cols-2">
+        <section className="paper overflow-hidden rounded-2xl">
+          <div className="border-b border-neutral-200 px-6 py-5">
+            <h2 className="text-xl font-bold text-black">
+              Ограничения архитектуры
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Наиболее частые ограничения доступа к данным и платформам.
+            </p>
+          </div>
+          <div className="divide-y divide-neutral-100">
+            {analytics.architectureConstraints.slice(0, 12).map((item) => (
+              <div
+                key={item.name}
+                className="flex justify-between gap-4 px-6 py-4 text-sm"
+              >
+                <p className="text-neutral-700">{item.name}</p>
+                <strong className="shrink-0 text-black">{item.mentions}</strong>
+              </div>
+            ))}
+            {!analytics.architectureConstraints.length && <Empty />}
+          </div>
+        </section>
+
+        <section className="paper overflow-hidden rounded-2xl">
+          <div className="border-b border-neutral-200 px-6 py-5">
+            <h2 className="text-xl font-bold text-black">Карта барьеров</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Распределение по категориям и повторяющиеся формулировки.
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="flex flex-wrap gap-2">
+              {analytics.barrierCategories.map((item) => (
+                <span
+                  key={item.category}
+                  className="rounded-full bg-[#F1E5FB] px-3 py-1.5 text-xs font-semibold text-[#6815A8]"
+                >
+                  {item.category}: {item.mentions}
+                </span>
+              ))}
+            </div>
+            <div className="mt-5 space-y-3">
+              {analytics.barrierNames.slice(0, 10).map((item) => (
+                <div key={item.name} className="flex justify-between gap-4 text-sm">
+                  <p className="text-neutral-700">{item.name}</p>
+                  <strong className="shrink-0 text-black">{item.mentions}</strong>
+                </div>
+              ))}
+              {!analytics.barrierNames.length && <Empty />}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="paper overflow-hidden rounded-2xl">
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <h2 className="text-2xl font-bold text-black">
+            Портфель эффектов платформизации
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Количество принятых оценок по категориям и статусам эффекта.
+          </p>
+        </div>
+        <div className="grid gap-6 p-6 lg:grid-cols-2">
+          {[analytics.effectCategories, analytics.effectStatuses].map(
+            (items, groupIndex) => (
+              <div key={groupIndex}>
+                <p className="text-sm font-semibold text-black">
+                  {groupIndex === 0 ? "Категории" : "Статусы"}
+                </p>
+                <div className="mt-3 space-y-3">
+                  {items.map((item) => {
+                    const label =
+                      "category" in item ? item.category : item.status;
+                    return (
+                      <div
+                        key={label}
+                        className="flex justify-between gap-4 text-sm"
+                      >
+                        <p className="text-neutral-600">{label}</p>
+                        <strong>{item.mentions}</strong>
+                      </div>
+                    );
+                  })}
+                  {!items.length && <Empty />}
+                </div>
+              </div>
+            ),
+          )}
+        </div>
+      </section>
+
+      <section className="paper overflow-hidden rounded-2xl">
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <h2 className="text-2xl font-bold text-black">
+            Международный потенциал
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Медианная оценка, рынки и ограничения из раздела 7.
+          </p>
+        </div>
+        {analytics.internationalPlatforms.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-neutral-50 text-neutral-500">
+                <tr>
+                  <th className="px-5 py-3">Платформа</th>
+                  <th className="px-5 py-3">Потенциал</th>
+                  <th className="px-5 py-3">Согласованность</th>
+                  <th className="px-5 py-3">Приоритетные рынки</th>
+                  <th className="px-5 py-3">Ограничения</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {analytics.internationalPlatforms.map((item) => (
+                  <tr key={item.platform} className="align-top">
+                    <td className="px-5 py-4 font-semibold text-black">
+                      {item.platform}
+                    </td>
+                    <td className="px-5 py-4">{item.potential}</td>
+                    <td className="px-5 py-4">{item.agreement}</td>
+                    <td className="max-w-xs px-5 py-4 text-xs leading-5">
+                      {item.markets
+                        .slice(0, 4)
+                        .map((value) => `${value.name} (${value.mentions})`)
+                        .join("; ") || "—"}
+                    </td>
+                    <td className="max-w-sm px-5 py-4 text-xs leading-5">
+                      {item.constraints
+                        .slice(0, 4)
+                        .map((value) => `${value.name} (${value.mentions})`)
+                        .join("; ") || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty />
+        )}
+      </section>
+
+      <section className="paper overflow-hidden rounded-2xl">
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <h2 className="text-2xl font-bold text-black">
+            Целевые ориентиры до 2036 года
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Медианы итоговых оценок раздела 8.
+          </p>
+        </div>
+        {analytics.targetTransactions.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-[#E0EEFF] text-[#003F8F]">
+                <tr>
+                  <th className="px-5 py-3">Макротранзакция</th>
+                  <th className="px-5 py-3">Доля транзакций</th>
+                  <th className="px-5 py-3">Доля участников</th>
+                  <th className="px-5 py-3">Сокращение издержек</th>
+                  <th className="px-5 py-3">Согласованность</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {analytics.targetTransactions.map((item) => (
+                  <tr key={item.macro}>
+                    <td className="px-5 py-4 font-semibold text-black">
+                      {item.macro}
+                    </td>
+                    <td className="px-5 py-4">{item.transactionShare}</td>
+                    <td className="px-5 py-4">{item.participantShare}</td>
+                    <td className="px-5 py-4">{item.costReduction}</td>
+                    <td className="px-5 py-4">{item.agreement}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty />
+        )}
+        {analytics.recommendationDirections.length > 0 && (
+          <div className="border-t border-neutral-100 p-6">
+            <p className="text-sm font-semibold text-black">
+              Направления рекомендаций
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {analytics.recommendationDirections.map((item) => (
+                <span
+                  key={item.direction}
+                  className="rounded-full bg-[#DDF8FB] px-3 py-1.5 text-xs font-semibold text-[#00616C]"
+                >
+                  {item.direction}: {item.mentions}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
       <div className="grid gap-7 xl:grid-cols-2">
         <section className="paper overflow-hidden rounded-2xl">
           <div className="border-b border-neutral-200 px-6 py-5">

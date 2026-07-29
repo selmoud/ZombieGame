@@ -53,7 +53,6 @@ export default async function LeadPage({
       where: {
         status: "ACCEPTED",
         assignment: {
-          module: { order: { in: [1, 2] } },
           user: {
             subgroupMemberships: {
               some: { subgroupId: selected.id },
@@ -78,12 +77,13 @@ export default async function LeadPage({
     db.module.count({ where: { isActive: true } }),
   ]);
 
-  const acceptedSectionOne = acceptedSubmissions.filter(
-    (submission) => submission.assignment.module.order === 1,
+  const completedMembers = memberships.filter(
+    ({ user: member }) => member.assignments.length === moduleCount,
   ).length;
-  const acceptedSectionTwo = acceptedSubmissions.filter(
-    (submission) => submission.assignment.module.order === 2,
-  ).length;
+  const acceptedTotal = memberships.reduce(
+    (sum, membership) => sum + membership.user.assignments.length,
+    0,
+  );
 
   return (
     <AppShell user={user} mode="lead">
@@ -120,16 +120,9 @@ export default async function LeadPage({
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Участников", memberships.length],
-          ["Принято разделов 1", acceptedSectionOne],
-          ["Принято разделов 2", acceptedSectionTwo],
-          [
-            "Всего принятых модулей",
-            memberships.reduce(
-              (sum, membership) =>
-                sum + membership.user.assignments.length,
-              0,
-            ),
-          ],
+          ["Принято модулей", acceptedTotal],
+          ["Завершили все модули", completedMembers],
+          ["Модулей в программе", moduleCount],
         ].map(([label, value]) => (
           <div key={label} className="paper rounded-2xl p-5">
             <p className="text-sm text-neutral-500">{label}</p>

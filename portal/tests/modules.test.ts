@@ -555,6 +555,14 @@ describe("module definitions", () => {
         lockRows: true,
       },
     });
+    expect(
+      targetState?.questions[0].config.columns?.find(
+        (column) => column.key === "targetParticipantShare",
+      ),
+    ).toMatchObject({
+      type: "select",
+      required: true,
+    });
     expect(targetState?.questions[1]).toMatchObject({
       required: true,
       config: {
@@ -579,12 +587,45 @@ describe("module definitions", () => {
       contextKey: "acceptedEffects",
       allowCustom: false,
     });
+    expect(
+      targetState?.questions[1].config.columns?.find(
+        (column) => column.key === "internationalConstraints",
+      ),
+    ).toMatchObject({
+      contextKey: "internationalConstraints",
+      requiredWhen: {
+        columnKey: "dimension",
+        equals: "Международное развитие российских платформ",
+      },
+    });
     expect(targetState?.questions[2]).toMatchObject({
       required: true,
       config: {
         minRows: 3,
         maxRows: 10,
         sortableRows: true,
+      },
+    });
+    expect(
+      targetState?.questions[2].config.columns?.find(
+        (column) => column.key === "internationalPlatforms",
+      ),
+    ).toMatchObject({
+      contextKey: "russianPlatforms",
+      requiredWhen: {
+        columnKey: "direction",
+        equals: "Международная экспансия",
+      },
+    });
+    expect(
+      targetState?.questions[2].config.columns?.find(
+        (column) => column.key === "internationalConstraints",
+      ),
+    ).toMatchObject({
+      contextKey: "internationalConstraints",
+      requiredWhen: {
+        columnKey: "direction",
+        equals: "Международная экспансия",
       },
     });
     expect(targetState?.questions[3]).toMatchObject({

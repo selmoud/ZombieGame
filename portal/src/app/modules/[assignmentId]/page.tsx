@@ -249,6 +249,20 @@ export default async function ModulePage({
         Record<string, unknown>
       >)
     : [];
+  const internationalConstraints = Array.from(
+    new Set(
+      internationalRows.flatMap((row) =>
+        Array.isArray(row.constraints) ? row.constraints.map(String) : [],
+      ),
+    ),
+  ).filter(Boolean);
+  const internationalMarkets = Array.from(
+    new Set(
+      internationalRows.flatMap((row) =>
+        Array.isArray(row.targetMarkets) ? row.targetMarkets.map(String) : [],
+      ),
+    ),
+  ).filter(Boolean);
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -327,6 +341,14 @@ export default async function ModulePage({
       label: name,
     })),
     russianPlatforms: russianPlatforms.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    internationalConstraints: internationalConstraints.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    internationalMarkets: internationalMarkets.map((name) => ({
       value: name,
       label: name,
     })),
@@ -477,6 +499,7 @@ export default async function ModulePage({
         macro,
         currentShare: penetrationByMacro.get(macro) || "Не заполнено",
         targetShare: "",
+        targetParticipantShare: "",
         standardization: "",
         costReduction: "",
         targetDescription: "",
@@ -955,10 +978,26 @@ export default async function ModulePage({
                     </p>
                     <div className="mt-3 space-y-2 text-sm text-black">
                       {internationalRows.map((row) => (
-                        <p key={String(row.platform ?? "")}>
-                          {String(row.platform ?? "")}:{" "}
-                          {String(row.potential ?? "не оценён")}
-                        </p>
+                        <div key={String(row.platform ?? "")}>
+                          <p className="font-semibold">
+                            {String(row.platform ?? "")}:{" "}
+                            {String(row.potential ?? "не оценён")}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-neutral-600">
+                            Рынки:{" "}
+                            {Array.isArray(row.targetMarkets) &&
+                            row.targetMarkets.length
+                              ? row.targetMarkets.map(String).join(", ")
+                              : "не указаны"}
+                          </p>
+                          <p className="text-xs leading-5 text-neutral-600">
+                            Ограничения:{" "}
+                            {Array.isArray(row.constraints) &&
+                            row.constraints.length
+                              ? row.constraints.map(String).join(", ")
+                              : "не указаны"}
+                          </p>
+                        </div>
                       ))}
                     </div>
                   </div>

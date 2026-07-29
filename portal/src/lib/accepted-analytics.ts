@@ -23,6 +23,15 @@ const SHARE_LABELS = [
   "Доминирующая — более 50%",
 ];
 
+const PLATFORM_SHARE_LABELS = [
+  "—",
+  "Менее 5%",
+  "5–15%",
+  "15–30%",
+  "30–50%",
+  "Более 50%",
+];
+
 function rows(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value)
     ? value.filter(
@@ -34,6 +43,21 @@ function rows(value: unknown): Record<string, unknown>[] {
 
 function text(value: unknown) {
   return String(value ?? "").trim();
+}
+
+export function deduplicateAnalyticsSubmissions(
+  submissions: AnalyticsSubmission[],
+) {
+  const seen = new Set<string>();
+  return submissions.filter((submission, index) => {
+    const expertId = submission.assignment.user?.id;
+    const key = expertId
+      ? `${expertId}\u0000${submission.assignment.module.order}`
+      : `submission-${index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function questionRows(
@@ -62,6 +86,28 @@ function level(value: unknown) {
   if (normalized.includes("заметн") || normalized.includes("средн")) return 3;
   if (normalized.includes("небольш") || normalized.includes("низк")) return 2;
   if (normalized.includes("нишев") || normalized.includes("очень низк")) return 1;
+  return 0;
+}
+
+function platformShareLevel(value: unknown) {
+  const normalized = text(value).toLocaleLowerCase("ru");
+  if (!normalized || normalized.includes("затрудняюсь")) return 0;
+  if (normalized.includes("более 50")) return 5;
+  if (normalized.includes("30–50") || normalized.includes("30-50")) return 4;
+  if (normalized.includes("15–30") || normalized.includes("15-30")) return 3;
+  if (normalized.includes("5–15") || normalized.includes("5-15")) return 2;
+  if (normalized.includes("менее 5")) return 1;
+  return level(value);
+}
+
+function costReductionLevel(value: unknown) {
+  const normalized = text(value).toLocaleLowerCase("ru");
+  if (!normalized || normalized.includes("затрудняюсь")) return 0;
+  if (normalized.includes("более 50")) return 5;
+  if (normalized.includes("25–50") || normalized.includes("25-50")) return 4;
+  if (normalized.includes("10–25") || normalized.includes("10-25")) return 3;
+  if (normalized.includes("менее 10")) return 2;
+  if (normalized.includes("не ожидается")) return 1;
   return 0;
 }
 
@@ -106,11 +152,16 @@ function influenceKind(value: unknown) {
 }
 
 export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
-  const segments = questionRows(submissions, 1, "industry_boundaries");
-  const retrospective = questionRows(submissions, 1, "current_state");
-  const metrics = questionRows(submissions, 1, "key_metrics");
-  const macros = questionRows(submissions, 2, "macrotransactions");
-  const assessments = questionRows(submissions, 2, "transaction_assessments");
+  const uniqueSubmissions = deduplicateAnalyticsSubmissions(submissions);
+  const segments = questionRows(uniqueSubmissions, 1, "industry_boundaries");
+  const retrospective = questionRows(uniqueSubmissions, 1, "current_state");
+  const metrics = questionRows(uniqueSubmissions, 1, "key_metrics");
+  const macros = questionRows(uniqueSubmissions, 2, "macrotransactions");
+  const assessments = questionRows(
+    uniqueSubmissions,
+    2,
+    "transaction_assessments",
+  );
 
   const segmentNames = Array.from(
     new Set(
@@ -311,11 +362,242 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     })
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ru"));
 
+  const platformRows = questionRows(uniqueSubmissions, 3, "platforms");
+  const penetrationRows = questionRows(
+    uniqueSubmissions,
+    3,
+    "platform_penetration",
+  );
+  const platformMap = new Map<
+    string,
+    { name: string; mentions: number; types: Set<string> }
+  >();
+  platformRows.forEach((row) => {
+    const name = text(row.name);
+    if (!name) return;
+    const current = platformMap.get(name) ?? {
+      name,
+      mentions: 0,
+      types: new Set<string>(),
+    };
+    current.mentions += 1;
+    if (text(row.type)) current.types.add(text(row.type));
+    platformMap.set(name, current);
+  });
+  const platforms = Array.from(platformMap.values())
+    .map((item) => ({
+      name: item.name,
+      mentions: item.mentions,
+      types: Array.from(item.types).sort((a, b) => a.localeCompare(b, "ru")),
+    }))
+    .sort((a, b) => b.mentions - a.mentions || a.name.localeCompare(b.name, "ru"));
+
+  const penetrationMacros = Array.from(
+    new Set(penetrationRows.map((row) => text(row.macro)).filter(Boolean)),
+  );
+  const platformPenetration = penetrationMacros
+    .map((macro) => {
+      const matching = penetrationRows.filter(
+        (row) => text(row.macro) === macro,
+      );
+      const values = matching.map((row) => platformShareLevel(row.share));
+      return {
+        macro,
+        responses: new Set(matching.map((row) => row.submissionIndex)).size,
+        share: PLATFORM_SHARE_LABELS[median(values)],
+        agreement: agreement(values),
+      };
+    })
+    .sort((a, b) => a.macro.localeCompare(b.macro, "ru"));
+
+  const architectureRows = [
+    ...questionRows(uniqueSubmissions, 4, "data_access"),
+    ...questionRows(uniqueSubmissions, 4, "user_access"),
+  ];
+  const architectureMap = new Map<string, number>();
+  architectureRows.forEach((row) => {
+    const restrictions = Array.isArray(row.restrictions)
+      ? row.restrictions
+      : [row.restrictions];
+    restrictions
+      .map(text)
+      .filter(
+        (value) =>
+          value &&
+          !value.toLocaleLowerCase("ru").includes("не выявлено"),
+      )
+      .forEach((value) =>
+        architectureMap.set(value, (architectureMap.get(value) ?? 0) + 1),
+      );
+  });
+  const architectureConstraints = Array.from(
+    architectureMap,
+    ([name, mentions]) => ({ name, mentions }),
+  ).sort(
+    (a, b) =>
+      b.mentions - a.mentions || a.name.localeCompare(b.name, "ru"),
+  );
+
+  const barrierRows = questionRows(uniqueSubmissions, 5, "barriers");
+  const barrierCategories = Array.from(
+    barrierRows.reduce((map, row) => {
+      const category = text(row.category);
+      if (category) map.set(category, (map.get(category) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+    ([category, mentions]) => ({ category, mentions }),
+  ).sort((a, b) => b.mentions - a.mentions);
+  const barrierNames = Array.from(
+    barrierRows.reduce((map, row) => {
+      const name = text(row.name);
+      if (name) map.set(name, (map.get(name) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+    ([name, mentions]) => ({ name, mentions }),
+  ).sort(
+    (a, b) =>
+      b.mentions - a.mentions || a.name.localeCompare(b.name, "ru"),
+  );
+
+  const effectRows = questionRows(uniqueSubmissions, 6, "effects");
+  const effectCategories = Array.from(
+    effectRows.reduce((map, row) => {
+      const category = text(row.category);
+      if (category) map.set(category, (map.get(category) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+    ([category, mentions]) => ({ category, mentions }),
+  ).sort((a, b) => b.mentions - a.mentions);
+  const effectStatuses = Array.from(
+    effectRows.reduce((map, row) => {
+      const status = text(row.status);
+      if (status) map.set(status, (map.get(status) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+    ([status, mentions]) => ({ status, mentions }),
+  ).sort((a, b) => b.mentions - a.mentions);
+
+  const internationalRows = questionRows(
+    uniqueSubmissions,
+    7,
+    "international_platforms",
+  );
+  const internationalPlatforms = Array.from(
+    new Set(internationalRows.map((row) => text(row.platform)).filter(Boolean)),
+  )
+    .map((platform) => {
+      const matching = internationalRows.filter(
+        (row) => text(row.platform) === platform,
+      );
+      const potentials = matching.map((row) => level(row.potential));
+      const constraintMap = new Map<string, number>();
+      const marketMap = new Map<string, number>();
+      matching.forEach((row) => {
+        (Array.isArray(row.constraints) ? row.constraints : [row.constraints])
+          .map(text)
+          .filter(Boolean)
+          .forEach((value) =>
+            constraintMap.set(value, (constraintMap.get(value) ?? 0) + 1),
+          );
+        (Array.isArray(row.targetMarkets)
+          ? row.targetMarkets
+          : [row.targetMarkets]
+        )
+          .map(text)
+          .filter(Boolean)
+          .forEach((value) =>
+            marketMap.set(value, (marketMap.get(value) ?? 0) + 1),
+          );
+      });
+      return {
+        platform,
+        responses: new Set(matching.map((row) => row.submissionIndex)).size,
+        potential: SHARE_LABELS[median(potentials)]
+          ?.replace("Доминирующая — более 50%", "Очень высокий")
+          .replace("Крупная — 25–50%", "Высокий")
+          .replace("Заметная — 10–25%", "Средний")
+          .replace("Небольшая — 5–10%", "Низкий")
+          .replace("Нишевая — менее 5%", "Очень низкий"),
+        agreement: agreement(potentials),
+        constraints: Array.from(constraintMap, ([name, mentions]) => ({
+          name,
+          mentions,
+        })).sort((a, b) => b.mentions - a.mentions),
+        markets: Array.from(marketMap, ([name, mentions]) => ({
+          name,
+          mentions,
+        })).sort((a, b) => b.mentions - a.mentions),
+      };
+    })
+    .sort((a, b) => a.platform.localeCompare(b.platform, "ru"));
+
+  const targetRows = questionRows(
+    uniqueSubmissions,
+    8,
+    "target_transactions",
+  );
+  const targetMacros = Array.from(
+    new Set(targetRows.map((row) => text(row.macro)).filter(Boolean)),
+  );
+  const targetTransactions = targetMacros
+    .map((macro) => {
+      const matching = targetRows.filter((row) => text(row.macro) === macro);
+      const transactionShares = matching.map((row) =>
+        platformShareLevel(row.targetShare),
+      );
+      const participantShares = matching.map((row) =>
+        platformShareLevel(row.targetParticipantShare),
+      );
+      const costReductions = matching.map((row) =>
+        costReductionLevel(row.costReduction),
+      );
+      return {
+        macro,
+        responses: new Set(matching.map((row) => row.submissionIndex)).size,
+        transactionShare: PLATFORM_SHARE_LABELS[median(transactionShares)],
+        participantShare: PLATFORM_SHARE_LABELS[median(participantShares)],
+        costReduction:
+          ["—", "Не ожидается", "Менее 10%", "10–25%", "25–50%", "Более 50%"][
+            median(costReductions)
+          ],
+        agreement: combinedAgreement([
+          transactionShares,
+          participantShares,
+          costReductions,
+        ]),
+      };
+    })
+    .sort((a, b) => a.macro.localeCompare(b.macro, "ru"));
+
+  const recommendationRows = questionRows(
+    uniqueSubmissions,
+    8,
+    "recommendations",
+  );
+  const recommendationDirections = Array.from(
+    recommendationRows.reduce((map, row) => {
+      const direction = text(row.direction);
+      if (direction) map.set(direction, (map.get(direction) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+    ([direction, mentions]) => ({ direction, mentions }),
+  ).sort((a, b) => b.mentions - a.mentions);
+
   return {
     segmentComparison,
     factors,
     priorityMetrics,
     routes,
     actionPriorities,
+    platforms,
+    platformPenetration,
+    architectureConstraints,
+    barrierCategories,
+    barrierNames,
+    effectCategories,
+    effectStatuses,
+    internationalPlatforms,
+    targetTransactions,
+    recommendationDirections,
   };
 }

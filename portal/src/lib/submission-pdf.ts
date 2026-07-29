@@ -899,6 +899,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           "Макротранзакция",
           "Текущее проникновение",
           "Целевая доля через платформы",
+          "Целевая доля участников",
           "Необходимость стандартизации",
           "Сокращение издержек",
           "Обоснование",
@@ -907,11 +908,12 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           cell(row, "macro"),
           cell(row, "currentShare"),
           cell(row, "targetShare"),
+          cell(row, "targetParticipantShare"),
           cell(row, "standardization"),
           cell(row, "costReduction"),
           cell(row, "targetDescription"),
         ]),
-        weights: [1.5, 1.2, 1.2, 1.6, 1.2, 2.4],
+        weights: [1.4, 1.1, 1.1, 1.1, 1.5, 1.1, 2.2],
       });
       return true;
     }
@@ -922,6 +924,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           "Элемент модели",
           "Целевое состояние",
           "Связанные барьеры",
+          "Международные ограничения",
           "Ожидаемые эффекты",
           "Критерий достижения",
           "Условия и риски",
@@ -930,11 +933,12 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           cell(row, "dimension"),
           cell(row, "targetState"),
           cell(row, "linkedBarriers"),
+          cell(row, "internationalConstraints"),
           cell(row, "linkedEffects"),
           cell(row, "successCriteria"),
           cell(row, "assumptions"),
         ]),
-        weights: [1.3, 2.3, 1.5, 1.5, 1.8, 1.8],
+        weights: [1.2, 2, 1.3, 1.3, 1.3, 1.6, 1.6],
       });
       return true;
     }
@@ -946,6 +950,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           "Направление",
           "Рекомендация",
           "Связанные барьеры",
+          "Платформы / международные ограничения",
           "Ожидаемые эффекты",
           "Горизонт",
         ],
@@ -954,10 +959,16 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           cell(row, "direction"),
           cell(row, "title"),
           cell(row, "barriers"),
+          [
+            cell(row, "internationalPlatforms"),
+            cell(row, "internationalConstraints"),
+          ]
+            .filter((value) => value && value !== "—")
+            .join("; "),
           cell(row, "effects"),
           cell(row, "horizon"),
         ]),
-        weights: [0.6, 1.3, 1.8, 1.6, 1.6, 0.9],
+        weights: [0.5, 1.1, 1.5, 1.3, 1.5, 1.3, 0.8],
       });
       renderReportTable({
         title: "Механизм реализации рекомендаций",

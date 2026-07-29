@@ -14,6 +14,58 @@ export type CreateExpertState = {
   expert?: string;
 };
 
+const INDUSTRY_NAME = "Коммуникации, медиа и развлечения";
+
+function optionalPercentage(formData: FormData, key: string) {
+  const raw = String(formData.get(key) ?? "")
+    .trim()
+    .replace(",", ".");
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : undefined;
+}
+
+export async function saveMinistryEconomicData(formData: FormData) {
+  const admin = await requireRole("ADMIN");
+  const gdpShare = optionalPercentage(formData, "gdpShare");
+  const gvaShare = optionalPercentage(formData, "gvaShare");
+  const employmentShare = optionalPercentage(formData, "employmentShare");
+  if (
+    gdpShare === undefined ||
+    gvaShare === undefined ||
+    employmentShare === undefined
+  ) {
+    redirect("/admin?economy=invalid#economic-data");
+  }
+  const data = {
+    reportingPeriod:
+      String(formData.get("reportingPeriod") ?? "").trim() || null,
+    gdpShare,
+    gvaShare,
+    employmentShare,
+    investmentActivity:
+      String(formData.get("investmentActivity") ?? "").trim() || null,
+    productivityComparison:
+      String(formData.get("productivityComparison") ?? "").trim() || null,
+    source: String(formData.get("source") ?? "").trim() || null,
+    comment: String(formData.get("comment") ?? "").trim() || null,
+    updatedById: admin.id,
+  };
+  await db.ministryEconomicData.upsert({
+    where: { industry: INDUSTRY_NAME },
+    update: data,
+    create: {
+      industry: INDUSTRY_NAME,
+      ...data,
+    },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  redirect("/admin?economy=saved#economic-data");
+}
+
 export async function createExpert(
   _previousState: CreateExpertState,
   formData: FormData,

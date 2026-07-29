@@ -67,6 +67,19 @@ questions:
             - { value: "30–50%", label: "30–50%" }
             - { value: "Более 50%", label: "Более 50%" }
             - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: targetParticipantShare
+          title: Целевая доля участников, использующих платформы к 2036 году
+          description: "Оцените долю участников этой макротранзакции, для которых платформы должны стать регулярным способом взаимодействия."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: "Менее 5%", label: "Менее 5%" }
+            - { value: "5–15%", label: "5–15%" }
+            - { value: "15–30%", label: "15–30%" }
+            - { value: "30–50%", label: "30–50%" }
+            - { value: "Более 50%", label: "Более 50%" }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
         - key: standardization
           title: Необходимость дополнительной стандартизации
           description: "Оцените, насколько требуется унифицировать правила, данные, документы или действия внутри транзакции."
@@ -129,7 +142,19 @@ questions:
           type: multi_suggest
           contextKey: acceptedBarriers
           allowCustom: false
-          required: true
+          requiredWhenAny:
+            - { columnKey: dimension, equals: Распределение ролей государства и рынка }
+            - { columnKey: dimension, equals: Архитектура доступа к данным, сервисам и платформам }
+          fullWidth: true
+          sortOptions: true
+        - key: internationalConstraints
+          title: Международные ограничения
+          description: "Для международного развития выберите ограничения, принятые в разделе 7."
+          type: multi_suggest
+          contextKey: internationalConstraints
+          allowCustom: false
+          visibleWhen: { columnKey: dimension, equals: Международное развитие российских платформ }
+          requiredWhen: { columnKey: dimension, equals: Международное развитие российских платформ }
           fullWidth: true
           sortOptions: true
         - key: linkedEffects
@@ -193,7 +218,31 @@ questions:
           type: multi_suggest
           contextKey: acceptedBarriers
           allowCustom: false
-          required: true
+          requiredWhenAny:
+            - { columnKey: direction, equals: Транзакции и стандартизация }
+            - { columnKey: direction, equals: Роли государства и рынка }
+            - { columnKey: direction, equals: Данные и архитектура взаимодействия }
+            - { columnKey: direction, equals: Снятие барьеров и развитие платформ }
+          fullWidth: true
+          sortOptions: true
+        - key: internationalPlatforms
+          title: Платформы для международного развития
+          description: "Выберите российские платформы из раздела 7, к которым относится рекомендация."
+          type: multi_suggest
+          contextKey: russianPlatforms
+          allowCustom: false
+          visibleWhen: { columnKey: direction, equals: Международная экспансия }
+          requiredWhen: { columnKey: direction, equals: Международная экспансия }
+          fullWidth: true
+          sortOptions: true
+        - key: internationalConstraints
+          title: Какие международные ограничения снимает рекомендация
+          description: "Выберите ограничения, выявленные при оценке международной экспансии в разделе 7."
+          type: multi_suggest
+          contextKey: internationalConstraints
+          allowCustom: false
+          visibleWhen: { columnKey: direction, equals: Международная экспансия }
+          requiredWhen: { columnKey: direction, equals: Международная экспансия }
           fullWidth: true
           sortOptions: true
         - key: action

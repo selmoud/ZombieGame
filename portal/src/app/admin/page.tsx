@@ -6,7 +6,11 @@ import { SubgroupManager } from "@/components/subgroup-manager";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatSubgroups } from "@/lib/subgroups";
-import { approveRegistration, rejectRegistration } from "./actions";
+import {
+  approveRegistration,
+  rejectRegistration,
+  saveMinistryEconomicData,
+} from "./actions";
 
 export default async function AdminPage({
   searchParams,
@@ -15,7 +19,8 @@ export default async function AdminPage({
 }) {
   const admin = await requireRole("ADMIN");
   const query = await searchParams;
-  const [users, companies, registrations, subgroups] = await Promise.all([
+  const [users, companies, registrations, subgroups, economicData] =
+    await Promise.all([
     db.user.findMany({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
@@ -62,6 +67,9 @@ export default async function AdminPage({
         },
       },
       orderBy: { name: "asc" },
+    }),
+    db.ministryEconomicData.findUnique({
+      where: { industry: "Коммуникации, медиа и развлечения" },
     }),
   ]);
   const completedExperts = users.filter(
@@ -119,6 +127,145 @@ export default async function AdminPage({
             <p className="mt-2 text-4xl text-[#000000]">{value}</p>
           </div>
         ))}
+      </section>
+
+      <section
+        id="economic-data"
+        className="paper mt-7 overflow-hidden rounded-2xl"
+      >
+        <div className="border-b border-neutral-200 px-6 py-5">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
+            Данные Минэкономразвития
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-black">
+            Место отрасли в экономике
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
+            Эти данные дополняют экспертные оценки раздела 1 и не относятся к
+            ответам отдельного эксперта. Доли указываются в процентах.
+          </p>
+        </div>
+        {query.economy && (
+          <p
+            className={`border-b px-6 py-3 text-sm ${
+              query.economy === "saved"
+                ? "border-[#7EE0EC] bg-[#DDF8FB] text-[#00616C]"
+                : "border-[#FF9BC5] bg-[#FFE0ED] text-[#A9004A]"
+            }`}
+          >
+            {query.economy === "saved"
+              ? "Макроэкономические данные сохранены."
+              : "Проверьте доли: допустимы значения от 0 до 100%."}
+          </p>
+        )}
+        <form action={saveMinistryEconomicData} className="grid gap-5 p-6 lg:grid-cols-3">
+          <label>
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+              Отчётный период
+            </span>
+            <input
+              className="field"
+              name="reportingPeriod"
+              defaultValue={economicData?.reportingPeriod ?? ""}
+              placeholder="Например, 2025 год"
+            />
+          </label>
+          {[
+            ["gdpShare", "Доля отрасли в ВВП, %", economicData?.gdpShare],
+            ["gvaShare", "Доля отрасли в ВДС, %", economicData?.gvaShare],
+            [
+              "employmentShare",
+              "Доля в общей структуре занятости, %",
+              economicData?.employmentShare,
+            ],
+          ].map(([name, label, value]) => (
+            <label key={String(name)}>
+              <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+                {String(label)}
+              </span>
+              <input
+                className="field"
+                name={String(name)}
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                defaultValue={value === null || value === undefined ? "" : String(value)}
+              />
+            </label>
+          ))}
+          <label>
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+              Инвестиционная активность и привлекательность
+            </span>
+            <select
+              className="field"
+              name="investmentActivity"
+              defaultValue={economicData?.investmentActivity ?? ""}
+            >
+              <option value="">Не заполнено</option>
+              {[
+                "Очень высокая",
+                "Высокая",
+                "Средняя",
+                "Низкая",
+                "Очень низкая",
+                "Затрудняюсь оценить",
+              ].map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+              Производительность труда относительно среднероссийской
+            </span>
+            <select
+              className="field"
+              name="productivityComparison"
+              defaultValue={economicData?.productivityComparison ?? ""}
+            >
+              <option value="">Не заполнено</option>
+              {[
+                "Значительно выше",
+                "Выше",
+                "Сопоставима",
+                "Ниже",
+                "Значительно ниже",
+                "Затрудняюсь оценить",
+              ].map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="lg:col-span-3">
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+              Источник
+            </span>
+            <textarea
+              className="field min-h-24"
+              name="source"
+              defaultValue={economicData?.source ?? ""}
+              placeholder="Название источника, ссылка, период и дата публикации"
+            />
+          </label>
+          <label className="lg:col-span-3">
+            <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+              Комментарий
+            </span>
+            <textarea
+              className="field min-h-24"
+              name="comment"
+              defaultValue={economicData?.comment ?? ""}
+              placeholder="Методика расчёта, ограничения сопоставимости или пояснение"
+            />
+          </label>
+          <div className="lg:col-span-3">
+            <button className="rounded-xl bg-[#0059C7] px-5 py-3 font-semibold text-white hover:bg-[#00479F]">
+              Сохранить данные
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="paper mt-7 overflow-hidden rounded-2xl">
@@ -256,8 +403,8 @@ export default async function AdminPage({
         </div>
         <div className="divide-y divide-neutral-100">
           {users.map((user) => {
-            const touched = user.assignments.filter(
-              (item) => item.submission?.status !== "NOT_STARTED",
+            const accepted = user.assignments.filter(
+              (item) => item.submission?.status === "ACCEPTED",
             ).length;
             return (
               <ExpertCard
@@ -266,7 +413,7 @@ export default async function AdminPage({
                 fullName={user.fullName}
                 company={user.company?.name ?? "—"}
                 subgroup={formatSubgroups(user.subgroupMemberships)}
-                progress={`${touched}/${user.assignments.length}`}
+                progress={`${accepted}/${user.assignments.length}`}
                 isActive={user.isActive}
                 hasPassword={Boolean(user.passwordHash)}
                 experienceSummary={user.experienceSummary}

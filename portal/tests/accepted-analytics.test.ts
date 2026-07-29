@@ -110,4 +110,88 @@ describe("accepted analytics", () => {
       positive: 1,
     });
   });
+
+  it("deduplicates one expert in the all-subgroups summary", () => {
+    const repeated = submission(1, "expert-id", {
+      industry_boundaries: [
+        {
+          segment: "Онлайн-видео",
+          userActivityShare: "Крупная — 25–50%",
+          economicShare: "Заметная — 10–25%",
+        },
+      ],
+    });
+    const result = buildAcceptedAnalytics([repeated, repeated]);
+
+    expect(result.segmentComparison[0].responses).toBe(1);
+  });
+
+  it("builds deterministic summaries for modules 3–8", () => {
+    const result = buildAcceptedAnalytics([
+      submission(3, "Эксперт", {
+        platforms: [{ name: "VK Видео", type: "Рыночная" }],
+        platform_penetration: [
+          {
+            macro: "Публикация видео",
+            share: "30–50% — массовое использование",
+          },
+        ],
+      }),
+      submission(4, "Эксперт", {
+        data_access: [{ restrictions: ["Нет единого формата данных"] }],
+      }),
+      submission(5, "Эксперт", {
+        barriers: [{ category: "Технологический", name: "Нет стандарта" }],
+      }),
+      submission(6, "Эксперт", {
+        effects: [{ category: "Экономический", status: "Уже наблюдается" }],
+      }),
+      submission(7, "Эксперт", {
+        international_platforms: [
+          {
+            platform: "VK Видео",
+            potential: "Высокий",
+            targetMarkets: ["СНГ"],
+            constraints: ["Локализация"],
+          },
+        ],
+      }),
+      submission(8, "Эксперт", {
+        target_transactions: [
+          {
+            macro: "Публикация видео",
+            targetShare: "Более 50%",
+            targetParticipantShare: "30–50%",
+            costReduction: "10–25%",
+          },
+        ],
+        recommendations: [
+          { direction: "Международная экспансия", title: "Провести пилот" },
+        ],
+      }),
+    ]);
+
+    expect(result.platformPenetration[0].share).toBe("30–50%");
+    expect(result.architectureConstraints[0].name).toBe(
+      "Нет единого формата данных",
+    );
+    expect(result.barrierCategories[0]).toEqual({
+      category: "Технологический",
+      mentions: 1,
+    });
+    expect(result.effectCategories[0].category).toBe("Экономический");
+    expect(result.internationalPlatforms[0]).toMatchObject({
+      platform: "VK Видео",
+      potential: "Высокий",
+    });
+    expect(result.targetTransactions[0]).toMatchObject({
+      transactionShare: "Более 50%",
+      participantShare: "30–50%",
+      costReduction: "10–25%",
+    });
+    expect(result.recommendationDirections[0]).toEqual({
+      direction: "Международная экспансия",
+      mentions: 1,
+    });
+  });
 });

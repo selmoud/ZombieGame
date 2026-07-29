@@ -411,6 +411,10 @@ describe("submission PDF", () => {
               { key: "macro", title: "Макротранзакция" },
               { key: "currentShare", title: "Текущее проникновение" },
               { key: "targetShare", title: "Целевая доля" },
+              {
+                key: "targetParticipantShare",
+                title: "Целевая доля участников",
+              },
               { key: "standardization", title: "Стандартизация" },
               { key: "costReduction", title: "Сокращение издержек" },
               { key: "targetDescription", title: "Обоснование" },
@@ -421,6 +425,7 @@ describe("submission PDF", () => {
               macro: "Монетизация видео через рекламу",
               currentShare: "30–50%",
               targetShare: "Более 50%",
+              targetParticipantShare: "Более 50%",
               standardization:
                 "Требуется стандартизация отдельных элементов",
               costReduction: "10–25%",

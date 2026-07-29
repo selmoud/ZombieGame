@@ -9,6 +9,7 @@ import {
   statusStyles,
 } from "@/lib/status";
 import { formatSubgroups } from "@/lib/subgroups";
+import { acceptedModuleProgress } from "@/lib/progress";
 
 export default async function DashboardPage({
   searchParams,
@@ -22,18 +23,7 @@ export default async function DashboardPage({
     include: { module: true, submission: true },
     orderBy: { module: { order: "asc" } },
   });
-  const completed = assignments.filter(
-    (item) => item.submission?.status === "ACCEPTED",
-  ).length;
-  const progress = assignments.length
-    ? Math.round(
-        (assignments.filter(
-          (item) => item.submission?.status !== "NOT_STARTED",
-        ).length /
-          assignments.length) *
-          100,
-      )
-    : 0;
+  const progress = acceptedModuleProgress(assignments);
 
   return (
     <AppShell user={user}>
@@ -60,16 +50,18 @@ export default async function DashboardPage({
         <aside className="paper rounded-2xl p-5">
           <div className="flex items-end justify-between">
             <span className="text-sm text-neutral-500">Общий прогресс</span>
-            <strong className="text-2xl text-[#000000]">{progress}%</strong>
+            <strong className="text-2xl text-[#000000]">
+              {progress.percent}%
+            </strong>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
             <div
               className="h-full rounded-full bg-[#0D78F8]"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progress.percent}%` }}
             />
           </div>
           <p className="mt-3 text-xs text-neutral-500">
-            Принято разделов: {completed} из {assignments.length}
+            Принято разделов: {progress.accepted} из {progress.total}
           </p>
         </aside>
       </div>

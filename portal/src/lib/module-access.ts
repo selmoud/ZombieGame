@@ -7,7 +7,17 @@ export function isModuleUnlockedFromAssignments(
   assignments: SequencedAssignment[],
   currentModuleOrder: number,
 ) {
-  return assignments
-    .filter((assignment) => assignment.module.order < currentModuleOrder)
-    .every((assignment) => assignment.submission?.status === "ACCEPTED");
+  if (currentModuleOrder <= 1) return true;
+  const previousByOrder = new Map(
+    assignments
+      .filter((assignment) => assignment.module.order < currentModuleOrder)
+      .map((assignment) => [assignment.module.order, assignment]),
+  );
+  return Array.from(
+    { length: currentModuleOrder - 1 },
+    (_, index) => index + 1,
+  ).every(
+    (order) =>
+      previousByOrder.get(order)?.submission?.status === "ACCEPTED",
+  );
 }

@@ -87,11 +87,31 @@ model User {
   statusChanges         StatusHistory[]
   reviewedRegistrations RegistrationRequest[] @relation("RegistrationReviewer")
   ledSubgroups          Subgroup[]             @relation("SubgroupLeader")
+  economicDataUpdates   MinistryEconomicData[] @relation("EconomicDataUpdater")
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
   @@index([companyId])
   @@map("users")
+}
+
+model MinistryEconomicData {
+  id                     String   @id @default(uuid()) @db.Uuid
+  industry               String   @unique
+  reportingPeriod        String?  @map("reporting_period")
+  gdpShare               Float?   @map("gdp_share")
+  gvaShare               Float?   @map("gva_share")
+  employmentShare        Float?   @map("employment_share")
+  investmentActivity     String?  @map("investment_activity")
+  productivityComparison String?  @map("productivity_comparison")
+  source                  String?
+  comment                 String?
+  updatedById             String   @map("updated_by_id") @db.Uuid
+  updatedBy               User     @relation("EconomicDataUpdater", fields: [updatedById], references: [id])
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("ministry_economic_data")
 }
 
 model RegistrationRequest {
