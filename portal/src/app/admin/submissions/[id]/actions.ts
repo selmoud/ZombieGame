@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { portalLink, queueMaxNotification } from "@/lib/max-bot";
 
 export async function addComment(formData: FormData) {
   const admin = await requireRole("ADMIN");
@@ -20,7 +21,17 @@ export async function requestRevision(formData: FormData) {
   const admin = await requireRole("ADMIN");
   const submissionId = String(formData.get("submissionId") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
-  const submission = await db.submission.findUnique({ where: { id: submissionId } });
+  const submission = await db.submission.findUnique({
+    where: { id: submissionId },
+    include: {
+      assignment: {
+        include: {
+          module: true,
+          user: { include: { maxBotBinding: true } },
+        },
+      },
+    },
+  });
   if (
     !submission ||
     submission.status !== "SUBMITTED" ||
@@ -29,15 +40,15 @@ export async function requestRevision(formData: FormData) {
   ) {
     redirect(`/admin/submissions/${submissionId}?error=revision`);
   }
-  await db.$transaction([
-    db.reviewComment.create({
+  await db.$transaction(async (tx) => {
+    await tx.reviewComment.create({
       data: { submissionId, authorId: admin.id, body: reason },
-    }),
-    db.submission.update({
+    });
+    await tx.submission.update({
       where: { id: submissionId },
       data: { status: "NEEDS_REVISION", revision: { increment: 1 } },
-    }),
-    db.statusHistory.create({
+    });
+    await tx.statusHistory.create({
       data: {
         submissionId,
         actorId: admin.id,
@@ -45,31 +56,66 @@ export async function requestRevision(formData: FormData) {
         toStatus: "NEEDS_REVISION",
         reason,
       },
-    }),
-  ]);
+    });
+    const binding = submission.assignment.user.maxBotBinding;
+    if (binding) {
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "MODULE_NEEDS_REVISION",
+        dedupeKey: `submission-revision:${submission.id}:${submission.revision}`,
+        text: `Модуль «${submission.assignment.module.title}» возвращён на доработку.\n\nКомментарий модератора: ${reason}`,
+        linkUrl: portalLink(`/modules/${submission.assignmentId}`),
+        linkLabel: "Открыть модуль",
+      });
+    }
+  });
   redirect(`/admin/submissions/${submissionId}`);
 }
 
 export async function acceptSubmission(formData: FormData) {
   const admin = await requireRole("ADMIN");
   const submissionId = String(formData.get("submissionId") ?? "");
-  const submission = await db.submission.findUnique({ where: { id: submissionId } });
+  const submission = await db.submission.findUnique({
+    where: { id: submissionId },
+    include: {
+      assignment: {
+        include: {
+          module: true,
+          user: { include: { maxBotBinding: true } },
+        },
+      },
+    },
+  });
   if (!submission || submission.status !== "SUBMITTED") {
     redirect(`/admin/submissions/${submissionId}?error=status`);
   }
-  await db.$transaction([
-    db.submission.update({
+  await db.$transaction(async (tx) => {
+    await tx.submission.update({
       where: { id: submissionId },
       data: { status: "ACCEPTED", acceptedAt: new Date(), revision: { increment: 1 } },
-    }),
-    db.statusHistory.create({
+    });
+    await tx.statusHistory.create({
       data: {
         submissionId,
         actorId: admin.id,
         fromStatus: submission.status,
         toStatus: "ACCEPTED",
       },
-    }),
-  ]);
+    });
+    const binding = submission.assignment.user.maxBotBinding;
+    if (binding) {
+      const finalModule = submission.assignment.module.order >= 8;
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: finalModule ? "ALL_MODULES_ACCEPTED" : "MODULE_ACCEPTED",
+        dedupeKey: `submission-accepted:${submission.id}`,
+        text: finalModule
+          ? `Модуль «${submission.assignment.module.title}» принят. Вы завершили прохождение всех экспертных модулей.`
+          : `Модуль «${submission.assignment.module.title}» принят модератором. Следующий модуль открыт для заполнения.`,
+        linkUrl: portalLink(),
+        linkLabel: "Открыть портал",
+      });
+    }
+  });
   redirect(`/admin/submissions/${submissionId}`);
 }

@@ -89,6 +89,8 @@ model User {
   reviewedRegistrations RegistrationRequest[] @relation("RegistrationReviewer")
   ledSubgroups          Subgroup[]             @relation("SubgroupLeader")
   economicDataUpdates   MinistryEconomicData[] @relation("EconomicDataUpdater")
+  approvedRegistration  RegistrationRequest?   @relation("ApprovedExpert")
+  maxBotBinding         MaxBotBinding?
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
@@ -127,11 +129,66 @@ model RegistrationRequest {
   reviewedById        String?                       @map("reviewed_by_id") @db.Uuid
   reviewedBy          User?                         @relation("RegistrationReviewer", fields: [reviewedById], references: [id])
   reviewedAt          DateTime?                     @map("reviewed_at")
+  approvedUserId      String?                       @unique @map("approved_user_id") @db.Uuid
+  approvedUser        User?                         @relation("ApprovedExpert", fields: [approvedUserId], references: [id], onDelete: SetNull)
+  maxLinkToken        MaxLinkToken?
+  maxBotBinding       MaxBotBinding?
   createdAt           DateTime                      @default(now()) @map("created_at")
   updatedAt           DateTime                      @updatedAt @map("updated_at")
 
   @@index([status, createdAt])
   @@map("registration_requests")
+}
+
+model MaxLinkToken {
+  id                    String              @id @default(uuid()) @db.Uuid
+  registrationRequestId String              @unique @map("registration_request_id") @db.Uuid
+  tokenHash             String              @unique @map("token_hash")
+  expiresAt             DateTime            @map("expires_at")
+  usedAt                DateTime?           @map("used_at")
+  registrationRequest   RegistrationRequest @relation(fields: [registrationRequestId], references: [id], onDelete: Cascade)
+  createdAt             DateTime            @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("max_link_tokens")
+}
+
+model MaxBotBinding {
+  id                    String               @id @default(uuid()) @db.Uuid
+  userId                String?              @unique @map("user_id") @db.Uuid
+  registrationRequestId String?              @unique @map("registration_request_id") @db.Uuid
+  maxUserId             BigInt               @unique @map("max_user_id")
+  maxChatId             BigInt               @map("max_chat_id")
+  enabled               Boolean              @default(true)
+  user                   User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registrationRequest   RegistrationRequest? @relation(fields: [registrationRequestId], references: [id], onDelete: Cascade)
+  notifications         MaxNotification[]
+  linkedAt              DateTime             @default(now()) @map("linked_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  @@index([enabled])
+  @@map("max_bot_bindings")
+}
+
+model MaxNotification {
+  id            String        @id @default(uuid()) @db.Uuid
+  bindingId     String        @map("binding_id") @db.Uuid
+  eventType     String        @map("event_type")
+  dedupeKey     String        @unique @map("dedupe_key")
+  text          String
+  linkUrl       String?       @map("link_url")
+  linkLabel     String?       @map("link_label")
+  status        String        @default("PENDING")
+  attempts      Int           @default(0)
+  nextAttemptAt DateTime      @default(now()) @map("next_attempt_at")
+  sentAt        DateTime?     @map("sent_at")
+  lastError     String?       @map("last_error")
+  binding       MaxBotBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("max_notifications")
 }
 
 model UserSubgroup {

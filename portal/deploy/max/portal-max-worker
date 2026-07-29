@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+set -a
+. /srv/portal/.env
+set +a
+
+curl --fail --silent --show-error \
+  --max-time 30 \
+  --request POST \
+  --header "Authorization: Bearer ${MAX_WORKER_SECRET}" \
+  http://127.0.0.1:3000/api/internal/max-notifications

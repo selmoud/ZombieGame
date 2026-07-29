@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { portalLink, queueMaxNotification } from "@/lib/max-bot";
 import { hashPassword } from "@/lib/password";
 
 export type CreateExpertState = {
@@ -392,7 +393,7 @@ export async function approveRegistration(formData: FormData) {
   const requestId = String(formData.get("requestId") ?? "");
   const request = await db.registrationRequest.findUnique({
     where: { id: requestId },
-    include: { subgroupMemberships: true },
+    include: { subgroupMemberships: true, maxBotBinding: true },
   });
   if (!request || request.status !== "PENDING" || !request.passwordHash) {
     redirect("/admin?registration=unavailable");
@@ -440,6 +441,20 @@ export async function approveRegistration(formData: FormData) {
         passwordHash: request.passwordHash,
       },
     });
+    if (request.maxBotBinding) {
+      await tx.maxBotBinding.update({
+        where: { id: request.maxBotBinding.id },
+        data: { userId: expert.id, registrationRequestId: null },
+      });
+      await queueMaxNotification(tx, {
+        bindingId: request.maxBotBinding.id,
+        eventType: "ACCESS_GRANTED",
+        dedupeKey: `registration-approved:${request.id}`,
+        text: "Ваша заявка согласована. Доступ к порталу открыт — войдите с указанными при регистрации именем и паролем.",
+        linkUrl: portalLink("/login"),
+        linkLabel: "Войти в портал",
+      });
+    }
     const modules = await tx.module.findMany({
       where: { isActive: true },
       include: {
@@ -470,6 +485,7 @@ export async function approveRegistration(formData: FormData) {
         passwordHash: null,
         reviewedById: admin.id,
         reviewedAt: new Date(),
+        approvedUserId: expert.id,
       },
     });
   });
@@ -479,14 +495,29 @@ export async function approveRegistration(formData: FormData) {
 export async function rejectRegistration(formData: FormData) {
   const admin = await requireRole("ADMIN");
   const requestId = String(formData.get("requestId") ?? "");
-  await db.registrationRequest.updateMany({
-    where: { id: requestId, status: "PENDING" },
-    data: {
-      status: "REJECTED",
-      passwordHash: null,
-      reviewedById: admin.id,
-      reviewedAt: new Date(),
-    },
+  await db.$transaction(async (tx) => {
+    const request = await tx.registrationRequest.findFirst({
+      where: { id: requestId, status: "PENDING" },
+      include: { maxBotBinding: true },
+    });
+    if (!request) return;
+    await tx.registrationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "REJECTED",
+        passwordHash: null,
+        reviewedById: admin.id,
+        reviewedAt: new Date(),
+      },
+    });
+    if (request.maxBotBinding) {
+      await queueMaxNotification(tx, {
+        bindingId: request.maxBotBinding.id,
+        eventType: "REGISTRATION_REJECTED",
+        dedupeKey: `registration-rejected:${request.id}`,
+        text: "Заявка не согласована. Для уточнения или исправления данных обратитесь к администратору рабочей группы.",
+      });
+    }
   });
   redirect("/admin?registration=rejected");
 }

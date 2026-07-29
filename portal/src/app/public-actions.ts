@@ -5,6 +5,11 @@ import { createSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
+  createMaxLinkToken,
+  hashMaxLinkToken,
+  maxBotDeepLink,
+} from "@/lib/max-bot";
+import {
   clearRateLimit,
   consumeRateLimit,
 } from "@/lib/rate-limit";
@@ -23,6 +28,7 @@ function normalizeSingleLine(value: FormDataEntryValue | null) {
 export type RegistrationState = {
   error?: string;
   success?: boolean;
+  maxBotLink?: string;
 };
 
 export async function submitRegistration(
@@ -100,6 +106,10 @@ export async function submitRegistration(
     return { error: "Одна из выбранных подгрупп больше недоступна." };
   }
 
+  const maxLinkToken =
+    process.env.MAX_BOT_USERNAME && process.env.MAX_LINK_TOKEN_PEPPER
+      ? createMaxLinkToken()
+      : null;
   await db.registrationRequest.create({
     data: {
       fullName,
@@ -108,9 +118,24 @@ export async function submitRegistration(
       subgroupMemberships: {
         create: subgroups.map((subgroup) => ({ subgroupId: subgroup.id })),
       },
+      ...(maxLinkToken
+        ? {
+            maxLinkToken: {
+              create: {
+                tokenHash: hashMaxLinkToken(maxLinkToken),
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              },
+            },
+          }
+        : {}),
     },
   });
-  return { success: true };
+  return {
+    success: true,
+    maxBotLink: maxLinkToken
+      ? (maxBotDeepLink(maxLinkToken) ?? undefined)
+      : undefined,
+  };
 }
 
 export type LoginState = { error?: string };

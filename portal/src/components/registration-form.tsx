@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import Image from "next/image";
+import QRCode from "qrcode";
+import { useActionState, useEffect, useState } from "react";
 import {
   submitRegistration,
   type RegistrationState,
@@ -18,6 +20,19 @@ export function RegistrationForm({
     submitRegistration,
     initialState,
   );
+  const [qrCode, setQrCode] = useState("");
+
+  useEffect(() => {
+    if (!state.maxBotLink) {
+      return;
+    }
+    QRCode.toDataURL(state.maxBotLink, {
+      width: 240,
+      margin: 1,
+      color: { dark: "#000000", light: "#FFFFFF" },
+      errorCorrectionLevel: "M",
+    }).then(setQrCode).catch(() => setQrCode(""));
+  }, [state.maxBotLink]);
 
   if (state.success) {
     return (
@@ -26,9 +41,36 @@ export function RegistrationForm({
           Заявка отправлена
         </p>
         <p className="mt-2 leading-7 text-[#00616C]">
-          Администратор проверит данные. После согласования вы сможете войти с
-          указанными именем и паролем.
+          Администратор проверит данные.
         </p>
+        {state.maxBotLink && (
+          <div className="mt-5 rounded-xl bg-white p-4 text-center">
+            <p className="font-semibold text-black">
+              Подключите уведомления в MAX
+            </p>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-600">
+              Бот сообщит о согласовании заявки и результатах проверки модулей.
+            </p>
+            {qrCode && (
+              <Image
+                src={qrCode}
+                alt="QR-код для подключения бота в MAX"
+                className="mx-auto mt-4 size-52"
+                width={208}
+                height={208}
+                unoptimized
+              />
+            )}
+            <a
+              href={state.maxBotLink}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex rounded-xl bg-[#0059C7] px-5 py-3 text-sm font-semibold text-white"
+            >
+              Открыть бота в MAX
+            </a>
+          </div>
+        )}
       </div>
     );
   }

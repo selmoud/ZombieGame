@@ -90,6 +90,11 @@ npm run build
 | `PORTAL_DB_PASSWORD` | Пароль PostgreSQL для запуска через Docker Compose |
 | `APP_URL` | Публичный адрес портала для ссылок-приглашений |
 | `INVITATION_TOKEN_PEPPER` | Секрет HMAC для хеширования приглашений |
+| `MAX_BOT_TOKEN` | Токен чат-бота MAX; хранится только в runtime-окружении |
+| `MAX_BOT_USERNAME` | Публичный ник чат-бота MAX без `@` |
+| `MAX_WEBHOOK_SECRET` | Секрет проверки webhook-запросов MAX |
+| `MAX_WORKER_SECRET` | Секрет внутреннего обработчика очереди уведомлений |
+| `MAX_LINK_TOKEN_PEPPER` | Секрет HMAC для одноразовых ссылок привязки MAX |
 | `BOOTSTRAP_ADMIN_1_PASSWORD` | Начальный пароль первого администратора только для новой БД |
 | `BOOTSTRAP_ADMIN_2_PASSWORD` | Начальный пароль второго администратора только для новой БД |
 | `ALLOW_FUNCTIONAL_TEST_RESET` | Явное подтверждение разрушительного сброса тестовых данных |

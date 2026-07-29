@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
 import { isTrustedMutationRequest } from "@/lib/request-security";
+import { portalLink, queueMaxNotification } from "@/lib/max-bot";
 
 export async function POST(
   request: Request,
@@ -53,24 +54,38 @@ export async function POST(
     return Response.json({ error: "VALIDATION_ERROR", fields: errors }, { status: 422 });
   }
 
-  const fromStatus = assignment.submission.status;
-  await db.$transaction([
-    db.submission.update({
-      where: { id: assignment.submission.id },
+  const submission = assignment.submission;
+  const fromStatus = submission.status;
+  await db.$transaction(async (tx) => {
+    await tx.submission.update({
+      where: { id: submission.id },
       data: {
         status: "SUBMITTED",
         submittedAt: new Date(),
         revision: { increment: 1 },
       },
-    }),
-    db.statusHistory.create({
+    });
+    await tx.statusHistory.create({
       data: {
-        submissionId: assignment.submission.id,
+        submissionId: submission.id,
         fromStatus,
         toStatus: "SUBMITTED",
         actorId: user.id,
       },
-    }),
-  ]);
+    });
+    const binding = await tx.maxBotBinding.findUnique({
+      where: { userId: user.id },
+    });
+    if (binding) {
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "MODULE_SUBMITTED",
+        dedupeKey: `submission-submitted:${submission.id}:${submission.revision}`,
+        text: `Модуль «${assignment.module.title}» отправлен модератору. Я сообщу о результате проверки.`,
+        linkUrl: portalLink(),
+        linkLabel: "Открыть портал",
+      });
+    }
+  });
   return Response.json({ status: "SUBMITTED" });
 }
