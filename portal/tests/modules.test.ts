@@ -284,6 +284,16 @@ describe("module definitions", () => {
         maxRows: 15,
       },
     });
+    expect(
+      stateMarket?.questions
+        .find((question) => question.key === "platforms")
+        ?.config.columns?.find((column) => column.key === "segments"),
+    ).toMatchObject({
+      type: "multi_suggest",
+      contextKey: "industrySegments",
+      allowCustom: false,
+      required: true,
+    });
     const penetration = stateMarket?.questions.find(
       (question) => question.key === "platform_penetration",
     );

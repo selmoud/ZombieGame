@@ -472,6 +472,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       renderReportTable({
         title: "Действующие платформы в отрасли",
         headers: [
+          "Сегменты",
           "Платформа",
           "Тип",
           "Происхождение",
@@ -480,6 +481,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           "GTV / объём транзакций",
         ],
         rows: rows.map((row) => [
+          cell(row, "segments"),
           cell(row, "name"),
           cell(row, "type"),
           cell(row, "origin"),
@@ -487,7 +489,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           cell(row, "mau"),
           cell(row, "gtv"),
         ]),
-        weights: [1.5, 1, 1.2, 2.1, 1.4, 1.5],
+        weights: [1.4, 1.4, 0.9, 1.1, 1.9, 1.2, 1.3],
       });
       return true;
     }
@@ -496,7 +498,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         title: "Уровень проникновения платформ",
         headers: [
           "Макротранзакция",
-          "Доля транзакций через платформы",
+          "Совокупная доля транзакций через платформы",
           "Основание оценки",
           "Обоснование",
         ],
