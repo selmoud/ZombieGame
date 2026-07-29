@@ -537,6 +537,134 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     }
     return false;
   };
+  const renderArchitectureTables = (question: Question) => {
+    if (!Array.isArray(question.value)) return false;
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+
+    if (question.key === "data_access") {
+      renderReportTable({
+        title: "Модель доступа платформ к данным",
+        headers: [
+          "Категория данных",
+          "Платформы",
+          "Макротранзакции",
+          "Владелец или оператор",
+          "Модель доступа",
+          "Качество и стандартизация",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "data"),
+          cell(row, "platforms"),
+          cell(row, "macros"),
+          cell(row, "owner"),
+          cell(row, "accessModel"),
+          cell(row, "quality"),
+        ]),
+        weights: [1.5, 1.3, 1.6, 1.4, 1.5, 1.3],
+      });
+      renderReportTable({
+        title: "Оценка доступа платформ к данным",
+        headers: [
+          "Категория данных",
+          "Основные ограничения",
+          "Влияние на развитие платформ",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "data"),
+          cell(row, "restrictions"),
+          cell(row, "impact"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.4, 2.2, 1.4, 3],
+      });
+      return true;
+    }
+    if (question.key === "service_access") {
+      renderReportTable({
+        title: "Доступ внешних сервисов к платформам",
+        headers: [
+          "Сервис",
+          "Платформы",
+          "Оператор",
+          "Потребность",
+          "Механизм подключения",
+          "Открытость",
+          "Зрелость",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "service"),
+          cell(row, "platforms"),
+          cell(row, "operator"),
+          cell(row, "need"),
+          cell(row, "integration"),
+          cell(row, "openness"),
+          cell(row, "maturity"),
+        ]),
+        weights: [1.3, 1.2, 1.2, 1.8, 1.6, 1.4, 1],
+      });
+      renderReportTable({
+        title: "Оценка доступа внешних сервисов",
+        headers: [
+          "Сервис",
+          "Влияние на развитие платформ",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "service"),
+          cell(row, "impact"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.5, 1.5, 4],
+      });
+      return true;
+    }
+    if (question.key === "user_access") {
+      renderReportTable({
+        title: "Модель доступа участников к платформам",
+        headers: [
+          "Платформа",
+          "Группы участников",
+          "Типы взаимодействия",
+          "Механизмы подключения",
+          "Открытость",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "platform"),
+          cell(row, "participants"),
+          cell(row, "interactionTypes"),
+          cell(row, "connection"),
+          cell(row, "openness"),
+        ]),
+        weights: [1.2, 1.7, 1.5, 2, 1.6],
+      });
+      renderReportTable({
+        title: "Оценка доступа участников к платформам",
+        headers: [
+          "Платформа",
+          "Группы участников",
+          "Ограничения",
+          "Влияние на развитие платформ",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "platform"),
+          cell(row, "participants"),
+          cell(row, "restrictions"),
+          cell(row, "impact"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.2, 1.5, 2, 1.4, 2.5],
+      });
+      return true;
+    }
+    return false;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -571,7 +699,8 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
   data.questions.forEach((question, questionIndex) => {
     const tableRendered =
       (data.moduleOrder === 2 && renderTransactionTables(question)) ||
-      (data.moduleOrder === 3 && renderStateMarketTables(question));
+      (data.moduleOrder === 3 && renderStateMarketTables(question)) ||
+      (data.moduleOrder === 4 && renderArchitectureTables(question));
     if (tableRendered) {
       methodologyTablesRendered = true;
       return;

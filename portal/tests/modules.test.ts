@@ -326,4 +326,55 @@ describe("module definitions", () => {
       uniqueAcrossRows: true,
     });
   });
+
+  it("builds architecture around accepted platforms and participants", async () => {
+    const modules = await loadModuleDefinitions();
+    const architecture = modules.find(
+      (module) => module.slug === "architecture",
+    );
+
+    expect(architecture?.questions.map((question) => question.key)).toEqual([
+      "data_access",
+      "service_access",
+      "user_access",
+      "architecture_materials",
+    ]);
+    expect(
+      architecture?.questions.some(
+        (question) => question.key === "target_2036",
+      ),
+    ).toBe(false);
+
+    for (const questionKey of ["data_access", "service_access"]) {
+      expect(
+        architecture?.questions
+          .find((question) => question.key === questionKey)
+          ?.config.columns?.find((column) => column.key === "platforms"),
+      ).toMatchObject({
+        type: "multi_suggest",
+        contextKey: "acceptedPlatforms",
+        allowCustom: false,
+        required: true,
+      });
+    }
+    expect(
+      architecture?.questions
+        .find((question) => question.key === "user_access")
+        ?.config.columns?.find((column) => column.key === "platform"),
+    ).toMatchObject({
+      type: "suggest",
+      contextKey: "acceptedPlatforms",
+      allowCustom: false,
+      required: true,
+    });
+    expect(
+      architecture?.questions
+        .find((question) => question.key === "user_access")
+        ?.config.columns?.find((column) => column.key === "participants"),
+    ).toMatchObject({
+      contextKey: "participantGroups",
+      allowCustom: false,
+      required: true,
+    });
+  });
 });

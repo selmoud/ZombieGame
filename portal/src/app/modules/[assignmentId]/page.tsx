@@ -59,7 +59,9 @@ export default async function ModulePage({
       ? [1]
       : assignment.module.order === 3
         ? [1, 2]
-        : [];
+        : assignment.module.order === 4
+          ? [1, 2, 3]
+          : [];
   const foundationAssignments = foundationOrders.length
     ? await db.moduleAssignment.findMany({
         where: {
@@ -88,6 +90,7 @@ export default async function ModulePage({
     );
   const sectionOneAnswers = answersForOrder(1);
   const sectionTwoAnswers = answersForOrder(2);
+  const sectionThreeAnswers = answersForOrder(3);
   const boundaryRows = Array.isArray(sectionOneAnswers.analysis_object)
     ? (sectionOneAnswers.analysis_object as Array<Record<string, unknown>>)
     : [];
@@ -130,6 +133,24 @@ export default async function ModulePage({
   const macroTransactions = macroRows
     .map((row) => String(row.name ?? "").trim())
     .filter(Boolean);
+  const participantGroups = participantRows
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
+  const platformRows = Array.isArray(sectionThreeAnswers.platforms)
+    ? (sectionThreeAnswers.platforms as Array<Record<string, unknown>>)
+    : [];
+  const acceptedPlatforms = platformRows
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
+  const stateFunctionRows = Array.isArray(sectionThreeAnswers.state_functions)
+    ? (sectionThreeAnswers.state_functions as Array<Record<string, unknown>>)
+    : [];
+  const stateParticipants = stateFunctionRows
+    .map((row) => String(row.participant ?? "").trim())
+    .filter(Boolean);
+  const industryParticipants = Array.from(
+    new Set([...participantGroups, ...stateParticipants]),
+  );
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -176,6 +197,18 @@ export default async function ModulePage({
       label: name,
     })),
     macroTransactions: macroTransactions.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    participantGroups: participantGroups.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    industryParticipants: industryParticipants.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    acceptedPlatforms: acceptedPlatforms.map((name) => ({
       value: name,
       label: name,
     })),
@@ -431,6 +464,58 @@ export default async function ModulePage({
                           выделены. Их можно указать в разделе 3.
                         </p>
                       )}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#F1E5FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6815A8]">
+                      Макротранзакции
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {macroTransactions.map((macro) => (
+                        <p key={macro}>{macro}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          {assignment.module.order === 4 &&
+            [1, 2, 3].every((order) =>
+              foundationAssignments.some(
+                (foundation) => foundation.module.order === order,
+              ),
+            ) && (
+              <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Основа из разделов 1–3
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-black">
+                  Принятые платформы и контекст взаимодействия
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Эти данные уже согласованы модератором и доступны для выбора
+                  в разделе 4. Здесь нужно оценить существующие условия доступа,
+                  а не повторно описывать платформы и участников.
+                </p>
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl bg-[#E0EEFF] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Платформы
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {acceptedPlatforms.map((platform) => (
+                        <p key={platform}>{platform}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#DDF8FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Группы участников
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {participantGroups.map((participant) => (
+                        <p key={participant}>{participant}</p>
+                      ))}
                     </div>
                   </div>
                   <div className="rounded-xl bg-[#F1E5FB] p-4">

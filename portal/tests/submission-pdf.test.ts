@@ -148,4 +148,58 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style architecture tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 4,
+      moduleTitle: "Архитектура взаимодействия",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "data_access",
+          title: "Доступ платформ к данным",
+          config: {
+            columns: [
+              { key: "data", title: "Категория данных" },
+              { key: "platforms", title: "Платформы" },
+              { key: "macros", title: "Макротранзакции" },
+              { key: "owner", title: "Владелец" },
+              { key: "accessModel", title: "Модель доступа" },
+              { key: "quality", title: "Качество" },
+              { key: "restrictions", title: "Ограничения" },
+              { key: "impact", title: "Влияние" },
+              { key: "rationale", title: "Обоснование" },
+            ],
+          },
+          value: [
+            {
+              data: "Данные об аудитории",
+              platforms: ["VK Видео"],
+              macros: ["Распространение контента"],
+              owner: "Платформа",
+              accessModel: "Доступ по соглашению",
+              quality: "Средние",
+              restrictions: ["Фрагментированное владение данными"],
+              impact: "Скорее ограничивает",
+              rationale: "Нет единых правил измерения",
+            },
+          ],
+        },
+        {
+          key: "architecture_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: null,
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });
