@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the expert portal backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=portal-backup.service
+
+[Install]
+WantedBy=timers.target

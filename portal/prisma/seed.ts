@@ -41,6 +41,15 @@ async function main() {
       companyId: vkCompany.id,
     };
     if (existing) {
+      if (
+        existing.fullName === commonData.fullName &&
+        existing.position === commonData.position &&
+        existing.role === commonData.role &&
+        existing.isActive === commonData.isActive &&
+        existing.companyId === commonData.companyId
+      ) {
+        return existing;
+      }
       return db.user.update({
         where: { id },
         data: commonData,
@@ -84,6 +93,18 @@ async function main() {
         title: definition.title,
       },
     });
+    const existingVersion = await db.moduleVersion.findUnique({
+      where: {
+        moduleId_version: {
+          moduleId: moduleRecord.id,
+          version: definition.version,
+        },
+      },
+    });
+    const publishedAt =
+      existingVersion?.sourceChecksum === definition.checksum
+        ? existingVersion.publishedAt
+        : new Date();
     const version = await db.moduleVersion.upsert({
       where: {
         moduleId_version: {
@@ -95,7 +116,7 @@ async function main() {
         description: definition.description,
         theoryMarkdown: definition.theory,
         sourceChecksum: definition.checksum,
-        publishedAt: new Date(),
+        publishedAt,
       },
       create: {
         moduleId: moduleRecord.id,
@@ -103,7 +124,7 @@ async function main() {
         description: definition.description,
         theoryMarkdown: definition.theory,
         sourceChecksum: definition.checksum,
-        publishedAt: new Date(),
+        publishedAt,
       },
     });
     for (const [index, question] of definition.questions.entries()) {

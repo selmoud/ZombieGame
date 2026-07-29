@@ -1,0 +1,4 @@
+services:
+  db:
+    ports:
+      - "${PORTAL_DB_BIND_ADDRESS:-127.0.0.1}:${PORTAL_DB_HOST_PORT:-5432}:5432"

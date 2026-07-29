@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    image: portal-app:${PORTAL_RELEASE:-local}
+    build:
+      context: .
+      target: runner
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://portal:${PORTAL_DB_PASSWORD:-portal}@db:5432/portal?schema=public
@@ -8,10 +11,11 @@ services:
       INVITATION_TOKEN_PEPPER: ${INVITATION_TOKEN_PEPPER:?Set INVITATION_TOKEN_PEPPER in .env}
       UPLOAD_DIR: data/uploads
       MAX_UPLOAD_SIZE_MB: 20
-    command: sh -c "npx prisma migrate deploy && npm run db:seed && npm start"
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "${PORTAL_APP_BIND_ADDRESS:-0.0.0.0}:${PORTAL_APP_HOST_PORT:-3000}:3000"
     volumes:
@@ -22,6 +26,16 @@ services:
       - ALL
     tmpfs:
       - /tmp:size=64m,mode=1777
+      - /app/.next/cache:size=64m,uid=1000,gid=1000
+    read_only: true
+    mem_limit: 1g
+    cpus: 1.5
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test:
         [
@@ -35,15 +49,41 @@ services:
       retries: 5
       start_period: 20s
 
+  migrate:
+    image: portal-migrator:${PORTAL_RELEASE:-local}
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://portal:${PORTAL_DB_PASSWORD:-portal}@db:5432/portal?schema=public
+      INVITATION_TOKEN_PEPPER: ${INVITATION_TOKEN_PEPPER:?Set INVITATION_TOKEN_PEPPER in .env}
+    command: npm run db:setup
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   db:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
     restart: unless-stopped
     environment:
       POSTGRES_DB: portal
       POSTGRES_USER: portal
       POSTGRES_PASSWORD: ${PORTAL_DB_PASSWORD:-portal}
-    ports:
-      - "${PORTAL_DB_BIND_ADDRESS:-127.0.0.1}:${PORTAL_DB_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U portal -d portal"]
       interval: 3s
@@ -51,6 +91,14 @@ services:
       retries: 20
     volumes:
       - portal_postgres:/var/lib/postgresql/data
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   portal_postgres:

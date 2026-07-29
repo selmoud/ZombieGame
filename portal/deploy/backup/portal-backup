@@ -1,0 +1,51 @@
+#!/bin/sh
+set -eu
+
+umask 077
+backup_root=/var/backups/portal
+retention_days=14
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+temporary_directory=$(mktemp -d "${backup_root}/.pending-${timestamp}-XXXXXX")
+final_directory="${backup_root}/${timestamp}"
+
+cleanup() {
+  if [ -d "$temporary_directory" ]; then
+    find "$temporary_directory" -mindepth 1 -delete
+    rmdir "$temporary_directory"
+  fi
+}
+trap cleanup EXIT INT TERM
+
+cd /srv/portal
+docker compose exec -T db pg_dump -U portal -d portal -Fc \
+  > "${temporary_directory}/portal.dump"
+docker exec portal-app-1 tar -C /app/data/uploads -czf - . \
+  > "${temporary_directory}/uploads.tar.gz"
+install -m 600 /srv/portal/.env "${temporary_directory}/runtime.env"
+
+docker compose exec -T db pg_restore -l \
+  < "${temporary_directory}/portal.dump" >/dev/null
+gzip -t "${temporary_directory}/uploads.tar.gz"
+(
+  cd "$temporary_directory"
+  sha256sum portal.dump uploads.tar.gz runtime.env > SHA256SUMS
+)
+
+mv "$temporary_directory" "$final_directory"
+trap - EXIT INT TERM
+
+find "$backup_root" \
+  -mindepth 1 \
+  -maxdepth 1 \
+  -type d \
+  -mtime "+${retention_days}" \
+  -exec sh -c '
+    for expired_directory do
+      case "$expired_directory" in
+        /var/backups/portal/*)
+          find "$expired_directory" -mindepth 1 -delete
+          rmdir "$expired_directory"
+          ;;
+      esac
+    done
+  ' sh {} +
