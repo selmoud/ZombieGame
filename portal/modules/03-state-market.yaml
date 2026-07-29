@@ -2,56 +2,415 @@ slug: state-market
 version: 1
 order: 3
 title: Роль государства и рынка
-description: Текущие и предлагаемые роли государства в платформенной модели.
+description: Роли государства, модели взаимодействия, действующие платформы и уровень их проникновения.
 theory: |
-  В отрасли государство может одновременно выполнять несколько ролей:
-  **регулятора**, **контрольно-надзорного органа**, **заказчика**, **оператора
-  платформы или инфраструктуры** и **поставщика данных**. Для каждой роли важно
-  описать не название ведомства, а конкретные функции и их влияние на
-  транзакции.
+  В этом разделе оценивается **текущая модель участия государства и рынка**
+  в отраслевых транзакциях. Используйте принятые сегменты, группы участников и
+  сценарии взаимодействия из разделов 1 и 2 — повторно описывать их не нужно.
 
-  Оцените, насколько участие государства критично для возникновения,
-  осуществления или завершения отраслевых транзакций. Подумайте, могут ли
-  соответствующие функции выполнять рыночные участники либо оптимальна
-  гибридная модель.
+  Государство может одновременно выполнять несколько ролей: **регулятора**,
+  **контрольно-надзорного органа**, **заказчика**, **оператора платформы или
+  инфраструктуры** и **поставщика данных**. Роль показывает место государства
+  в отрасли, а функция — конкретное действие, которое оно выполняет.
 
-  Зафиксируйте ключевые форматы взаимодействия бизнеса с государством:
-  лицензирование, отчётность, закупки, доступ к данным, подключение к
-  инфраструктуре, контроль и другие механизмы.
+  Для каждой функции определите, насколько участие государства необходимо для
+  возникновения, осуществления или завершения транзакций. Отдельно оцените,
+  может ли функция выполняться только государством, совместно с рынком либо
+  преимущественно рыночными участниками при сохранении государственного
+  регулирования.
 
-  Итог анализа — вывод о том, помогает ли действующее распределение ролей
-  возникновению и масштабированию платформ или, напротив, ограничивает их
-  развитие, а также предложение по целевой модели взаимодействия.
+  Затем опишите ключевые форматы взаимодействия государства и рынка и оцените,
+  способствуют ли они возникновению и масштабированию платформ или ограничивают
+  их развитие.
+
+  Действующие платформы делятся на **рыночные**, **государственные** и
+  **гибридные**. Уровень проникновения платформ оценивается по доле транзакций,
+  совершаемых через платформы. В портале эта оценка проводится отдельно для
+  каждой макротранзакции, принятой в разделе 2.
+
+  Для ключевых платформ также оцените сетевые эффекты: их тип, устойчивость,
+  масштабируемость и основные ограничения. В этом разделе не требуется
+  формировать целевую модель до 2036 года — она будет собрана в итоговых выводах
+  после анализа следующих разделов.
 questions:
-  - key: state_roles
+  - key: state_functions
+    order: 1
     type: table
-    title: Роли государства
-    description: "Одна строка — одна роль государства, её текущая функция и желаемое изменение. Пример: «Регулятор — устанавливает правила маркировки рекламы — требуется единый цифровой порядок»."
+    title: Роли и функции государства
+    description: "Добавьте ключевые функции государства. Одна карточка — одна конкретная функция, связанная с одной или несколькими макротранзакциями."
     required: true
     config:
       minRows: 1
+      maxRows: 12
+      rowLabel: Функция
+      addRowLabel: Добавить функцию
       columns:
+        - key: participant
+          title: Государственный участник
+          description: "Выберите участника из принятого раздела 2 или впишите обобщённое наименование."
+          type: suggest
+          contextKey: governmentParticipants
+          allowCustom: true
+          required: true
+          fullWidth: true
         - key: role
-          title: Роль
+          title: Роль государства
+          description: "Выберите роль по типологии методики."
           type: select
           required: true
           options:
-            - { value: regulator, label: Регулятор }
-            - { value: supervisor, label: Контрольно-надзорный орган }
-            - { value: customer, label: Заказчик }
-            - { value: operator, label: Оператор платформы }
-            - { value: data_provider, label: Поставщик данных }
-            - { value: other, label: Другое }
-        - { key: function, title: Описание функции, type: long_text, required: true }
-        - { key: efficiency, title: Эффективность 1–5, type: scale, min: 1, max: 5 }
-        - { key: proposed_model, title: Предлагаемая модель, type: long_text }
-  - key: market_role
-    type: long_text
-    title: Какую роль должен играть бизнес?
-    description: "Опишите функции, которые эффективнее выполняют компании и отраслевые объединения. Пример: разработка стандартов обмена данными, саморегулирование или создание общей инфраструктуры."
+            - { value: Регулятор, label: Регулятор }
+            - { value: Контрольно-надзорный орган, label: Контрольно-надзорный орган }
+            - { value: Заказчик, label: Заказчик }
+            - { value: Оператор платформы или инфраструктуры, label: Оператор платформы или инфраструктуры }
+            - { value: Поставщик данных, label: Поставщик данных }
+            - { value: Другое, label: Другое }
+        - key: customRole
+          title: Укажите роль государства
+          type: short_text
+          requiredWhen: { columnKey: role, equals: Другое }
+          visibleWhen: { columnKey: role, equals: Другое }
+          fullWidth: true
+        - key: macros
+          title: Связанные макротранзакции
+          description: "Выберите сценарии из принятого раздела 2, в которых проявляется эта функция."
+          type: multi_suggest
+          contextKey: macroTransactions
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: function
+          title: Описание функции
+          description: "Кратко опишите, что государство делает и какой результат обеспечивает."
+          type: long_text
+          required: true
+          fullWidth: true
+        - key: criticality
+          title: Критичность участия государства
+          description: "Оцените необходимость государственного участия для выполнения функции."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Критически необходимо, label: Критически необходимо }
+            - { value: Существенно, label: Существенно }
+            - { value: Ограниченно, label: Ограниченно }
+            - { value: Участие не требуется, label: Участие не требуется }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: executionModel
+          title: Возможная модель выполнения функции
+          description: "Оцените, кем функция может выполняться с учётом ответственности государства и возможностей рынка."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Только государство, label: Только государство }
+            - { value: Государство с участием рынка, label: Государство с участием рынка }
+            - { value: Гибридная модель, label: Гибридная модель }
+            - { value: Рынок под государственным регулированием, label: Рынок под государственным регулированием }
+            - { value: Преимущественно рынок, label: Преимущественно рынок }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: rationale
+          title: Обоснование модели
+          description: "Объясните, почему функция может выполняться в выбранной модели и какие условия для этого необходимы."
+          type: long_text
+          requiredWhenAny:
+            - { columnKey: executionModel, equals: Государство с участием рынка }
+            - { columnKey: executionModel, equals: Гибридная модель }
+            - { columnKey: executionModel, equals: Рынок под государственным регулированием }
+            - { columnKey: executionModel, equals: Преимущественно рынок }
+          fullWidth: true
+
+  - key: interaction_formats
+    order: 2
+    type: table
+    title: Форматы взаимодействия государства и рынка
+    description: "Опишите только ключевые форматы взаимодействия, которые заметно влияют на отраслевые транзакции и развитие платформ."
     required: true
-  - key: target_2036
-    type: long_text
-    title: Как должно измениться взаимодействие к 2036 году?
-    description: "Предложите целевое распределение ответственности между государством, платформами и другими участниками с конкретными ожидаемыми результатами."
+    config:
+      minRows: 1
+      maxRows: 12
+      rowLabel: Формат
+      addRowLabel: Добавить формат
+      columns:
+        - key: macros
+          title: Связанные макротранзакции
+          description: "Выберите сценарии из принятого раздела 2."
+          type: multi_suggest
+          contextKey: macroTransactions
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: governmentParticipants
+          title: Государственные участники
+          description: "Выберите из принятого раздела 2 или впишите обобщённое наименование."
+          type: multi_suggest
+          contextKey: governmentParticipants
+          allowCustom: true
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: marketParticipants
+          title: Рыночные участники
+          description: "Выберите одну или несколько групп из принятого раздела 2."
+          type: multi_suggest
+          contextKey: marketParticipants
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: format
+          title: Формат взаимодействия
+          description: "Выберите из списка или укажите свой вариант."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Лицензирование и разрешения, label: Лицензирование и разрешения }
+            - { value: Обязательная отчётность, label: Обязательная отчётность }
+            - { value: Контроль и надзор, label: Контроль и надзор }
+            - { value: Государственные закупки и заказ, label: Государственные закупки и заказ }
+            - { value: Предоставление государственных данных, label: Предоставление государственных данных }
+            - { value: Подключение к государственной системе или инфраструктуре, label: Подключение к государственной системе или инфраструктуре }
+            - { value: Субсидирование и иная поддержка, label: Субсидирование и иная поддержка }
+            - { value: Стандартизация и аккредитация, label: Стандартизация и аккредитация }
+            - { value: Другое, label: Другое }
+        - key: customFormat
+          title: Укажите формат взаимодействия
+          type: short_text
+          requiredWhen: { columnKey: format, equals: Другое }
+          visibleWhen: { columnKey: format, equals: Другое }
+          fullWidth: true
+        - key: description
+          title: Описание взаимодействия и результата
+          description: "Опишите, что происходит между участниками и чем завершается взаимодействие."
+          type: long_text
+          required: true
+          fullWidth: true
+        - key: impact
+          title: Влияние на развитие платформ
+          description: "Оцените влияние действующего формата взаимодействия."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Существенно ограничивает, label: Существенно ограничивает }
+            - { value: Скорее ограничивает, label: Скорее ограничивает }
+            - { value: Нейтрально, label: Нейтрально }
+            - { value: Скорее способствует, label: Скорее способствует }
+            - { value: Существенно способствует, label: Существенно способствует }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: impactRationale
+          title: Обоснование влияния
+          description: "Кратко поясните оценку и приведите конкретный пример или наблюдение."
+          type: long_text
+          required: true
+          fullWidth: true
+
+  - key: platforms
+    order: 3
+    type: table
+    title: Действующие платформы в отрасли
+    description: "Добавьте ключевые платформы, которые обеспечивают взаимодействие участников отрасли. Не требуется составлять исчерпывающий перечень цифровых сервисов."
     required: true
+    config:
+      minRows: 1
+      maxRows: 15
+      rowLabel: Платформа
+      addRowLabel: Добавить платформу
+      columns:
+        - key: name
+          title: Наименование платформы
+          description: "Укажите официальное или общеупотребительное наименование."
+          type: short_text
+          required: true
+          uniqueAcrossRows: true
+          fullWidth: true
+        - key: type
+          title: Тип платформы
+          description: "Выберите тип по характеру распределения ролей государства и рынка."
+          type: select
+          required: true
+          options:
+            - { value: Рыночная, label: Рыночная }
+            - { value: Государственная, label: Государственная }
+            - { value: Гибридная, label: Гибридная }
+        - key: origin
+          title: Происхождение рыночной платформы
+          description: "Для рыночной платформы укажите происхождение по классификации методики."
+          type: select
+          requiredWhen: { columnKey: type, equals: Рыночная }
+          visibleWhen: { columnKey: type, equals: Рыночная }
+          options:
+            - { value: Российская, label: Российская }
+            - { value: Иностранная с локализацией в России, label: Иностранная с локализацией в России }
+        - key: macros
+          title: Макротранзакции
+          description: "Выберите сценарии из принятого раздела 2, которые поддерживает платформа."
+          type: multi_suggest
+          contextKey: macroTransactions
+          allowCustom: false
+          required: true
+          fullWidth: true
+          sortOptions: true
+        - key: mau
+          title: MAU или аналогичный показатель
+          description: "Необязательно. Укажите значение, период и единицу измерения, если данные доступны."
+          type: short_text
+          fullWidth: true
+        - key: gtv
+          title: GTV или объём транзакций
+          description: "Необязательно. Укажите значение, период и единицу измерения, если данные доступны."
+          type: short_text
+          fullWidth: true
+
+  - key: platform_penetration
+    order: 4
+    type: table
+    title: Уровень проникновения платформ
+    description: "Строки создаются из макротранзакций раздела 2. Оцените долю соответствующих транзакций, которые сейчас совершаются через платформы."
+    required: true
+    config:
+      minRows: 1
+      maxRows: 15
+      lockRows: true
+      rowLabel: Оценка
+      columns:
+        - key: macro
+          title: Макротранзакция
+          type: readonly
+          required: true
+          fullWidth: true
+        - key: share
+          title: Доля транзакций, проходящих через платформы
+          description: "Выберите диапазон по шкале из методики."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: "Менее 5% — формирование платформ", label: "Менее 5% — формирование платформ" }
+            - { value: "5–15% — нишевое присутствие", label: "5–15% — нишевое присутствие" }
+            - { value: "15–30% — значимый сегмент, активный рост", label: "15–30% — значимый сегмент, активный рост" }
+            - { value: "30–50% — массовое использование", label: "30–50% — массовое использование" }
+            - { value: "Более 50% — доминирование платформ", label: "Более 50% — доминирование платформ" }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: basis
+          title: Основание оценки
+          description: "Укажите основной тип данных или основание экспертной оценки."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Экспертная оценка, label: Экспертная оценка }
+            - { value: MAU или аналогичный показатель, label: MAU или аналогичный показатель }
+            - { value: GTV или объём транзакций, label: GTV или объём транзакций }
+            - { value: Официальная статистика, label: Официальная статистика }
+            - { value: Отраслевое исследование, label: Отраслевое исследование }
+            - { value: Данные компании, label: Данные компании }
+            - { value: Другое, label: Другое }
+        - key: customBasis
+          title: Укажите основание оценки
+          type: short_text
+          requiredWhen: { columnKey: basis, equals: Другое }
+          visibleWhen: { columnKey: basis, equals: Другое }
+          fullWidth: true
+        - key: rationale
+          title: Обоснование оценки
+          description: "Кратко поясните логику оценки и, при возможности, укажите показатель, источник или наблюдение."
+          type: long_text
+          required: true
+          fullWidth: true
+
+  - key: network_effects
+    order: 5
+    type: table
+    title: Сетевые эффекты ключевых платформ
+    description: "Оцените сетевые эффекты для 1–5 наиболее значимых платформ из добавленного перечня."
+    required: true
+    config:
+      minRows: 1
+      maxRows: 5
+      rowLabel: Оценка
+      addRowLabel: Добавить оценку платформы
+      columns:
+        - key: platform
+          title: Платформа
+          description: "Выберите из перечня платформ выше."
+          type: suggest
+          sourceQuestionKey: platforms
+          sourceColumnKey: name
+          allowCustom: false
+          uniqueAcrossRows: true
+          required: true
+          fullWidth: true
+        - key: effectTypes
+          title: Типы сетевого эффекта
+          description: "Выберите один или несколько типов."
+          type: multi_suggest
+          allowCustom: false
+          required: true
+          fullWidth: true
+          options:
+            - { value: Прямой, label: Прямой }
+            - { value: Косвенный, label: Косвенный }
+            - { value: Основанный на данных, label: Основанный на данных }
+        - key: stability
+          title: Устойчивость сетевого эффекта
+          description: "Оцените зависимость эффекта от постоянного субсидирования или административной поддержки."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Сохраняется без постоянной поддержки, label: Сохраняется без постоянной поддержки }
+            - { value: Сохраняется частично, label: Сохраняется частично }
+            - { value: Зависит от постоянной поддержки, label: Зависит от постоянной поддержки }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: scalability
+          title: Масштабируемость сетевого эффекта
+          description: "Оцените, усиливается ли ценность платформы при дальнейшем росте пользовательской базы."
+          type: select
+          required: true
+          fullWidth: true
+          options:
+            - { value: Усиливается при росте пользователей, label: Усиливается при росте пользователей }
+            - { value: Близка к насыщению, label: Близка к насыщению }
+            - { value: Не усиливается, label: Не усиливается }
+            - { value: Затрудняюсь оценить, label: Затрудняюсь оценить }
+        - key: constraints
+          title: Основные ограничения
+          description: "Выберите факторы, которые препятствуют усилению сетевого эффекта."
+          type: multi_suggest
+          allowCustom: false
+          required: true
+          fullWidth: true
+          lastOptionValue: Другое
+          sortOptions: true
+          options:
+            - { value: Недостаточная критическая масса пользователей, label: Недостаточная критическая масса пользователей }
+            - { value: Дисбаланс сторон спроса и предложения, label: Дисбаланс сторон спроса и предложения }
+            - { value: Низкая интенсивность взаимодействия, label: Низкая интенсивность взаимодействия }
+            - { value: Регуляторные ограничения, label: Регуляторные ограничения }
+            - { value: Технологические ограничения, label: Технологические ограничения }
+            - { value: Недостаток или низкое качество данных, label: Недостаток или низкое качество данных }
+            - { value: Существенных ограничений не выявлено, label: Существенных ограничений не выявлено }
+            - { value: Другое, label: Другое }
+        - key: customConstraint
+          title: Укажите ограничение
+          type: short_text
+          requiredWhen: { columnKey: constraints, includes: Другое }
+          visibleWhen: { columnKey: constraints, includes: Другое }
+          fullWidth: true
+        - key: comment
+          title: Комментарий к оценке
+          description: "Необязательно. Добавьте пояснение, если оно необходимо для понимания оценки."
+          type: long_text
+          fullWidth: true
+
+  - key: state_market_materials
+    order: 6
+    type: file
+    title: Подтверждающие материалы
+    description: "Необязательно. Приложите исследование, статистику, схему взаимодействия или данные о проникновении платформ и сетевых эффектах."
+    config: {}

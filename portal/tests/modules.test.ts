@@ -243,4 +243,77 @@ describe("module definitions", () => {
         ),
     ).toBe(true);
   });
+
+  it("builds the state and market assessment from accepted transaction data", async () => {
+    const modules = await loadModuleDefinitions();
+    const stateMarket = modules.find((module) => module.slug === "state-market");
+
+    expect(stateMarket?.questions.map((question) => question.key)).toEqual([
+      "state_functions",
+      "interaction_formats",
+      "platforms",
+      "platform_penetration",
+      "network_effects",
+      "state_market_materials",
+    ]);
+    expect(
+      stateMarket?.questions.find(
+        (question) => question.key === "state_functions",
+      ),
+    ).toMatchObject({
+      required: true,
+      config: {
+        minRows: 1,
+        maxRows: 12,
+      },
+    });
+    expect(
+      stateMarket?.questions
+        .find((question) => question.key === "state_functions")
+        ?.config.columns?.find((column) => column.key === "macros"),
+    ).toMatchObject({
+      type: "multi_suggest",
+      contextKey: "macroTransactions",
+      allowCustom: false,
+    });
+    expect(
+      stateMarket?.questions.find((question) => question.key === "platforms"),
+    ).toMatchObject({
+      config: {
+        minRows: 1,
+        maxRows: 15,
+      },
+    });
+    const penetration = stateMarket?.questions.find(
+      (question) => question.key === "platform_penetration",
+    );
+    expect(penetration?.config.lockRows).toBe(true);
+    expect(
+      penetration?.config.columns
+        ?.find((column) => column.key === "share")
+        ?.options?.map((option) => option.value),
+    ).toEqual(
+      expect.arrayContaining([
+        "Менее 5% — формирование платформ",
+        "Более 50% — доминирование платформ",
+      ]),
+    );
+    expect(
+      stateMarket?.questions
+        .find((question) => question.key === "network_effects")
+        ?.config,
+    ).toMatchObject({
+      minRows: 1,
+      maxRows: 5,
+    });
+    expect(
+      stateMarket?.questions
+        .find((question) => question.key === "network_effects")
+        ?.config.columns?.find((column) => column.key === "platform"),
+    ).toMatchObject({
+      sourceQuestionKey: "platforms",
+      sourceColumnKey: "name",
+      uniqueAcrossRows: true,
+    });
+  });
 });

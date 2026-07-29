@@ -388,6 +388,153 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     }
     return false;
   };
+  const renderStateMarketTables = (question: Question) => {
+    if (!Array.isArray(question.value)) return false;
+    const rows = question.value as Array<Record<string, unknown>>;
+    const columns = new Map(
+      (question.config.columns ?? []).map((column) => [column.key, column]),
+    );
+    const cell = (row: Record<string, unknown>, key: string) =>
+      tableText(row[key], columns.get(key));
+    const valueWithCustom = (
+      row: Record<string, unknown>,
+      key: string,
+      customKey: string,
+    ) => {
+      const value = row[key];
+      const standardValues = Array.isArray(value)
+        ? value.filter((item) => String(item) !== "Другое")
+        : String(value ?? "") === "Другое"
+          ? []
+          : [value];
+      return [
+        standardValues
+          .filter((item) => item !== undefined && item !== "")
+          .map((item) => optionLabel(item, columns.get(key)?.options))
+          .join(", "),
+        row[customKey] ? String(row[customKey]) : "",
+      ]
+        .filter(Boolean)
+        .join(", ");
+    };
+
+    if (question.key === "state_functions") {
+      renderReportTable({
+        title: "Роли и функции государства",
+        headers: [
+          "Участник",
+          "Роль",
+          "Макротранзакции",
+          "Функция",
+          "Критичность участия",
+          "Модель выполнения",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "participant"),
+          valueWithCustom(row, "role", "customRole"),
+          cell(row, "macros"),
+          cell(row, "function"),
+          cell(row, "criticality"),
+          cell(row, "executionModel"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.2, 1.1, 1.4, 2, 1.1, 1.3, 1.8],
+      });
+      return true;
+    }
+    if (question.key === "interaction_formats") {
+      renderReportTable({
+        title: "Форматы взаимодействия государства и рынка",
+        headers: [
+          "Макротранзакции",
+          "Государственные участники",
+          "Рыночные участники",
+          "Формат",
+          "Описание и результат",
+          "Влияние на платформы",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macros"),
+          cell(row, "governmentParticipants"),
+          cell(row, "marketParticipants"),
+          valueWithCustom(row, "format", "customFormat"),
+          cell(row, "description"),
+          cell(row, "impact"),
+          cell(row, "impactRationale"),
+        ]),
+        weights: [1.3, 1.3, 1.3, 1.4, 2, 1.2, 1.8],
+      });
+      return true;
+    }
+    if (question.key === "platforms") {
+      renderReportTable({
+        title: "Действующие платформы в отрасли",
+        headers: [
+          "Платформа",
+          "Тип",
+          "Происхождение",
+          "Макротранзакции",
+          "MAU / аналог",
+          "GTV / объём транзакций",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "name"),
+          cell(row, "type"),
+          cell(row, "origin"),
+          cell(row, "macros"),
+          cell(row, "mau"),
+          cell(row, "gtv"),
+        ]),
+        weights: [1.5, 1, 1.2, 2.1, 1.4, 1.5],
+      });
+      return true;
+    }
+    if (question.key === "platform_penetration") {
+      renderReportTable({
+        title: "Уровень проникновения платформ",
+        headers: [
+          "Макротранзакция",
+          "Доля транзакций через платформы",
+          "Основание оценки",
+          "Обоснование",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "macro"),
+          cell(row, "share"),
+          valueWithCustom(row, "basis", "customBasis"),
+          cell(row, "rationale"),
+        ]),
+        weights: [1.8, 1.8, 1.5, 2.9],
+      });
+      return true;
+    }
+    if (question.key === "network_effects") {
+      renderReportTable({
+        title: "Сетевые эффекты ключевых платформ",
+        headers: [
+          "Платформа",
+          "Типы эффекта",
+          "Устойчивость",
+          "Масштабируемость",
+          "Ограничения",
+          "Комментарий",
+        ],
+        rows: rows.map((row) => [
+          cell(row, "platform"),
+          cell(row, "effectTypes"),
+          cell(row, "stability"),
+          cell(row, "scalability"),
+          valueWithCustom(row, "constraints", "customConstraint"),
+          cell(row, "comment"),
+        ]),
+        weights: [1.2, 1.2, 1.5, 1.4, 2, 1.7],
+      });
+      return true;
+    }
+    return false;
+  };
 
   document
     .font("RobotoLikeBold")
@@ -418,17 +565,20 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
   document.moveDown(1);
   divider();
 
-  let transactionTablesRendered = false;
+  let methodologyTablesRendered = false;
   data.questions.forEach((question, questionIndex) => {
-    if (data.moduleOrder === 2 && renderTransactionTables(question)) {
-      transactionTablesRendered = true;
+    const tableRendered =
+      (data.moduleOrder === 2 && renderTransactionTables(question)) ||
+      (data.moduleOrder === 3 && renderStateMarketTables(question));
+    if (tableRendered) {
+      methodologyTablesRendered = true;
       return;
     }
-    if (transactionTablesRendered) {
+    if (methodologyTablesRendered) {
       document.addPage({ size: "A4", layout: "portrait", margin: 48 });
       document.x = 48;
       document.y = 48;
-      transactionTablesRendered = false;
+      methodologyTablesRendered = false;
     }
     ensureSpace(90);
     document

@@ -93,4 +93,59 @@ describe("submission PDF", () => {
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.length).toBeGreaterThan(2_000);
   });
+
+  it("creates methodology-style state and market tables", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 3,
+      moduleTitle: "Роль государства и рынка",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "Предварительный просмотр · Черновик",
+      isPreview: true,
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "state_functions",
+          title: "Роли и функции государства",
+          config: {
+            columns: [
+              { key: "participant", title: "Участник" },
+              {
+                key: "role",
+                title: "Роль",
+                options: [{ value: "Другое", label: "Другое" }],
+              },
+              { key: "macros", title: "Макротранзакции" },
+              { key: "function", title: "Функция" },
+              { key: "criticality", title: "Критичность" },
+              { key: "executionModel", title: "Модель" },
+              { key: "rationale", title: "Обоснование" },
+            ],
+          },
+          value: [
+            {
+              participant: "Профильное ведомство",
+              role: "Другое",
+              customRole: "Владелец стандарта",
+              macros: ["Распространение контента"],
+              function: "Устанавливает единые требования",
+              criticality: "Существенно",
+              executionModel: "Государство с участием рынка",
+              rationale: "Рынок участвует в разработке требований",
+            },
+          ],
+        },
+        {
+          key: "state_market_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: null,
+        },
+      ],
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(2_000);
+  });
 });

@@ -54,34 +54,45 @@ export default async function ModulePage({
       answer.value,
     ]),
   );
-  const previousAssignment =
+  const foundationOrders =
     assignment.module.order === 2
-      ? await db.moduleAssignment.findFirst({
-          where: {
-            userId: user.id,
-            module: { order: 1 },
-            submission: { status: "ACCEPTED" },
-          },
-          include: {
-            submission: {
-              include: {
-                answers: { include: { question: true } },
-              },
+      ? [1]
+      : assignment.module.order === 3
+        ? [1, 2]
+        : [];
+  const foundationAssignments = foundationOrders.length
+    ? await db.moduleAssignment.findMany({
+        where: {
+          userId: user.id,
+          module: { order: { in: foundationOrders } },
+          submission: { status: "ACCEPTED" },
+        },
+        include: {
+          module: true,
+          submission: {
+            include: {
+              answers: { include: { question: true } },
             },
           },
-        })
-      : null;
-  const previousAnswers = Object.fromEntries(
-    previousAssignment?.submission?.answers.map((answer) => [
-      answer.question.key,
-      answer.value,
-    ]) ?? [],
-  );
-  const boundaryRows = Array.isArray(previousAnswers.analysis_object)
-    ? (previousAnswers.analysis_object as Array<Record<string, unknown>>)
+        },
+      })
     : [];
-  const segmentRows = Array.isArray(previousAnswers.industry_boundaries)
-    ? (previousAnswers.industry_boundaries as Array<Record<string, unknown>>)
+  const answersForOrder = (order: number) =>
+    Object.fromEntries(
+      foundationAssignments
+        .find((item) => item.module.order === order)
+        ?.submission?.answers.map((answer) => [
+          answer.question.key,
+          answer.value,
+        ]) ?? [],
+    );
+  const sectionOneAnswers = answersForOrder(1);
+  const sectionTwoAnswers = answersForOrder(2);
+  const boundaryRows = Array.isArray(sectionOneAnswers.analysis_object)
+    ? (sectionOneAnswers.analysis_object as Array<Record<string, unknown>>)
+    : [];
+  const segmentRows = Array.isArray(sectionOneAnswers.industry_boundaries)
+    ? (sectionOneAnswers.industry_boundaries as Array<Record<string, unknown>>)
     : [];
   const industry =
     String(boundaryRows[0]?.industry ?? "") ||
@@ -96,6 +107,29 @@ export default async function ModulePage({
       economicShare: String(row.economicShare ?? ""),
     }))
     .filter((segment) => segment.name);
+  const participantRows = Array.isArray(sectionTwoAnswers.participants)
+    ? (sectionTwoAnswers.participants as Array<Record<string, unknown>>)
+    : [];
+  const macroRows = Array.isArray(sectionTwoAnswers.macrotransactions)
+    ? (sectionTwoAnswers.macrotransactions as Array<Record<string, unknown>>)
+    : [];
+  const participantKinds = (row: Record<string, unknown>) =>
+    (Array.isArray(row.kind) ? row.kind : [row.kind])
+      .map(String)
+      .filter(Boolean);
+  const governmentParticipants = participantRows
+    .filter((row) => participantKinds(row).includes("government"))
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
+  const marketParticipants = participantRows
+    .filter((row) =>
+      participantKinds(row).some((kind) => kind !== "government"),
+    )
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
+  const macroTransactions = macroRows
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean);
   const acceptedParticipantAnswers =
     assignment.module.order === 2
       ? await db.answer.findMany({
@@ -132,6 +166,18 @@ export default async function ModulePage({
     approvedParticipantGroups: approvedParticipantGroups.map((group) => ({
       value: group,
       label: `${group} (добавлено экспертом)`,
+    })),
+    governmentParticipants: governmentParticipants.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    marketParticipants: marketParticipants.map((name) => ({
+      value: name,
+      label: name,
+    })),
+    macroTransactions: macroTransactions.map((name) => ({
+      value: name,
+      label: name,
     })),
   };
   const questions = assignment.moduleVersion.questions
@@ -205,6 +251,27 @@ export default async function ModulePage({
       }>;
       },
     }));
+  const initialAnswers = { ...answers };
+  const penetrationQuestion = questions.find(
+    (question) => question.key === "platform_penetration",
+  );
+  const savedPenetrationRows = penetrationQuestion
+    ? initialAnswers[penetrationQuestion.id]
+    : undefined;
+
+  if (
+    assignment.module.order === 3 &&
+    penetrationQuestion &&
+    (!Array.isArray(savedPenetrationRows) || savedPenetrationRows.length === 0)
+  ) {
+    initialAnswers[penetrationQuestion.id] = macroTransactions.map((macro) => ({
+      macro,
+      share: "",
+      basis: "",
+      customBasis: "",
+      rationale: "",
+    }));
+  }
 
   return (
     <AppShell user={user}>
@@ -272,7 +339,10 @@ export default async function ModulePage({
               <ReactMarkdown>{assignment.moduleVersion.theoryMarkdown}</ReactMarkdown>
             </div>
           </section>
-          {previousAssignment && (
+          {assignment.module.order === 2 &&
+            foundationAssignments.some(
+              (foundation) => foundation.module.order === 1,
+            ) && (
             <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
               <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
                 Основа из раздела 1
@@ -315,6 +385,67 @@ export default async function ModulePage({
               )}
             </section>
           )}
+          {assignment.module.order === 3 &&
+            foundationAssignments.some(
+              (foundation) => foundation.module.order === 1,
+            ) &&
+            foundationAssignments.some(
+              (foundation) => foundation.module.order === 2,
+            ) && (
+              <section className="paper mt-5 rounded-2xl border border-[#7EE0EC] p-6 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wider text-[#0059C7]">
+                  Основа из разделов 1 и 2
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-black">
+                  Принятые сегменты, участники и макротранзакции
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Ниже показаны данные, уже согласованные модератором. Они
+                  доступны для выбора в полях раздела 3, поэтому повторно
+                  описывать их не нужно.
+                </p>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl bg-[#E0EEFF] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Сегменты
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {segments.map((segment) => (
+                        <p key={segment.name}>{segment.name}</p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#DDF8FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
+                      Государственные участники
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {governmentParticipants.length > 0 ? (
+                        governmentParticipants.map((participant) => (
+                          <p key={participant}>{participant}</p>
+                        ))
+                      ) : (
+                        <p className="leading-5 text-neutral-600">
+                          В разделе 2 отдельные государственные участники не
+                          выделены. Их можно указать в разделе 3.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#F1E5FB] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6815A8]">
+                      Макротранзакции
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm text-black">
+                      {macroTransactions.map((macro) => (
+                        <p key={macro}>{macro}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
           <section className="mt-5 rounded-2xl bg-[#0D78F8] p-6 text-white sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-wider text-white/80">
               Практическая часть
@@ -335,7 +466,7 @@ export default async function ModulePage({
             <DynamicForm
               assignmentId={assignment.id}
               questions={questions}
-              initialAnswers={answers}
+              initialAnswers={initialAnswers}
               initialRevision={assignment.submission.revision}
               initialStatus={status}
               contextualOptions={contextualOptions}
