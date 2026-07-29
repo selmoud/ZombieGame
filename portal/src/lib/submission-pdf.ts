@@ -238,7 +238,12 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     if (question.key === "participants") {
       renderReportTable({
         title: "Структура участников отрасли",
-        headers: ["Сегменты", "Группа участников", "Роль", "Описание участника"],
+        headers: [
+          "Сегменты",
+          "Группа участников",
+          "Типы участия",
+          "Описание участника",
+        ],
         rows: rows.map((row) => [
           cell(row, "segments"),
           cell(row, "name"),
@@ -266,7 +271,21 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           cell(row, "name"),
           cell(row, "initiator"),
           cell(row, "recipient"),
-          cell(row, "value"),
+          [
+            Array.isArray(row.value)
+              ? row.value
+                  .filter((item) => String(item) !== "Другое")
+                  .map((item) =>
+                    optionLabel(item, columns.get("value")?.options),
+                  )
+                  .join(", ")
+              : String(row.value ?? "") === "Другое"
+                ? ""
+                : cell(row, "value"),
+            row.customValue ? String(row.customValue) : "",
+          ]
+            .filter(Boolean)
+            .join(", "),
           cell(row, "transactionType"),
           cell(row, "description"),
         ]),

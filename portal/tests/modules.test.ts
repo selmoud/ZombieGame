@@ -98,7 +98,7 @@ describe("module definitions", () => {
       industry.questions.find((question) => question.key === "key_metrics"),
     ).toMatchObject({
       order: 4,
-      title: "Ключевые показатели развития отрасли до 2036 года",
+      title: "Ключевые показатели развития отрасли",
       required: true,
       config: {
         minRows: 3,
@@ -176,7 +176,9 @@ describe("module definitions", () => {
       fullWidth: true,
     });
     expect(roleColumn).toMatchObject({
-      title: "Роль участника",
+      title: "Типы участия в транзакциях",
+      type: "multi_suggest",
+      allowCustom: false,
       fullWidth: true,
     });
   });
@@ -190,12 +192,21 @@ describe("module definitions", () => {
     const assessments = transactions?.questions.find(
       (question) => question.key === "transaction_assessments",
     );
+    const macros = transactions?.questions.find(
+      (question) => question.key === "macrotransactions",
+    );
     const actionColumn = assessments?.config.columns?.find(
       (column) => column.key === "micro",
     );
 
     expect(chain?.config.groupByColumnKey).toBe("macro");
     expect(chain?.config.addRowRequiresColumnKey).toBe("result");
+    expect(chain?.config).toMatchObject({
+      coverSourceQuestionKey: "macrotransactions",
+      coverSourceColumns: ["name"],
+      coverTargetColumns: ["macro"],
+      coverageError: "Добавьте хотя бы одно действие для каждого сценария",
+    });
     expect(assessments?.config).toMatchObject({
       lockRows: true,
       autoRowsFromQuestionKey: "microtransactions",
@@ -220,5 +231,16 @@ describe("module definitions", () => {
     expect(actionColumn).toMatchObject({
       type: "readonly",
     });
+    expect(
+      macros?.config.columns?.find((column) => column.key === "recipient")
+        ?.excludeColumnKey,
+    ).toBeUndefined();
+    expect(
+      assessments?.config.columns
+        ?.find((column) => column.key === "costSources")
+        ?.options?.some(
+          (option) => option.value === "Существенных издержек не выявлено",
+        ),
+    ).toBe(true);
   });
 });

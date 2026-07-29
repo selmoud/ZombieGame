@@ -98,6 +98,8 @@ const questionSchema = z.object({
       coverSourceQuestionKey: z.string().optional(),
       coverSourceColumns: z.array(z.string().min(1)).optional(),
       coverTargetColumns: z.array(z.string().min(1)).optional(),
+      coverageWarning: z.string().optional(),
+      coverageError: z.string().optional(),
       autoRowsFromQuestionKey: z.string().optional(),
       autoRowMappings: z
         .array(

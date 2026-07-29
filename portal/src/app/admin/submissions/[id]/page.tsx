@@ -43,7 +43,14 @@ function displayValue(value: unknown, config: unknown) {
                 const raw = typedRow[column.key];
                 const label = column.options?.find((option) => option.value === raw)?.label;
                 const displayed = Array.isArray(raw)
-                  ? raw.join(", ")
+                  ? raw
+                      .map(
+                        (item) =>
+                          column.options?.find(
+                            (option) => option.value === item,
+                          )?.label ?? String(item),
+                      )
+                      .join(", ")
                   : label ?? String(raw || "—");
                 return (
                   <div key={column.key}>

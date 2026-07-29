@@ -156,6 +156,11 @@ export default async function ModulePage({
       rowLabel?: string;
       sortableRows?: boolean;
       groupByColumnKey?: string;
+      coverSourceQuestionKey?: string;
+      coverSourceColumns?: string[];
+      coverTargetColumns?: string[];
+      coverageWarning?: string;
+      coverageError?: string;
       columns?: Array<{
         key: string;
         title: string;

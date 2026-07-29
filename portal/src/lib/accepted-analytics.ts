@@ -154,7 +154,10 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
     new Set(
       retrospective
         .map((row) => {
-          const factor = text(row.keyFactor);
+          const factor =
+            text(row.keyFactor) === "Другое"
+              ? text(row.customFactor)
+              : text(row.keyFactor);
           const period = [text(row.startYear), text(row.endYear)]
             .filter(Boolean)
             .join("–");
@@ -168,7 +171,9 @@ export function buildAcceptedAnalytics(submissions: AnalyticsSubmission[]) {
       const [factor, period] = key.split("\u0000");
       const matching = retrospective.filter(
         (row) =>
-          text(row.keyFactor) === factor &&
+          (text(row.keyFactor) === "Другое"
+            ? text(row.customFactor)
+            : text(row.keyFactor)) === factor &&
           [text(row.startYear), text(row.endYear)]
             .filter(Boolean)
             .join("–") === period,

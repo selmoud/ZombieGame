@@ -88,4 +88,26 @@ describe("accepted analytics", () => {
     expect(result.actionPriorities[0].priority).toBe("Высокий");
     expect(result.actionPriorities[1].priority).toBe("Низкий");
   });
+
+  it("uses the entered name for a custom retrospective factor", () => {
+    const result = buildAcceptedAnalytics([
+      submission(1, "Эксперт", {
+        current_state: [
+          {
+            startYear: "2024",
+            endYear: "2026",
+            keyFactor: "Другое",
+            customFactor: "Рост генеративного контента",
+            influence: "Позитивное влияние",
+          },
+        ],
+      }),
+    ]);
+
+    expect(result.factors[0]).toMatchObject({
+      factor: "Рост генеративного контента",
+      period: "2024–2026",
+      positive: 1,
+    });
+  });
 });

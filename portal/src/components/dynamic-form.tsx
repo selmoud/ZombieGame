@@ -60,6 +60,11 @@ type Question = {
     rowLabel?: string;
     sortableRows?: boolean;
     groupByColumnKey?: string;
+    coverSourceQuestionKey?: string;
+    coverSourceColumns?: string[];
+    coverTargetColumns?: string[];
+    coverageWarning?: string;
+    coverageError?: string;
     autoRowsFromQuestionKey?: string;
     autoRowMappings?: Array<{
       sourceColumnKey: string;
@@ -513,6 +518,53 @@ function TableField({
     !String(
       rows[rows.length - 1]?.[requiredBeforeAddColumn!.key] ?? "",
     ).trim();
+  const uncoveredCoverageLabels = (() => {
+    const {
+      coverSourceQuestionKey,
+      coverSourceColumns,
+      coverTargetColumns,
+      coverageWarning,
+    } = question.config;
+    if (
+      !coverageWarning ||
+      !coverSourceQuestionKey ||
+      !coverSourceColumns?.length ||
+      coverTargetColumns?.length !== coverSourceColumns.length
+    ) {
+      return [];
+    }
+    const sourceQuestion = questions.find(
+      (candidate) => candidate.key === coverSourceQuestionKey,
+    );
+    const sourceRows = sourceQuestion ? answers[sourceQuestion.id] : undefined;
+    if (!Array.isArray(sourceRows)) return [];
+    const compositeKey = (
+      row: Record<string, unknown>,
+      keys: string[],
+    ) =>
+      keys
+        .map((key) => String(row[key] ?? "").trim().toLocaleLowerCase("ru"))
+        .join("\u0000");
+    const covered = new Set(
+      rows.map((row) => compositeKey(row, coverTargetColumns)),
+    );
+    return sourceRows
+      .filter(
+        (sourceRow) =>
+          !covered.has(
+            compositeKey(
+              sourceRow as Record<string, unknown>,
+              coverSourceColumns,
+            ),
+          ),
+      )
+      .map((sourceRow) =>
+        String(
+          (sourceRow as Record<string, unknown>)[coverSourceColumns[0]] ?? "",
+        ).trim(),
+      )
+      .filter(Boolean);
+  })();
 
   function sortSuggestions(options: Option[], column: Column) {
     return [...options].sort((left, right) => {
@@ -825,6 +877,12 @@ function TableField({
           </div>
         </div>
       ))}
+      {!disabled && uncoveredCoverageLabels.length > 0 && (
+        <div className="rounded-xl border border-[#8CC4FF] bg-[#F5FAFF] px-4 py-3 text-sm leading-6 text-[#003F8F]">
+          <span className="font-semibold">{question.config.coverageWarning}</span>{" "}
+          {uncoveredCoverageLabels.join(", ")}.
+        </div>
+      )}
       {!disabled &&
         !question.config.fixedRows &&
         !question.config.lockRows &&

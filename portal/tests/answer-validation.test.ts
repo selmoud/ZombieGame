@@ -210,6 +210,49 @@ describe("validateAnswers", () => {
     });
   });
 
+  it("requires at least one action for every macrotransaction", () => {
+    const macroQuestion = {
+      id: "macros",
+      key: "macrotransactions",
+      type: "TABLE",
+      title: "Сценарии",
+      required: true,
+      config: {
+        minRows: 1,
+        columns: [
+          { key: "name", title: "Сценарий", type: "short_text", required: true },
+        ],
+      },
+    };
+    const microQuestion = {
+      id: "micros",
+      key: "microtransactions",
+      type: "TABLE",
+      title: "Действия",
+      required: true,
+      config: {
+        minRows: 1,
+        coverSourceQuestionKey: "macrotransactions",
+        coverSourceColumns: ["name"],
+        coverTargetColumns: ["macro"],
+        coverageError: "Добавьте хотя бы одно действие для каждого сценария",
+        columns: [
+          { key: "macro", title: "Сценарий", type: "suggest", required: true },
+          { key: "name", title: "Действие", type: "suggest", required: true },
+        ],
+      },
+    };
+
+    expect(
+      validateAnswers([macroQuestion, microQuestion], {
+        macros: [{ name: "Публикация" }, { name: "Монетизация" }],
+        micros: [{ macro: "Публикация", name: "Проверка прав" }],
+      }),
+    ).toEqual({
+      micros: "Добавьте хотя бы одно действие для каждого сценария",
+    });
+  });
+
   it("checks number ranges inside table rows", () => {
     const percentageQuestion = {
       id: "boundaries",

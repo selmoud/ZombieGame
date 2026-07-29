@@ -20,6 +20,7 @@ type Config = {
   coverSourceQuestionKey?: string;
   coverSourceColumns?: string[];
   coverTargetColumns?: string[];
+  coverageError?: string;
   columns?: Array<{
     key: string;
     title: string;
@@ -170,7 +171,8 @@ export function validateAnswers(
               ),
           );
           if (hasUncoveredSource) {
-            errors[question.id] = "Оцените каждое добавленное действие";
+            errors[question.id] =
+              config.coverageError ?? "Оцените каждое добавленное действие";
             continue;
           }
         }
