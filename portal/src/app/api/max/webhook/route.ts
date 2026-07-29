@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 
 type MaxUpdate = {
   update_type?: string;
+  timestamp?: number;
   payload?: string | null;
   chat_id?: number | string;
   user?: { user_id?: number | string; is_bot?: boolean };
@@ -37,7 +38,47 @@ async function handleBotStarted(update: MaxUpdate) {
   const payload = typeof update.payload === "string" ? update.payload : "";
   const userId = maxId(update.user?.user_id);
   const chatId = maxId(update.chat_id);
-  if (!payload || payload.length > 128 || !userId || !chatId) return;
+  if (!userId || !chatId) return;
+
+  const existing = await db.maxBotBinding.findUnique({
+    where: { maxUserId: userId },
+    include: { registrationRequest: true },
+  });
+  if (existing) {
+    await db.$transaction(async (tx) => {
+      await tx.maxBotBinding.update({
+        where: { id: existing.id },
+        data: { enabled: true, maxChatId: chatId },
+      });
+      await tx.maxNotification.deleteMany({
+        where: { bindingId: existing.id, status: "PENDING" },
+      });
+      const request = existing.registrationRequest;
+      if (request) {
+        const accessGranted =
+          request.status === "APPROVED" && Boolean(request.approvedUserId);
+        const rejected = request.status === "REJECTED";
+        await queueMaxNotification(tx, {
+          bindingId: existing.id,
+          eventType: "BOT_RESTARTED",
+          dedupeKey: `bot-restarted:${existing.id}:${update.timestamp ?? "unknown"}`,
+          text: accessGranted
+            ? "Добрый день! Доступ к порталу открыт. Вы можете войти с указанными при регистрации именем и паролем."
+            : rejected
+              ? "Добрый день! Заявка не согласована. Для уточнения или исправления данных обратитесь к администратору рабочей группы."
+              : 'Добрый день! Ваша заявка на регистрацию на портале экспертной группы «Коммуникации, медиа и развлечения» принята и находится на рассмотрении. Пожалуйста, ожидайте уведомления о результате проверки.',
+          linkUrl: accessGranted ? portalLink("/login") : undefined,
+          linkLabel: accessGranted ? "Войти в портал" : undefined,
+        });
+      }
+    });
+    if (!existing.registrationRequest) {
+      await queueStatus(userId);
+    }
+    return;
+  }
+
+  if (!payload || payload.length > 128) return;
 
   const token = await db.maxLinkToken.findFirst({
     where: {

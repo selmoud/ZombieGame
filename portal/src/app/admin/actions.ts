@@ -442,6 +442,13 @@ export async function approveRegistration(formData: FormData) {
       },
     });
     if (request.maxBotBinding) {
+      await tx.maxNotification.deleteMany({
+        where: {
+          bindingId: request.maxBotBinding.id,
+          status: "PENDING",
+          eventType: "REGISTRATION_LINKED",
+        },
+      });
       await tx.maxBotBinding.update({
         where: { id: request.maxBotBinding.id },
         data: { userId: expert.id, registrationRequestId: null },
@@ -511,6 +518,13 @@ export async function rejectRegistration(formData: FormData) {
       },
     });
     if (request.maxBotBinding) {
+      await tx.maxNotification.deleteMany({
+        where: {
+          bindingId: request.maxBotBinding.id,
+          status: "PENDING",
+          eventType: "REGISTRATION_LINKED",
+        },
+      });
       await queueMaxNotification(tx, {
         bindingId: request.maxBotBinding.id,
         eventType: "REGISTRATION_REJECTED",

@@ -58,26 +58,44 @@ async function sendMaxMessage(
           },
         ]
       : undefined;
-  const response = await fetch(
-    `${MAX_API_BASE}/messages?user_id=${maxUserId.toString()}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: notification.text,
-        format: "markdown",
-        attachments,
-        notify: true,
-      }),
-      signal: AbortSignal.timeout(10_000),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`MAX API ${response.status}`);
+  const body = JSON.stringify({
+    text: notification.text,
+    format: "markdown",
+    attachments,
+    notify: true,
+  });
+  let lastError: Error = new Error("MAX API request failed");
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    let response: Response | undefined;
+    try {
+      response = await fetch(
+        `${MAX_API_BASE}/messages?user_id=${maxUserId.toString()}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+          body,
+          signal: AbortSignal.timeout(8_000),
+        },
+      );
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("MAX API network error");
+    }
+    if (response?.ok) return;
+    if (response) {
+      lastError = new Error(`MAX API ${response.status}`);
+      if (response.status < 500 && response.status !== 429) {
+        throw lastError;
+      }
+    }
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    }
   }
+  throw lastError;
 }
 
 export async function deliverPendingMaxNotifications(limit = 20) {
