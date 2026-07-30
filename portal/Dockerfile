@@ -21,6 +21,7 @@ ENV NODE_ENV=production \
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/src/assets/fonts ./src/assets/fonts
 COPY deploy/certs/*.crt /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 RUN mkdir -p /app/data/uploads && chown -R node:node /app/data
