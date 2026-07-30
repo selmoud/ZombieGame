@@ -108,7 +108,7 @@ export default async function DashboardPage({
         ))}
       </section>
 
-      <div className="mt-9 flex items-end justify-between">
+      <div className="mt-9 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h2 className="text-3xl text-[#000000]">
             Экспертные модули
@@ -117,6 +117,14 @@ export default async function DashboardPage({
             Горизонт целевого состояния — 2036 год
           </p>
         </div>
+        <a
+          href="https://cloud.mail.ru/public/QKGP/fvDNjsbCb"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0059C7] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00479F]"
+        >
+          Полезные материалы
+        </a>
       </div>
       <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {assignments.map(({ id, module, submission }) => {
