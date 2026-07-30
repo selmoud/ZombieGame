@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
 import { isTrustedMutationRequest } from "@/lib/request-security";
-import { portalLink, queueMaxNotification } from "@/lib/max-bot";
+import { queueMaxNotification } from "@/lib/max-bot";
 
 export async function POST(
   request: Request,
@@ -82,8 +82,6 @@ export async function POST(
         eventType: "MODULE_SUBMITTED",
         dedupeKey: `submission-submitted:${submission.id}:${submission.revision}`,
         text: `Модуль «${assignment.module.title}» отправлен модератору. Я сообщу о результате проверки.`,
-        linkUrl: portalLink(),
-        linkLabel: "Открыть портал",
       });
     }
   });
