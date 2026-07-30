@@ -90,6 +90,20 @@ function isUnfilled(value: unknown) {
   );
 }
 
+function rowsMinimumLabel(count: number) {
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+  const noun =
+    lastDigit === 1 && lastTwoDigits !== 11
+      ? "строка"
+      : lastDigit >= 2 &&
+          lastDigit <= 4 &&
+          (lastTwoDigits < 12 || lastTwoDigits > 14)
+        ? "строки"
+        : "строк";
+  return `Минимум: ${count} ${noun}.`;
+}
+
 function SearchableSelect({
   value,
   options,
@@ -1481,6 +1495,13 @@ export function DynamicForm({
                       {question.description}
                     </p>
                   )}
+                  {question.type === "TABLE" &&
+                    question.config.minRows !== undefined &&
+                    question.config.minRows > 0 && (
+                      <p className="mt-1 text-sm font-medium text-[#0059C7]">
+                        {rowsMinimumLabel(question.config.minRows)}
+                      </p>
+                    )}
                 </div>
               </div>
 

@@ -1062,6 +1062,14 @@ export default async function ModulePage({
           >
             Полезные материалы
           </a>
+          <a
+            href="https://max.ru/u/f9LHodD0cOKKTivGK0tE-Bjs4tb-qcEehYRH57bB-2MvXhASm7ENO145UbE"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center rounded-xl bg-[#0059C7] px-5 py-3.5 font-bold text-white transition hover:bg-[#00479F]"
+          >
+            Задать вопрос
+          </a>
           <section className="rounded-2xl bg-[#DDF8FB] p-5">
             <p className="text-lg text-[#000000]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
