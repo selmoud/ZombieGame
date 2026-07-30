@@ -64,35 +64,35 @@ model Subgroup {
 }
 
 model User {
-  id                    String                @id @default(uuid()) @db.Uuid
-  fullName              String                @map("full_name")
+  id                    String                 @id @default(uuid()) @db.Uuid
+  fullName              String                 @map("full_name")
   position              String?
   direction             String?
-  experienceSummary     String?               @map("experience_summary")
-  expertiseReason       String?               @map("expertise_reason")
-  role                  UserRole              @default(EXPERT)
-  isActive              Boolean               @default(false) @map("is_active")
-  unlockAllModules      Boolean               @default(false) @map("unlock_all_modules")
-  passwordHash          String?               @map("password_hash")
-  activatedAt           DateTime?             @map("activated_at")
-  companyId             String?               @map("company_id") @db.Uuid
-  company               Company?              @relation(fields: [companyId], references: [id])
+  experienceSummary     String?                @map("experience_summary")
+  expertiseReason       String?                @map("expertise_reason")
+  role                  UserRole               @default(EXPERT)
+  isActive              Boolean                @default(false) @map("is_active")
+  unlockAllModules      Boolean                @default(false) @map("unlock_all_modules")
+  passwordHash          String?                @map("password_hash")
+  activatedAt           DateTime?              @map("activated_at")
+  companyId             String?                @map("company_id") @db.Uuid
+  company               Company?               @relation(fields: [companyId], references: [id])
   subgroupMemberships   UserSubgroup[]
-  invitations           InvitationToken[]     @relation("Invitee")
-  createdInvites        InvitationToken[]     @relation("InviteCreator")
+  invitations           InvitationToken[]      @relation("Invitee")
+  createdInvites        InvitationToken[]      @relation("InviteCreator")
   sessions              Session[]
-  assignments           ModuleAssignment[]    @relation("ExpertAssignments")
-  assignedModules       ModuleAssignment[]    @relation("AssignmentCreator")
+  assignments           ModuleAssignment[]     @relation("ExpertAssignments")
+  assignedModules       ModuleAssignment[]     @relation("AssignmentCreator")
   updatedAnswers        Answer[]
   comments              ReviewComment[]
   statusChanges         StatusHistory[]
-  reviewedRegistrations RegistrationRequest[] @relation("RegistrationReviewer")
+  reviewedRegistrations RegistrationRequest[]  @relation("RegistrationReviewer")
   ledSubgroups          Subgroup[]             @relation("SubgroupLeader")
   economicDataUpdates   MinistryEconomicData[] @relation("EconomicDataUpdater")
   approvedRegistration  RegistrationRequest?   @relation("ApprovedExpert")
   maxBotBinding         MaxBotBinding?
-  createdAt             DateTime              @default(now()) @map("created_at")
-  updatedAt             DateTime              @updatedAt @map("updated_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
 
   @@index([companyId])
   @@map("users")
@@ -107,12 +107,12 @@ model MinistryEconomicData {
   employmentShare        Float?   @map("employment_share")
   investmentActivity     String?  @map("investment_activity")
   productivityComparison String?  @map("productivity_comparison")
-  source                  String?
-  comment                 String?
-  updatedById             String   @map("updated_by_id") @db.Uuid
-  updatedBy               User     @relation("EconomicDataUpdater", fields: [updatedById], references: [id])
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  source                 String?
+  comment                String?
+  updatedById            String   @map("updated_by_id") @db.Uuid
+  updatedBy              User     @relation("EconomicDataUpdater", fields: [updatedById], references: [id])
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   @@map("ministry_economic_data")
 }
@@ -160,7 +160,7 @@ model MaxBotBinding {
   maxUserId             BigInt               @unique @map("max_user_id")
   maxChatId             BigInt               @map("max_chat_id")
   enabled               Boolean              @default(true)
-  user                   User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   registrationRequest   RegistrationRequest? @relation(fields: [registrationRequestId], references: [id], onDelete: Cascade)
   notifications         MaxNotification[]
   linkedAt              DateTime             @default(now()) @map("linked_at")
@@ -171,23 +171,26 @@ model MaxBotBinding {
 }
 
 model MaxNotification {
-  id            String        @id @default(uuid()) @db.Uuid
-  bindingId     String        @map("binding_id") @db.Uuid
-  eventType     String        @map("event_type")
-  dedupeKey     String        @unique @map("dedupe_key")
-  text          String
-  linkUrl       String?       @map("link_url")
-  linkLabel     String?       @map("link_label")
-  status        String        @default("PENDING")
-  attempts      Int           @default(0)
-  nextAttemptAt DateTime      @default(now()) @map("next_attempt_at")
-  sentAt        DateTime?     @map("sent_at")
-  lastError     String?       @map("last_error")
-  binding       MaxBotBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id              String        @id @default(uuid()) @db.Uuid
+  bindingId       String        @map("binding_id") @db.Uuid
+  eventType       String        @map("event_type")
+  dedupeKey       String        @unique @map("dedupe_key")
+  text            String
+  linkUrl         String?       @map("link_url")
+  linkLabel       String?       @map("link_label")
+  status          String        @default("PENDING")
+  attempts        Int           @default(0)
+  nextAttemptAt   DateTime      @default(now()) @map("next_attempt_at")
+  sentAt          DateTime?     @map("sent_at")
+  lastError       String?       @map("last_error")
+  maxMessageId    String?       @unique @map("max_message_id")
+  buttonsHiddenAt DateTime?     @map("buttons_hidden_at")
+  binding         MaxBotBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   @@index([status, nextAttemptAt])
+  @@index([bindingId, buttonsHiddenAt])
   @@map("max_notifications")
 }
 

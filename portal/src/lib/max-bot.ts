@@ -12,6 +12,7 @@ export {
 const MAX_API_HOST = "platform-api2.max.ru";
 
 type NotificationClient = Pick<Prisma.TransactionClient, "maxNotification">;
+type MaxApiResponse = { status: number; body: string };
 
 export async function queueMaxNotification(
   client: NotificationClient,
@@ -31,6 +32,77 @@ export async function queueMaxNotification(
   });
 }
 
+async function requestMaxApi(
+  method: "POST" | "PUT",
+  path: string,
+  body: string,
+) {
+  const token = process.env.MAX_BOT_TOKEN;
+  if (!token) throw new Error("MAX_BOT_TOKEN is not configured");
+  const addresses = await resolve4(MAX_API_HOST).catch(() => []);
+  const resolvedCandidates: Array<string | undefined> = addresses.length
+    ? [...new Set(addresses)].slice(0, 3)
+    : [undefined];
+  // A fresh connection to the first address often succeeds after a transient
+  // reset affecting the initial pass through the MAX edge nodes.
+  const candidates = [...resolvedCandidates, resolvedCandidates[0]];
+  let lastError: Error = new Error("MAX API request failed");
+  for (let attempt = 0; attempt < candidates.length; attempt += 1) {
+    const address = candidates[attempt];
+    let result: MaxApiResponse | undefined;
+    try {
+      result = await new Promise<MaxApiResponse>((resolve, reject) => {
+        const request = httpsRequest(
+          {
+            protocol: "https:",
+            hostname: address ?? MAX_API_HOST,
+            servername: MAX_API_HOST,
+            port: 443,
+            path,
+            method,
+            headers: {
+              Authorization: token,
+              Host: MAX_API_HOST,
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(body),
+            },
+            timeout: 6_000,
+          },
+          (response) => {
+            const chunks: Buffer[] = [];
+            response.on("data", (chunk: Buffer) => chunks.push(chunk));
+            response.on("end", () =>
+              resolve({
+                status: response.statusCode ?? 0,
+                body: Buffer.concat(chunks).toString("utf8"),
+              }),
+            );
+          },
+        );
+        request.on("timeout", () => {
+          request.destroy(new Error("MAX API connection timed out"));
+        });
+        request.on("error", reject);
+        request.end(body);
+      });
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("MAX API network error");
+    }
+    if (result && result.status >= 200 && result.status < 300) return result;
+    if (result?.status) {
+      lastError = new Error(`MAX API ${result.status}`);
+      if (result.status < 500 && result.status !== 429) {
+        throw lastError;
+      }
+    }
+    if (attempt < candidates.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 500));
+    }
+  }
+  throw lastError;
+}
+
 async function sendMaxMessage(
   maxChatId: bigint,
   notification: {
@@ -39,8 +111,6 @@ async function sendMaxMessage(
     linkLabel: string | null;
   },
 ) {
-  const token = process.env.MAX_BOT_TOKEN;
-  if (!token) throw new Error("MAX_BOT_TOKEN is not configured");
   const attachments =
     notification.linkUrl && notification.linkLabel
       ? [
@@ -60,68 +130,39 @@ async function sendMaxMessage(
           },
         ]
       : undefined;
-  const body = JSON.stringify({
-    text: notification.text,
-    format: "markdown",
-    attachments,
-    notify: true,
-  });
-  const addresses = await resolve4(MAX_API_HOST).catch(() => []);
-  const resolvedCandidates: Array<string | undefined> = addresses.length
-    ? [...new Set(addresses)].slice(0, 3)
-    : [undefined];
-  // A fresh connection to the first address often succeeds after a transient
-  // reset affecting the initial pass through the MAX edge nodes.
-  const candidates = [...resolvedCandidates, resolvedCandidates[0]];
-  let lastError: Error = new Error("MAX API request failed");
-  for (let attempt = 0; attempt < candidates.length; attempt += 1) {
-    const address = candidates[attempt];
-    let status: number | undefined;
-    try {
-      status = await new Promise<number>((resolve, reject) => {
-        const request = httpsRequest(
-          {
-            protocol: "https:",
-            hostname: address ?? MAX_API_HOST,
-            servername: MAX_API_HOST,
-            port: 443,
-            path: `/messages?chat_id=${maxChatId.toString()}`,
-            method: "POST",
-            headers: {
-              Authorization: token,
-              Host: MAX_API_HOST,
-              "Content-Type": "application/json",
-              "Content-Length": Buffer.byteLength(body),
-            },
-            timeout: 6_000,
-          },
-          (response) => {
-            response.resume();
-            response.on("end", () => resolve(response.statusCode ?? 0));
-          },
-        );
-        request.on("timeout", () => {
-          request.destroy(new Error("MAX API connection timed out"));
-        });
-        request.on("error", reject);
-        request.end(body);
-      });
-    } catch (error) {
-      lastError =
-        error instanceof Error ? error : new Error("MAX API network error");
-    }
-    if (status && status >= 200 && status < 300) return;
-    if (status) {
-      lastError = new Error(`MAX API ${status}`);
-      if (status < 500 && status !== 429) {
-        throw lastError;
-      }
-    }
-    if (attempt < candidates.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 500));
-    }
+  const result = await requestMaxApi(
+    "POST",
+    `/messages?chat_id=${maxChatId.toString()}`,
+    JSON.stringify({
+      text: notification.text,
+      format: "markdown",
+      attachments,
+      notify: true,
+    }),
+  );
+  try {
+    const payload = JSON.parse(result.body) as {
+      message?: { body?: { mid?: unknown } };
+    };
+    return typeof payload.message?.body?.mid === "string"
+      ? payload.message.body.mid
+      : null;
+  } catch {
+    return null;
   }
-  throw lastError;
+}
+
+async function hideMaxMessageButtons(messageId: string, text: string) {
+  await requestMaxApi(
+    "PUT",
+    `/messages?message_id=${encodeURIComponent(messageId)}`,
+    JSON.stringify({
+      text,
+      format: "markdown",
+      attachments: [],
+      notify: false,
+    }),
+  );
 }
 
 export async function deliverPendingMaxNotifications(limit = 20) {
@@ -143,7 +184,10 @@ export async function deliverPendingMaxNotifications(limit = 20) {
     if (handledBindings.has(notification.bindingId)) continue;
     handledBindings.add(notification.bindingId);
     try {
-      await sendMaxMessage(notification.binding.maxChatId, notification);
+      const maxMessageId = await sendMaxMessage(
+        notification.binding.maxChatId,
+        notification,
+      );
       await db.maxNotification.update({
         where: { id: notification.id },
         data: {
@@ -151,8 +195,37 @@ export async function deliverPendingMaxNotifications(limit = 20) {
           attempts: { increment: 1 },
           sentAt: new Date(),
           lastError: null,
+          maxMessageId,
         },
       });
+      const previousWithButtons = await db.maxNotification.findFirst({
+        where: {
+          bindingId: notification.bindingId,
+          id: { not: notification.id },
+          status: "SENT",
+          linkUrl: { not: null },
+          maxMessageId: { not: null },
+          buttonsHiddenAt: null,
+        },
+        orderBy: { sentAt: "desc" },
+      });
+      if (previousWithButtons?.maxMessageId) {
+        try {
+          await hideMaxMessageButtons(
+            previousWithButtons.maxMessageId,
+            previousWithButtons.text,
+          );
+          await db.maxNotification.update({
+            where: { id: previousWithButtons.id },
+            data: { buttonsHiddenAt: new Date() },
+          });
+        } catch (error) {
+          console.error(
+            "Failed to hide buttons on an older MAX message",
+            error,
+          );
+        }
+      }
       sent += 1;
     } catch (error) {
       const attempts = notification.attempts + 1;
