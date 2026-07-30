@@ -29,7 +29,7 @@ export async function createSession(userId: string) {
   const store = await cookies();
   store.set(SESSION_COOKIE, id, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     secure: shouldUseSecureCookies(),
     path: "/",
     priority: "high",
@@ -70,7 +70,7 @@ export async function getCurrentUser() {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?recover=1");
   return user;
 }
 

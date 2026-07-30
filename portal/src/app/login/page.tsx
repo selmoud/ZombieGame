@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
+import { LoginSessionRecovery } from "@/components/login-session-recovery";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function LoginPage({
@@ -12,9 +13,11 @@ export default async function LoginPage({
   if (user) redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
   const query = await searchParams;
   const admin = query.role === "admin";
+  const recoverSession = query.recover === "1";
 
   return (
     <main className="grid min-h-screen place-items-center px-5 py-12">
+      <LoginSessionRecovery enabled={recoverSession} />
       <section className="paper w-full max-w-md rounded-3xl p-8 sm:p-10">
         <Link href="/" className="text-sm font-bold text-[#0059C7]">
           ← На стартовую страницу
