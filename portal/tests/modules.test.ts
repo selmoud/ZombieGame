@@ -456,7 +456,7 @@ describe("module definitions", () => {
     });
   });
 
-  it("covers all methodology effect categories without forcing invented targets", async () => {
+  it("lets experts prioritize effects without forcing every category", async () => {
     const modules = await loadModuleDefinitions();
     const effects = modules.find((module) => module.slug === "effects");
 
@@ -473,12 +473,9 @@ describe("module definitions", () => {
         minRows: 3,
         maxRows: 15,
         sortableRows: true,
-        requiredColumnValues: {
-          columnKey: "category",
-          values: ["Экономический", "Социальный", "Бюджетный"],
-        },
       },
     });
+    expect(effects?.questions[0].config.requiredColumnValues).toBeUndefined();
     expect(
       effects?.questions[0].config.columns?.find(
         (column) => column.key === "quantitativeEstimate",
