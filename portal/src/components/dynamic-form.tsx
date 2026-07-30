@@ -269,6 +269,7 @@ function MultiSearchableSelect({
     : value
       ? [String(value)]
       : [];
+  const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -310,7 +311,7 @@ function MultiSearchableSelect({
   return (
     <div className="relative">
       <div
-        className={`field flex min-h-12 flex-wrap items-center gap-2 ${
+        className={`field flex min-h-12 flex-wrap items-center gap-2 pr-10 ${
           disabled ? "bg-[#F4F4F4]" : ""
         }`}
       >
@@ -340,6 +341,7 @@ function MultiSearchableSelect({
         })}
         {!disabled && (
           <input
+            ref={inputRef}
             className="min-w-32 flex-1 border-0 bg-transparent py-1 text-sm outline-none"
             value={query}
             autoComplete="off"
@@ -392,6 +394,22 @@ function MultiSearchableSelect({
           />
         )}
       </div>
+      {!disabled && (
+        <button
+          type="button"
+          aria-label="Открыть список"
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            inputRef.current?.focus();
+            setIsOpen(true);
+          }}
+          className="absolute right-3 top-6 flex size-6 -translate-y-1/2 items-center justify-center text-xs text-neutral-400 hover:text-[#0059C7]"
+        >
+          ▾
+        </button>
+      )}
       {allowCustom &&
         !disabled &&
         (hasCustomValue || isEnteringCustomValue) && (
