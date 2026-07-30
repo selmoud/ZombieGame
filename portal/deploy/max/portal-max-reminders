@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+ENV_FILE=/srv/portal/.env
+MAX_WORKER_SECRET=$(
+  sed -n 's/^MAX_WORKER_SECRET=//p' "$ENV_FILE" | tail -n 1
+)
+
+case "$MAX_WORKER_SECRET" in
+  ""|*[!A-Za-z0-9_-]*)
+    echo "MAX_WORKER_SECRET is missing or contains unsupported characters" >&2
+    exit 1
+    ;;
+esac
+
+curl --fail --silent --show-error \
+  --max-time 40 \
+  --retry 3 \
+  --retry-delay 1 \
+  --retry-connrefused \
+  --retry-all-errors \
+  --request POST \
+  --header "Authorization: Bearer ${MAX_WORKER_SECRET}" \
+  http://127.0.0.1:3000/api/internal/max-reminders

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { portalLink, queueMaxNotification } from "@/lib/max-bot";
+import { completedModulesMessage } from "@/lib/max-reminder-policy";
 
 export async function addComment(formData: FormData) {
   const admin = await requireRole("ADMIN");
@@ -104,16 +105,31 @@ export async function acceptSubmission(formData: FormData) {
     });
     const binding = submission.assignment.user.maxBotBinding;
     if (binding) {
-      const finalModule = submission.assignment.module.order >= 8;
+      const assignments = await tx.moduleAssignment.findMany({
+        where: {
+          userId: submission.assignment.user.id,
+          module: { isActive: true },
+        },
+        select: { submission: { select: { status: true } } },
+      });
+      const activeModuleCount = await tx.module.count({
+        where: { isActive: true },
+      });
+      const finalModule =
+        activeModuleCount > 0 &&
+        assignments.length === activeModuleCount &&
+        assignments.every((item) => item.submission?.status === "ACCEPTED");
       await queueMaxNotification(tx, {
         bindingId: binding.id,
         eventType: finalModule ? "ALL_MODULES_ACCEPTED" : "MODULE_ACCEPTED",
-        dedupeKey: `submission-accepted:${submission.id}`,
+        dedupeKey: finalModule
+          ? `all-modules-completed:${submission.assignment.user.id}`
+          : `submission-accepted:${submission.id}`,
         text: finalModule
-          ? `Модуль «${submission.assignment.module.title}» принят. Вы завершили прохождение всех экспертных модулей.`
+          ? completedModulesMessage
           : `Модуль «${submission.assignment.module.title}» принят модератором. Следующий модуль открыт для заполнения.`,
-        linkUrl: portalLink("/dashboard"),
-        linkLabel: "Открыть портал",
+        linkUrl: finalModule ? undefined : portalLink("/dashboard"),
+        linkLabel: finalModule ? undefined : "Открыть портал",
       });
     }
   });
