@@ -83,18 +83,20 @@ function printableValue(value: unknown, options?: Option[]) {
   return optionLabel(value, options);
 }
 
-function attachmentInfo(value: unknown) {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("id" in value) ||
-    !("name" in value)
-  ) {
-    return null;
-  }
-  const id = String((value as { id?: unknown }).id ?? "");
-  const name = String((value as { name?: unknown }).name ?? "Материал");
-  return id ? { id, name } : null;
+function attachmentInfos(value: unknown) {
+  return (Array.isArray(value) ? value : value ? [value] : [])
+    .filter(
+      (item): item is { id?: unknown; name?: unknown } =>
+        typeof item === "object" &&
+        item !== null &&
+        "id" in item &&
+        "name" in item,
+    )
+    .map((item) => ({
+      id: String(item.id ?? ""),
+      name: String(item.name ?? "Материал"),
+    }))
+    .filter((item) => item.id);
 }
 
 export async function createSubmissionPdf(data: SubmissionPdfData) {
@@ -1448,14 +1450,14 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
     const isMaterialsQuestion = question.title
       .toLocaleLowerCase("ru-RU")
       .includes("материал");
-    if (isMaterialsQuestion && !attachmentInfo(question.value)) return;
+    const attachments = attachmentInfos(question.value);
+    if (isMaterialsQuestion && attachments.length === 0) return;
     const isCompactTableSection =
       methodologyTablesRendered &&
       (isMaterialsQuestion ||
         (data.moduleOrder === 8 && question.key === "disagreements"));
     if (isCompactTableSection) {
-      const attachment = attachmentInfo(question.value);
-      if (!attachment) return;
+      if (attachments.length === 0) return;
       if (document.y + 92 > document.page.height - 50) {
         document.addPage({ size: "A4", layout: "landscape", margin: 36 });
         landscapePageActive = true;
@@ -1470,16 +1472,19 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
           width: document.page.width - 72,
         });
       document.moveDown(0.5);
-      const attachmentUrl = `${data.attachmentBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(attachment.id)}`;
-      document
-        .font("RobotoLike")
-        .fontSize(9.5)
-        .fillColor("#0059C7")
-        .text(attachment.name, {
-          link: attachmentUrl,
-          underline: true,
-          lineGap: 2,
-        });
+      attachments.forEach((attachment) => {
+        const attachmentUrl = `${data.attachmentBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(attachment.id)}`;
+        document
+          .font("RobotoLike")
+          .fontSize(9.5)
+          .fillColor("#0059C7")
+          .text(attachment.name, {
+            link: attachmentUrl,
+            underline: true,
+            lineGap: 2,
+          });
+        document.moveDown(0.2);
+      });
       return;
     }
     if (methodologyTablesRendered) {
@@ -1606,18 +1611,20 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         document.moveDown(0.5);
       });
     } else {
-      const attachment = attachmentInfo(question.value);
-      if (attachment) {
-        const attachmentUrl = `${data.attachmentBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(attachment.id)}`;
-        document
-          .font("RobotoLike")
-          .fontSize(10)
-          .fillColor("#0059C7")
-          .text(`Прикреплённый файл: ${attachment.name}`, {
-            link: attachmentUrl,
-            underline: true,
-            lineGap: 3,
-          });
+      if (attachments.length > 0) {
+        attachments.forEach((attachment) => {
+          const attachmentUrl = `${data.attachmentBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(attachment.id)}`;
+          document
+            .font("RobotoLike")
+            .fontSize(10)
+            .fillColor("#0059C7")
+            .text(`Прикреплённый файл: ${attachment.name}`, {
+              link: attachmentUrl,
+              underline: true,
+              lineGap: 3,
+            });
+          document.moveDown(0.2);
+        });
       } else {
         document
           .font("RobotoLike")

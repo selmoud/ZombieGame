@@ -1018,45 +1018,53 @@ function FileUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const uploadedFile =
-    typeof value === "object" && value && "id" in value
-      ? (value as { id: unknown; name?: unknown })
-      : null;
+  const [deletingId, setDeletingId] = useState("");
+  const uploadedFiles = (Array.isArray(value) ? value : value ? [value] : [])
+    .filter(
+      (item): item is { id: unknown; name?: unknown } =>
+        typeof item === "object" && item !== null && "id" in item,
+    )
+    .slice(0, 10);
 
-  async function selectFile(file?: File) {
-    if (!file || uploading) return;
+  async function selectFiles(files: File[]) {
+    if (!files.length || uploading) return;
     setUploading(true);
     try {
-      await onUpload(file);
+      const availableSlots = Math.max(0, 10 - uploadedFiles.length);
+      for (const file of files.slice(0, availableSlots)) {
+        await onUpload(file);
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  async function deleteUploadedFile() {
+  async function deleteUploadedFile(file: {
+    id: unknown;
+    name?: unknown;
+  }) {
     if (
-      !uploadedFile ||
-      deleting ||
-      !window.confirm("Удалить файл без возможности восстановления?")
+      deletingId ||
+      !window.confirm(
+        `Удалить файл «${String(file.name ?? "Материал")}» без возможности восстановления?`,
+      )
     ) {
       return;
     }
 
-    setDeleting(true);
+    const attachmentId = String(file.id);
+    setDeletingId(attachmentId);
     try {
-      await onDelete(String(uploadedFile.id));
+      await onDelete(attachmentId);
     } finally {
-      setDeleting(false);
+      setDeletingId("");
     }
   }
 
-  function downloadUploadedFile() {
-    if (!uploadedFile) return;
-
+  function downloadUploadedFile(attachmentId: string) {
     const link = document.createElement("a");
-    link.href = `/api/attachments/${String(uploadedFile.id)}`;
+    link.href = `/api/attachments/${attachmentId}`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -1064,33 +1072,43 @@ function FileUploadField({
 
   return (
     <div className="space-y-3">
-      {uploadedFile && (
-        <div className="flex flex-col gap-3 rounded-xl bg-[#DDF8FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="min-w-0 truncate text-sm font-semibold text-[#00616C]">
-            Прикреплён: {String(uploadedFile.name ?? "Материал")}
-          </span>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={downloadUploadedFile}
-              className="attachment-action attachment-action-download"
-            >
-              Скачать
-            </button>
-            {!disabled && (
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => void deleteUploadedFile()}
-                className="attachment-action attachment-action-delete"
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          {uploadedFiles.map((file) => {
+            const attachmentId = String(file.id);
+            return (
+              <div
+                key={attachmentId}
+                className="flex flex-col gap-3 rounded-xl bg-[#DDF8FB] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                Удалить
-              </button>
-            )}
-          </div>
+                <span className="min-w-0 truncate text-sm font-semibold text-[#00616C]">
+                  {String(file.name ?? "Материал")}
+                </span>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => downloadUploadedFile(attachmentId)}
+                    className="attachment-action attachment-action-download"
+                  >
+                    Скачать
+                  </button>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      disabled={deletingId === attachmentId}
+                      onClick={() => void deleteUploadedFile(file)}
+                      className="attachment-action attachment-action-delete"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
-      {!disabled && (
+      {!disabled && uploadedFiles.length < 10 && (
         <div
           onDragEnter={(event) => {
             event.preventDefault();
@@ -1109,7 +1127,7 @@ function FileUploadField({
           onDrop={(event) => {
             event.preventDefault();
             setDragging(false);
-            void selectFile(event.dataTransfer.files?.[0]);
+            void selectFiles(Array.from(event.dataTransfer.files ?? []));
           }}
           className={`rounded-2xl border-2 border-dashed p-6 text-center transition ${
             dragging
@@ -1118,10 +1136,10 @@ function FileUploadField({
           }`}
         >
           <p className="font-semibold text-black">
-            {uploading ? "Загружаем материал…" : "Перетащите файл сюда"}
+            {uploading ? "Загружаем материалы…" : "Перетащите файлы сюда"}
           </p>
           <p className="mt-1 text-xs leading-5 text-neutral-500">
-            PDF, DOCX, XLSX, PNG или JPG до 20 МБ
+            До 10 файлов. PDF, DOCX, XLSX, PNG или JPG до 20 МБ каждый
           </p>
           <button
             type="button"
@@ -1129,14 +1147,17 @@ function FileUploadField({
             onClick={() => inputRef.current?.click()}
             className="mt-4 rounded-xl bg-[#0059C7] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#00479F] disabled:opacity-60"
           >
-            Добавить материал
+            Добавить материалы
           </button>
           <input
             ref={inputRef}
             className="sr-only"
             type="file"
+            multiple
             accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-            onChange={(event) => void selectFile(event.target.files?.[0])}
+            onChange={(event) =>
+              void selectFiles(Array.from(event.target.files ?? []))
+            }
           />
         </div>
       )}
@@ -1298,8 +1319,10 @@ export function DynamicForm({
       };
       if (!response.ok) {
         const description =
-          result.error === "FILE_NOT_ALLOWED" ||
-          result.error === "FILE_CONTENT_MISMATCH"
+          result.error === "ATTACHMENT_LIMIT"
+            ? "Можно прикрепить не более 10 файлов к одному блоку материалов."
+            : result.error === "FILE_NOT_ALLOWED" ||
+                result.error === "FILE_CONTENT_MISMATCH"
             ? "Файл не загружен. Поддерживаемые форматы: PDF, DOCX, XLSX, PNG, JPG и JPEG. Максимальный размер — 20 МБ."
             : result.error === "PAYLOAD_TOO_LARGE"
               ? "Файл не загружен: размер файла превышает 20 МБ."
@@ -1333,8 +1356,9 @@ export function DynamicForm({
       const response = await fetch(`/api/attachments/${attachmentId}`, {
         method: "DELETE",
       });
+      const result = (await response.json()) as { value?: unknown };
       if (!response.ok) throw new Error("Delete failed");
-      setAnswer(questionId, "");
+      setAnswer(questionId, result.value ?? []);
       setSaveError("");
       setMessage("");
     } catch {

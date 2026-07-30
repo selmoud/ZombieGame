@@ -54,6 +54,37 @@ describe("submission PDF", () => {
     );
   });
 
+  it("adds links for multiple server attachments", async () => {
+    const pdf = await createSubmissionPdf({
+      moduleOrder: 1,
+      moduleTitle: "Текущее состояние отрасли",
+      expertName: "Иванов Иван",
+      companyName: "Тест",
+      subgroupName: "Коммуникации",
+      statusLabel: "На рассмотрении модератором",
+      attachmentBaseUrl: "https://portal.example/api/attachments",
+      questions: [
+        {
+          key: "transaction_materials",
+          title: "Подтверждающие материалы",
+          config: {},
+          value: [
+            { id: "attachment-123", name: "исследование.pdf" },
+            { id: "attachment-456", name: "таблица.xlsx" },
+          ],
+        },
+      ],
+    });
+
+    const content = pdf.toString("latin1");
+    expect(content).toContain(
+      "https://portal.example/api/attachments/attachment-123",
+    );
+    expect(content).toContain(
+      "https://portal.example/api/attachments/attachment-456",
+    );
+  });
+
   it("creates methodology-style transaction tables for preview", async () => {
     const pdf = await createSubmissionPdf({
       moduleOrder: 2,

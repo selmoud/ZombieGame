@@ -99,16 +99,27 @@ export async function DELETE(
     return Response.json({ error: "NOT_ALLOWED" }, { status: 403 });
   }
 
-  await db.$transaction([
-    db.attachment.update({
+  const remainingAttachments = await db.$transaction(async (tx) => {
+    await tx.attachment.update({
       where: { id: attachment.id },
       data: { deletedAt: new Date() },
-    }),
-    db.answer.update({
+    });
+    const remaining = await tx.attachment.findMany({
+      where: { answerId: attachment.answerId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, originalName: true, sizeBytes: true },
+    });
+    const value = remaining.map((item) => ({
+      id: item.id,
+      name: item.originalName,
+      size: Number(item.sizeBytes),
+    }));
+    await tx.answer.update({
       where: { id: attachment.answerId },
-      data: { value: Prisma.JsonNull },
-    }),
-  ]);
+      data: { value: value as Prisma.InputJsonValue },
+    });
+    return value;
+  });
 
   const uploadRoot = path.join(
     /*turbopackIgnore: true*/ process.cwd(),
@@ -121,5 +132,5 @@ export async function DELETE(
     );
     await unlink(target).catch(() => undefined);
   }
-  return Response.json({ deleted: true });
+  return Response.json({ deleted: true, value: remainingAttachments });
 }

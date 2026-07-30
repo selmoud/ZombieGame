@@ -11,6 +11,10 @@ import {
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isTrustedMutationRequest } from "@/lib/request-security";
 
+const MAX_ATTACHMENTS_PER_ANSWER = 10;
+
+class AttachmentLimitError extends Error {}
+
 export async function POST(request: Request) {
   if (!isTrustedMutationRequest(request)) {
     return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
@@ -70,6 +74,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "FILE_CONTENT_MISMATCH" }, { status: 422 });
   }
   const checksum = createHash("sha256").update(bytes).digest("hex");
+  const activeAttachmentCount = await db.attachment.count({
+    where: {
+      answer: {
+        submissionId: assignment.submission.id,
+        questionId,
+      },
+      deletedAt: null,
+    },
+  });
+  if (activeAttachmentCount >= MAX_ATTACHMENTS_PER_ANSWER) {
+    return Response.json({ error: "ATTACHMENT_LIMIT" }, { status: 422 });
+  }
   const storageKey = `${assignment.id}/${randomUUID()}`;
   const destination = path.join(
     /*turbopackIgnore: true*/ process.cwd(),
@@ -79,19 +95,9 @@ export async function POST(request: Request) {
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(destination, bytes, { flag: "wx", mode: 0o600 });
 
-  const previousAttachments = await db.attachment.findMany({
-    where: {
-      answer: {
-        submissionId: assignment.submission.id,
-        questionId,
-      },
-      deletedAt: null,
-    },
-    select: { storageKey: true },
-  });
-  let attachment;
+  let attachments;
   try {
-    attachment = await db.$transaction(async (tx) => {
+    attachments = await db.$transaction(async (tx) => {
       const answer = await tx.answer.upsert({
         where: {
           submissionId_questionId: {
@@ -100,21 +106,22 @@ export async function POST(request: Request) {
           },
         },
         update: {
-          value: { name: validatedFile.name } as Prisma.InputJsonValue,
           updatedById: user.id,
         },
         create: {
           submissionId: assignment.submission!.id,
           questionId,
-          value: { name: validatedFile.name } as Prisma.InputJsonValue,
+          value: [] as Prisma.InputJsonValue,
           updatedById: user.id,
         },
       });
-      await tx.attachment.updateMany({
+      const attachmentCount = await tx.attachment.count({
         where: { answerId: answer.id, deletedAt: null },
-        data: { deletedAt: new Date() },
       });
-      const created = await tx.attachment.create({
+      if (attachmentCount >= MAX_ATTACHMENTS_PER_ANSWER) {
+        throw new AttachmentLimitError();
+      }
+      await tx.attachment.create({
         data: {
           answerId: answer.id,
           storageKey,
@@ -124,41 +131,28 @@ export async function POST(request: Request) {
           checksum,
         },
       });
+      const activeAttachments = await tx.attachment.findMany({
+        where: { answerId: answer.id, deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, originalName: true, sizeBytes: true },
+      });
+      const value = activeAttachments.map((item) => ({
+        id: item.id,
+        name: item.originalName,
+        size: Number(item.sizeBytes),
+      }));
       await tx.answer.update({
         where: { id: answer.id },
-        data: {
-          value: {
-            id: created.id,
-            name: validatedFile.name,
-            size: file.size,
-          } as Prisma.InputJsonValue,
-        },
+        data: { value: value as Prisma.InputJsonValue },
       });
-      return created;
-    });
+      return value;
+    }, { isolationLevel: "Serializable" });
   } catch (error) {
     await unlink(destination).catch(() => undefined);
+    if (error instanceof AttachmentLimitError) {
+      return Response.json({ error: "ATTACHMENT_LIMIT" }, { status: 422 });
+    }
     throw error;
   }
-  await Promise.all(
-    previousAttachments.map(({ storageKey: previousStorageKey }) => {
-      if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(previousStorageKey)) {
-        return Promise.resolve();
-      }
-      return unlink(
-        path.join(
-          /*turbopackIgnore: true*/ process.cwd(),
-          process.env.UPLOAD_DIR ?? "data/uploads",
-          previousStorageKey,
-        ),
-      ).catch(() => undefined);
-    }),
-  );
-  return Response.json({
-    value: {
-      id: attachment.id,
-      name: validatedFile.name,
-      size: file.size,
-    },
-  });
+  return Response.json({ value: attachments });
 }
