@@ -145,7 +145,9 @@ function SearchableSelect({
           aria-autocomplete="list"
           aria-controls={listboxId}
           aria-expanded={isOpen}
-          placeholder="Начните вводить"
+          placeholder={
+            allowCustom ? "Начните вводить" : "Выберите из списка"
+          }
           onFocus={(event) => {
             event.currentTarget.select();
             setIsOpen(true);
@@ -331,7 +333,13 @@ function MultiSearchableSelect({
             aria-autocomplete="list"
             aria-controls={listboxId}
             aria-expanded={isOpen}
-            placeholder={selected.length ? "Добавить ещё" : "Начните вводить"}
+            placeholder={
+              selected.length
+                ? "Добавить ещё"
+                : allowCustom
+                  ? "Начните вводить"
+                  : "Выберите из списка"
+            }
             onFocus={() => setIsOpen(true)}
             onBlur={() => setIsOpen(false)}
             onChange={(event) => {
