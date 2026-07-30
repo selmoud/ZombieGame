@@ -40,9 +40,9 @@ export function AcceptedAnalyticsDashboard({
     <div className="mt-7 space-y-7">
       <section className="paper overflow-hidden rounded-2xl">
         <div className="border-b border-neutral-200 px-6 py-5">
-          <h2 className="text-2xl font-bold text-black">Карта сегментов</h2>
+          <h2 className="text-2xl font-bold text-black">Карта направлений</h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Медианные оценки и степень согласованности. Нажмите на сегмент,
+            Медианные оценки и степень согласованности. Нажмите на направление,
             чтобы увидеть обоснования.
           </p>
         </div>
@@ -51,7 +51,7 @@ export function AcceptedAnalyticsDashboard({
             <table className="min-w-full text-left text-sm">
               <thead className="bg-[#E0EEFF] text-[#003F8F]">
                 <tr>
-                  <th className="px-5 py-3">Сегмент</th>
+                  <th className="px-5 py-3">Направление</th>
                   <th className="px-5 py-3">Активность</th>
                   <th className="px-5 py-3">Экономика</th>
                   <th className="px-5 py-3">Оценок</th>

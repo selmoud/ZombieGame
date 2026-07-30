@@ -607,7 +607,7 @@ export default async function ModulePage({
                 Основа из раздела 1
               </p>
               <h2 className="mt-2 text-2xl font-bold text-black">
-                Принятые сегменты
+                Принятые направления
               </h2>
               <p className="mt-2 text-sm leading-6 text-neutral-500">
                 Эти данные уже согласованы модератором и используются в полях
@@ -656,7 +656,7 @@ export default async function ModulePage({
                   Основа из разделов 1 и 2
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-black">
-                  Принятые сегменты, участники и макротранзакции
+                  Принятые направления, участники и макротранзакции
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-neutral-500">
                   Ниже показаны данные, уже согласованные модератором. Они
@@ -667,7 +667,7 @@ export default async function ModulePage({
                 <div className="mt-5 grid gap-4 lg:grid-cols-3">
                   <div className="rounded-xl bg-[#E0EEFF] p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-[#0059C7]">
-                      Сегменты
+                      Направления
                     </p>
                     <div className="mt-3 space-y-2 text-sm text-black">
                       {segments.map((segment) => (

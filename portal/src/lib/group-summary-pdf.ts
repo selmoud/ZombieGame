@@ -392,7 +392,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     headers: ["Контур анализа", "Результаты по частоте и приоритету"],
     rows: [
       [
-        "Наиболее часто оценённые сегменты",
+        "Наиболее часто оценённые направления",
         joined(prioritySegments.slice(0, 5).map((item) => item.name), 5),
       ],
       [
@@ -420,9 +420,9 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     weights: [1.5, 4.5],
   });
   renderTable({
-    title: "Зоны расхождения в оценках сегментов",
+    title: "Зоны расхождения в оценках направлений",
     headers: [
-      "Сегмент",
+      "Направление",
       "Пользовательская активность · распределение",
       "Экономическая доля · распределение",
       "Оценок",
@@ -442,7 +442,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
         "Подгруппа",
         "Экспертов",
         "Принято модулей",
-        "Приоритетные сегменты",
+        "Приоритетные направления",
         "Ключевые показатели",
       ],
       rows: subgroupComparisons.map((item) => [
@@ -506,7 +506,7 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
 
   startSection(
     "Модуль 01 · Текущее состояние отрасли",
-    "Сводные оценки сегментов, ретроспективные факторы и приоритет ключевых показателей.",
+    "Сводные оценки направлений, ретроспективные факторы и приоритет ключевых показателей.",
   );
   if (data.economicData) {
     renderTable({
@@ -535,9 +535,9 @@ export async function createGroupSummaryPdf(data: GroupSummaryPdfData) {
     });
   }
   renderTable({
-    title: "Карта сегментов",
+    title: "Карта направлений",
     headers: [
-      "Сегмент",
+      "Направление",
       "Активность · медиана",
       "Распределение активности",
       "Экономика · медиана",

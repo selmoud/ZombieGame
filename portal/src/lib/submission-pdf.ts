@@ -296,7 +296,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       renderReportTable({
         title: "Структура участников отрасли",
         headers: [
-          "Сегменты",
+          "Направления",
           "Группа участников",
           "Типы участия",
           "Описание участника",
@@ -316,7 +316,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         title: "Ключевые сценарии взаимодействия",
         headers: [
           "Макротранзакция",
-          "Сегменты",
+          "Направления",
           "Инициатор",
           "Получатель",
           "Тип",
@@ -539,7 +539,7 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
       renderReportTable({
         title: "Действующие платформы в отрасли",
         headers: [
-          "Сегменты",
+          "Направления",
           "Платформа",
           "Тип",
           "Происхождение",
@@ -1185,14 +1185,14 @@ export async function createSubmissionPdf(data: SubmissionPdfData) {
         const stages = questionRows("current_state");
         const keyMetrics = questionRows("key_metrics");
         metrics = [
-          { label: "сегменты отрасли", value: segments.length },
+          { label: "направления отрасли", value: segments.length },
           { label: "этапы ретроспективы", value: stages.length },
           { label: "ключевые показатели", value: keyMetrics.length },
         ];
         highlightLabel = "КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ";
         highlights = keyMetrics.map((row) => String(row.metric ?? "").trim());
         description =
-          "Далее приведены границы и сегменты отрасли, ретроспективная оценка и перечень ключевых показателей.";
+          "Далее приведены границы и направления отрасли, ретроспективная оценка и перечень ключевых показателей.";
         break;
       }
       case 2: {

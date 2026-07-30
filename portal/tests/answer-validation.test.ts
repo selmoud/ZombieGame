@@ -82,10 +82,15 @@ describe("validateAnswers", () => {
       config: {
         minRows: 1,
         columns: [
-          { key: "segment", title: "Сегмент", type: "suggest", required: true },
+          {
+            key: "segment",
+            title: "Направление",
+            type: "suggest",
+            required: true,
+          },
           {
             key: "customSegment",
-            title: "Название сегмента",
+            title: "Название направления",
             type: "short_text",
             requiredWhen: { columnKey: "segment", equals: "Другое" },
             visibleWhen: { columnKey: "segment", equals: "Другое" },

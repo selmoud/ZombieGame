@@ -45,7 +45,7 @@ describe("module definitions", () => {
     });
     expect(segments).toMatchObject({
       order: 2,
-      title: "Сегменты отрасли",
+      title: "Направления отрасли",
     });
     expect(segments?.config.columns?.map((column) => column.type)).toEqual([
       "readonly",
@@ -71,7 +71,7 @@ describe("module definitions", () => {
     ).toMatchObject({
       order: 5,
       type: "file",
-      title: "Материалы к экспертной оценке отрасли и сегментов",
+      title: "Материалы к экспертной оценке отрасли и направлений",
       required: false,
     });
     expect(
