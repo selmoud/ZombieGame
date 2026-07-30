@@ -11,6 +11,7 @@ export {
 } from "@/lib/max-bot-security";
 
 const MAX_API_HOST = "platform-api2.max.ru";
+const DELIVERY_LEASE_MS = 10 * 60 * 1000;
 
 type NotificationClient = Pick<Prisma.TransactionClient, "maxNotification">;
 type AdminNotificationClient = Pick<
@@ -109,10 +110,14 @@ export async function resolveMaxAdminNotification(
     entityId: input.entityId,
   };
   const resolvedAt = new Date();
-  const [unsent, sent] = await Promise.all([
+  const [unsent, inFlight, sent] = await Promise.all([
     client.maxAdminNotification.updateMany({
       where: { ...where, status: { in: ["PENDING", "FAILED"] } },
       data: { status: "RESOLVED", resolvedAt },
+    }),
+    client.maxAdminNotification.updateMany({
+      where: { ...where, status: "SENDING" },
+      data: { status: "RESOLVE_AFTER_SEND", resolvedAt },
     }),
     client.maxAdminNotification.updateMany({
       where: { ...where, status: "SENT" },
@@ -123,7 +128,11 @@ export async function resolveMaxAdminNotification(
       },
     }),
   ]);
-  return { unsent: unsent.count, sent: sent.count };
+  return {
+    unsent: unsent.count,
+    inFlight: inFlight.count,
+    sent: sent.count,
+  };
 }
 
 export async function registerMaxAdminChannel(
@@ -341,7 +350,9 @@ async function hideMaxMessageButtons(messageId: string, text: string) {
 async function deliverPendingMaxAdminNotifications(limit = 20) {
   const pending = await db.maxAdminNotification.findMany({
     where: {
-      status: { in: ["PENDING", "RESOLUTION_PENDING"] },
+      status: {
+        in: ["PENDING", "SENDING", "RESOLUTION_PENDING", "RESOLVING"],
+      },
       nextAttemptAt: { lte: new Date() },
       channel: { enabled: true },
     },
@@ -353,8 +364,23 @@ async function deliverPendingMaxAdminNotifications(limit = 20) {
   let resolved = 0;
   let failed = 0;
   for (const notification of pending) {
+    const resolving = ["RESOLUTION_PENDING", "RESOLVING"].includes(
+      notification.status,
+    );
+    const claimed = await db.maxAdminNotification.updateMany({
+      where: {
+        id: notification.id,
+        status: notification.status,
+        nextAttemptAt: { lte: new Date() },
+      },
+      data: {
+        status: resolving ? "RESOLVING" : "SENDING",
+        nextAttemptAt: new Date(Date.now() + DELIVERY_LEASE_MS),
+      },
+    });
+    if (!claimed.count) continue;
     try {
-      if (notification.status === "RESOLUTION_PENDING") {
+      if (resolving) {
         if (notification.maxMessageId) {
           await hideMaxMessageButtons(
             notification.maxMessageId,
@@ -377,8 +403,8 @@ async function deliverPendingMaxAdminNotifications(limit = 20) {
         notification.channel.maxChatId,
         notification,
       );
-      await db.maxAdminNotification.update({
-        where: { id: notification.id },
+      const delivered = await db.maxAdminNotification.updateMany({
+        where: { id: notification.id, status: "SENDING" },
         data: {
           status: "SENT",
           attempts: { increment: 1 },
@@ -387,15 +413,49 @@ async function deliverPendingMaxAdminNotifications(limit = 20) {
           maxMessageId,
         },
       });
+      if (!delivered.count) {
+        await db.maxAdminNotification.updateMany({
+          where: { id: notification.id, status: "RESOLVE_AFTER_SEND" },
+          data: {
+            status: "RESOLUTION_PENDING",
+            attempts: { increment: 1 },
+            sentAt: new Date(),
+            nextAttemptAt: new Date(),
+            lastError: null,
+            maxMessageId,
+          },
+        });
+      }
       sent += 1;
     } catch (error) {
       const attempts = notification.attempts + 1;
       const terminal = attempts >= 8;
       const delayMinutes = Math.min(2 ** attempts, 60);
+      const current = await db.maxAdminNotification.findUnique({
+        where: { id: notification.id },
+        select: { status: true },
+      });
+      if (current?.status === "RESOLVE_AFTER_SEND") {
+        await db.maxAdminNotification.update({
+          where: { id: notification.id },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: new Date(),
+            attempts,
+            lastError: null,
+          },
+        });
+        resolved += 1;
+        continue;
+      }
       await db.maxAdminNotification.update({
         where: { id: notification.id },
         data: {
-          status: terminal ? "FAILED" : notification.status,
+          status: terminal
+            ? "FAILED"
+            : resolving
+              ? "RESOLUTION_PENDING"
+              : "PENDING",
           attempts,
           nextAttemptAt: new Date(Date.now() + delayMinutes * 60_000),
           lastError:
@@ -414,7 +474,7 @@ export async function deliverPendingMaxNotifications(limit = 20) {
   if (!process.env.MAX_BOT_TOKEN) return { sent: 0, failed: 0 };
   const pending = await db.maxNotification.findMany({
     where: {
-      status: "PENDING",
+      status: { in: ["PENDING", "SENDING"] },
       nextAttemptAt: { lte: new Date() },
       binding: { enabled: true },
     },
@@ -427,6 +487,18 @@ export async function deliverPendingMaxNotifications(limit = 20) {
   const handledBindings = new Set<string>();
   for (const notification of pending) {
     if (handledBindings.has(notification.bindingId)) continue;
+    const claimed = await db.maxNotification.updateMany({
+      where: {
+        id: notification.id,
+        status: notification.status,
+        nextAttemptAt: { lte: new Date() },
+      },
+      data: {
+        status: "SENDING",
+        nextAttemptAt: new Date(Date.now() + DELIVERY_LEASE_MS),
+      },
+    });
+    if (!claimed.count) continue;
     handledBindings.add(notification.bindingId);
     try {
       const maxMessageId = await sendMaxMessage(
