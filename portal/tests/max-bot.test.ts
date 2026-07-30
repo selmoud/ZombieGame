@@ -4,6 +4,7 @@ import {
   maxBotDeepLink,
   validMaxWebhookSecret,
 } from "../src/lib/max-bot-security";
+import { completedAdminNotificationText } from "../src/lib/max-admin-notification-policy";
 
 const original = {
   MAX_LINK_TOKEN_PEPPER: process.env.MAX_LINK_TOKEN_PEPPER,
@@ -37,5 +38,19 @@ describe("MAX bot security helpers", () => {
     expect(validMaxWebhookSecret("secret-value")).toBe(true);
     expect(validMaxWebhookSecret("secret-valuE")).toBe(false);
     expect(validMaxWebhookSecret(null)).toBe(false);
+  });
+});
+
+describe("MAX administrator channel notifications", () => {
+  it("marks a completed request with a green check", () => {
+    expect(completedAdminNotificationText("Новая заявка")).toBe(
+      "✅ Новая заявка",
+    );
+  });
+
+  it("does not duplicate the completion mark", () => {
+    expect(completedAdminNotificationText("✅ Новая заявка")).toBe(
+      "✅ Новая заявка",
+    );
   });
 });

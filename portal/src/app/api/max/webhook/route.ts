@@ -2,10 +2,12 @@ import { after } from "next/server";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import {
+  disableMaxAdminChannel,
   deliverPendingMaxNotifications,
   hashMaxLinkToken,
   portalLink,
   queueMaxNotification,
+  registerMaxAdminChannel,
   validMaxWebhookSecret,
 } from "@/lib/max-bot";
 import { readLimitedJson } from "@/lib/request-security";
@@ -20,10 +22,13 @@ type MaxUpdate = {
   timestamp?: number;
   payload?: string | null;
   chat_id?: number | string;
+  is_channel?: boolean;
   user?: { user_id?: number | string; is_bot?: boolean };
   message?: {
     body?: { text?: string };
     sender?: { user_id?: number | string; is_bot?: boolean };
+    recipient?: { chat_id?: number | string };
+    url?: string | null;
   };
 };
 
@@ -203,6 +208,24 @@ async function handleMessage(update: MaxUpdate) {
   }
 }
 
+async function handleAdminChannelUpdate(update: MaxUpdate, enabled: boolean) {
+  if (update.is_channel !== true) return;
+  const chatId = maxId(update.chat_id);
+  if (!chatId) return;
+  if (enabled) {
+    await db.$transaction((tx) => registerMaxAdminChannel(tx, chatId));
+  } else {
+    await disableMaxAdminChannel(db, chatId);
+  }
+}
+
+async function detectAdminChannelFromPost(update: MaxUpdate) {
+  if (!update.message?.url) return;
+  const chatId = maxId(update.message.recipient?.chat_id);
+  if (!chatId) return;
+  await db.$transaction((tx) => registerMaxAdminChannel(tx, chatId));
+}
+
 export async function POST(request: Request) {
   if (
     !validMaxWebhookSecret(
@@ -217,7 +240,11 @@ export async function POST(request: Request) {
   }
   const update = parsed.value;
   try {
-    if (update.update_type === "bot_started") {
+    if (update.update_type === "bot_added") {
+      await handleAdminChannelUpdate(update, true);
+    } else if (update.update_type === "bot_removed") {
+      await handleAdminChannelUpdate(update, false);
+    } else if (update.update_type === "bot_started") {
       await handleBotStarted(update);
     } else if (update.update_type === "bot_stopped") {
       const userId = maxId(update.user?.user_id);
@@ -228,6 +255,7 @@ export async function POST(request: Request) {
         });
       }
     } else if (update.update_type === "message_created") {
+      await detectAdminChannelFromPost(update);
       await handleMessage(update);
     }
   } catch (error) {

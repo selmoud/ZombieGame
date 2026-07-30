@@ -4,7 +4,12 @@ import { db } from "@/lib/db";
 import { isModuleUnlocked } from "@/lib/module-access-db";
 import { isQuestionHidden } from "@/lib/questions";
 import { isTrustedMutationRequest } from "@/lib/request-security";
-import { queueMaxNotification } from "@/lib/max-bot";
+import {
+  maxAdminNotificationText,
+  portalLink,
+  queueMaxAdminNotification,
+  queueMaxNotification,
+} from "@/lib/max-bot";
 
 export async function POST(
   request: Request,
@@ -72,6 +77,17 @@ export async function POST(
         toStatus: "SUBMITTED",
         actorId: user.id,
       },
+    });
+    await queueMaxAdminNotification(tx, {
+      eventType: "ADMIN_SUBMISSION_PENDING",
+      entityType: "SUBMISSION",
+      entityId: submission.id,
+      text: maxAdminNotificationText.submission({
+        fullName: user.fullName,
+        moduleTitle: assignment.module.title,
+      }),
+      linkUrl: portalLink(`/admin/submissions/${submission.id}`),
+      linkLabel: "Перейти к заявке",
     });
     const binding = await tx.maxBotBinding.findUnique({
       where: { userId: user.id },

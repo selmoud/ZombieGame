@@ -308,6 +308,7 @@ export default async function AdminPage({
           {registrations.map((request) => (
             <div
               key={request.id}
+              id={`registration-${request.id}`}
               className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_1fr_auto]"
             >
               <div>

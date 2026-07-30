@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { portalLink, queueMaxNotification } from "@/lib/max-bot";
+import {
+  portalLink,
+  queueMaxNotification,
+  resolveMaxAdminNotification,
+} from "@/lib/max-bot";
 import { completedModulesMessage } from "@/lib/max-reminder-policy";
 
 export async function addComment(formData: FormData) {
@@ -58,6 +62,10 @@ export async function requestRevision(formData: FormData) {
         reason,
       },
     });
+    await resolveMaxAdminNotification(tx, {
+      entityType: "SUBMISSION",
+      entityId: submission.id,
+    });
     const binding = submission.assignment.user.maxBotBinding;
     if (binding) {
       await queueMaxNotification(tx, {
@@ -102,6 +110,10 @@ export async function acceptSubmission(formData: FormData) {
         fromStatus: submission.status,
         toStatus: "ACCEPTED",
       },
+    });
+    await resolveMaxAdminNotification(tx, {
+      entityType: "SUBMISSION",
+      entityId: submission.id,
     });
     const binding = submission.assignment.user.maxBotBinding;
     if (binding) {

@@ -7,7 +7,10 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import {
   createMaxLinkToken,
   hashMaxLinkToken,
+  maxAdminNotificationText,
   maxBotDeepLink,
+  portalLink,
+  queueMaxAdminNotification,
 } from "@/lib/max-bot";
 import {
   clearRateLimit,
@@ -93,7 +96,7 @@ export async function submitRegistration(
     }),
     db.subgroup.findMany({
       where: { id: { in: subgroupIds } },
-      select: { id: true },
+      select: { id: true, name: true },
     }),
   ]);
   if (existingUser) {
@@ -110,25 +113,40 @@ export async function submitRegistration(
     process.env.MAX_BOT_USERNAME && process.env.MAX_LINK_TOKEN_PEPPER
       ? createMaxLinkToken()
       : null;
-  await db.registrationRequest.create({
-    data: {
-      fullName,
-      companyName,
-      passwordHash: await hashPassword(password),
-      subgroupMemberships: {
-        create: subgroups.map((subgroup) => ({ subgroupId: subgroup.id })),
-      },
-      ...(maxLinkToken
-        ? {
-            maxLinkToken: {
-              create: {
-                tokenHash: hashMaxLinkToken(maxLinkToken),
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  const passwordHash = await hashPassword(password);
+  await db.$transaction(async (tx) => {
+    const registration = await tx.registrationRequest.create({
+      data: {
+        fullName,
+        companyName,
+        passwordHash,
+        subgroupMemberships: {
+          create: subgroups.map((subgroup) => ({ subgroupId: subgroup.id })),
+        },
+        ...(maxLinkToken
+          ? {
+              maxLinkToken: {
+                create: {
+                  tokenHash: hashMaxLinkToken(maxLinkToken),
+                  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                },
               },
-            },
-          }
-        : {}),
-    },
+            }
+          : {}),
+      },
+    });
+    await queueMaxAdminNotification(tx, {
+      eventType: "ADMIN_REGISTRATION_PENDING",
+      entityType: "REGISTRATION",
+      entityId: registration.id,
+      text: maxAdminNotificationText.registration({
+        fullName,
+        companyName,
+        subgroupNames: subgroups.map(({ name }) => name),
+      }),
+      linkUrl: portalLink(`/admin#registration-${registration.id}`),
+      linkLabel: "Перейти к заявке",
+    });
   });
   return {
     success: true,

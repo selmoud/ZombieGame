@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { resolve4 } from "node:dns/promises";
 import { request as httpsRequest } from "node:https";
 import { db } from "@/lib/db";
+import { completedAdminNotificationText } from "@/lib/max-admin-notification-policy";
 export {
   createMaxLinkToken,
   hashMaxLinkToken,
@@ -12,6 +13,13 @@ export {
 const MAX_API_HOST = "platform-api2.max.ru";
 
 type NotificationClient = Pick<Prisma.TransactionClient, "maxNotification">;
+type AdminNotificationClient = Pick<
+  Prisma.TransactionClient,
+  | "maxAdminChannel"
+  | "maxAdminNotification"
+  | "registrationRequest"
+  | "submission"
+>;
 type MaxApiResponse = { status: number; body: string };
 
 export async function queueMaxNotification(
@@ -31,6 +39,171 @@ export async function queueMaxNotification(
     create: input,
   });
 }
+
+function adminRegistrationText(input: {
+  fullName: string;
+  companyName: string;
+  subgroupNames: string[];
+}) {
+  return [
+    "Новая заявка на вступление",
+    "",
+    `ФИО: ${input.fullName}`,
+    `Организация: ${input.companyName}`,
+    `Подгруппы: ${input.subgroupNames.join(", ") || "не указаны"}`,
+  ].join("\n");
+}
+
+function adminSubmissionText(input: {
+  fullName: string;
+  moduleTitle: string;
+}) {
+  return [
+    "Новый модуль на проверку",
+    "",
+    `Эксперт: ${input.fullName}`,
+    `Модуль: ${input.moduleTitle}`,
+  ].join("\n");
+}
+
+export async function queueMaxAdminNotification(
+  client: AdminNotificationClient,
+  input: {
+    eventType: string;
+    entityType: "REGISTRATION" | "SUBMISSION";
+    entityId: string;
+    text: string;
+    linkUrl?: string;
+    linkLabel?: string;
+  },
+) {
+  const channels = await client.maxAdminChannel.findMany({
+    where: { enabled: true },
+    select: { id: true },
+  });
+  if (!channels.length) return { count: 0 };
+  return client.maxAdminNotification.createMany({
+    data: channels.map(({ id: channelId }) => ({
+      channelId,
+      eventType: input.eventType,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      dedupeKey: `${input.eventType}:${input.entityId}:${channelId}`,
+      text: input.text,
+      linkUrl: input.linkUrl,
+      linkLabel: input.linkLabel,
+    })),
+    skipDuplicates: true,
+  });
+}
+
+export async function resolveMaxAdminNotification(
+  client: AdminNotificationClient,
+  input: {
+    entityType: "REGISTRATION" | "SUBMISSION";
+    entityId: string;
+  },
+) {
+  const where = {
+    entityType: input.entityType,
+    entityId: input.entityId,
+  };
+  const resolvedAt = new Date();
+  const [unsent, sent] = await Promise.all([
+    client.maxAdminNotification.updateMany({
+      where: { ...where, status: { in: ["PENDING", "FAILED"] } },
+      data: { status: "RESOLVED", resolvedAt },
+    }),
+    client.maxAdminNotification.updateMany({
+      where: { ...where, status: "SENT" },
+      data: {
+        status: "RESOLUTION_PENDING",
+        nextAttemptAt: resolvedAt,
+        lastError: null,
+      },
+    }),
+  ]);
+  return { unsent: unsent.count, sent: sent.count };
+}
+
+export async function registerMaxAdminChannel(
+  client: AdminNotificationClient,
+  maxChatId: bigint,
+) {
+  await client.maxAdminChannel.updateMany({
+    where: { enabled: true, NOT: { maxChatId } },
+    data: { enabled: false },
+  });
+  const channel = await client.maxAdminChannel.upsert({
+    where: { maxChatId },
+    update: { enabled: true },
+    create: { maxChatId },
+  });
+  const [registrations, submissions] = await Promise.all([
+    client.registrationRequest.findMany({
+      where: { status: "PENDING" },
+      include: {
+        subgroupMemberships: { include: { subgroup: true } },
+      },
+    }),
+    client.submission.findMany({
+      where: { status: "SUBMITTED" },
+      include: {
+        assignment: { include: { module: true, user: true } },
+      },
+    }),
+  ]);
+  await client.maxAdminNotification.createMany({
+    data: [
+      ...registrations.map((request) => ({
+        channelId: channel.id,
+        eventType: "ADMIN_REGISTRATION_PENDING",
+        entityType: "REGISTRATION",
+        entityId: request.id,
+        dedupeKey: `ADMIN_REGISTRATION_PENDING:${request.id}:${channel.id}`,
+        text: adminRegistrationText({
+          fullName: request.fullName,
+          companyName: request.companyName,
+          subgroupNames: request.subgroupMemberships.map(
+            ({ subgroup }) => subgroup.name,
+          ),
+        }),
+        linkUrl: portalLink(`/admin#registration-${request.id}`),
+        linkLabel: "Перейти к заявке",
+      })),
+      ...submissions.map((submission) => ({
+        channelId: channel.id,
+        eventType: "ADMIN_SUBMISSION_PENDING",
+        entityType: "SUBMISSION",
+        entityId: submission.id,
+        dedupeKey: `ADMIN_SUBMISSION_PENDING:${submission.id}:${channel.id}`,
+        text: adminSubmissionText({
+          fullName: submission.assignment.user.fullName,
+          moduleTitle: submission.assignment.module.title,
+        }),
+        linkUrl: portalLink(`/admin/submissions/${submission.id}`),
+        linkLabel: "Перейти к заявке",
+      })),
+    ],
+    skipDuplicates: true,
+  });
+  return channel;
+}
+
+export async function disableMaxAdminChannel(
+  client: Pick<Prisma.TransactionClient, "maxAdminChannel">,
+  maxChatId: bigint,
+) {
+  return client.maxAdminChannel.updateMany({
+    where: { maxChatId },
+    data: { enabled: false },
+  });
+}
+
+export const maxAdminNotificationText = {
+  registration: adminRegistrationText,
+  submission: adminSubmissionText,
+};
 
 async function requestMaxApi(
   method: "POST" | "PUT",
@@ -165,6 +338,78 @@ async function hideMaxMessageButtons(messageId: string, text: string) {
   );
 }
 
+async function deliverPendingMaxAdminNotifications(limit = 20) {
+  const pending = await db.maxAdminNotification.findMany({
+    where: {
+      status: { in: ["PENDING", "RESOLUTION_PENDING"] },
+      nextAttemptAt: { lte: new Date() },
+      channel: { enabled: true },
+    },
+    include: { channel: true },
+    orderBy: { createdAt: "asc" },
+    take: Math.max(1, Math.min(limit, 50)),
+  });
+  let sent = 0;
+  let resolved = 0;
+  let failed = 0;
+  for (const notification of pending) {
+    try {
+      if (notification.status === "RESOLUTION_PENDING") {
+        if (notification.maxMessageId) {
+          await hideMaxMessageButtons(
+            notification.maxMessageId,
+            completedAdminNotificationText(notification.text),
+          );
+        }
+        await db.maxAdminNotification.update({
+          where: { id: notification.id },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: new Date(),
+            attempts: { increment: 1 },
+            lastError: null,
+          },
+        });
+        resolved += 1;
+        continue;
+      }
+      const maxMessageId = await sendMaxMessage(
+        notification.channel.maxChatId,
+        notification,
+      );
+      await db.maxAdminNotification.update({
+        where: { id: notification.id },
+        data: {
+          status: "SENT",
+          attempts: { increment: 1 },
+          sentAt: new Date(),
+          lastError: null,
+          maxMessageId,
+        },
+      });
+      sent += 1;
+    } catch (error) {
+      const attempts = notification.attempts + 1;
+      const terminal = attempts >= 8;
+      const delayMinutes = Math.min(2 ** attempts, 60);
+      await db.maxAdminNotification.update({
+        where: { id: notification.id },
+        data: {
+          status: terminal ? "FAILED" : notification.status,
+          attempts,
+          nextAttemptAt: new Date(Date.now() + delayMinutes * 60_000),
+          lastError:
+            error instanceof Error
+              ? error.message.slice(0, 500)
+              : "Unknown MAX API error",
+        },
+      });
+      failed += 1;
+    }
+  }
+  return { sent, resolved, failed };
+}
+
 export async function deliverPendingMaxNotifications(limit = 20) {
   if (!process.env.MAX_BOT_TOKEN) return { sent: 0, failed: 0 };
   const pending = await db.maxNotification.findMany({
@@ -246,7 +491,8 @@ export async function deliverPendingMaxNotifications(limit = 20) {
       failed += 1;
     }
   }
-  return { sent, failed };
+  const admin = await deliverPendingMaxAdminNotifications(limit);
+  return { sent, failed, admin };
 }
 
 export function portalLink(path = "/dashboard") {

@@ -6,7 +6,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { portalLink, queueMaxNotification } from "@/lib/max-bot";
+import {
+  portalLink,
+  queueMaxNotification,
+  resolveMaxAdminNotification,
+} from "@/lib/max-bot";
 import { hashPassword } from "@/lib/password";
 
 export type CreateExpertState = {
@@ -495,6 +499,10 @@ export async function approveRegistration(formData: FormData) {
         approvedUserId: expert.id,
       },
     });
+    await resolveMaxAdminNotification(tx, {
+      entityType: "REGISTRATION",
+      entityId: request.id,
+    });
   });
   redirect("/admin?registration=approved");
 }
@@ -516,6 +524,10 @@ export async function rejectRegistration(formData: FormData) {
         reviewedById: admin.id,
         reviewedAt: new Date(),
       },
+    });
+    await resolveMaxAdminNotification(tx, {
+      entityType: "REGISTRATION",
+      entityId: request.id,
     });
     if (request.maxBotBinding) {
       await tx.maxNotification.deleteMany({
