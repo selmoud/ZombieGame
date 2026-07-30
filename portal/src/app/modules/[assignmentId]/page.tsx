@@ -1054,6 +1054,14 @@ export default async function ModulePage({
             </ol>
           </section>
           <GlossaryModal />
+          <a
+            href="https://cloud.mail.ru/public/QKGP/fvDNjsbCb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center rounded-xl border border-[#0059C7] bg-white px-5 py-3.5 font-bold text-[#0059C7] transition hover:bg-[#E0EEFF]"
+          >
+            Полезные материалы
+          </a>
           <section className="rounded-2xl bg-[#DDF8FB] p-5">
             <p className="text-lg text-[#000000]">Важно</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
