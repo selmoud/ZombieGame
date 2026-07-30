@@ -437,6 +437,23 @@ describe("module definitions", () => {
         equals: "Технологический",
       },
     });
+    expect(
+      barriers?.questions[0].config.columns?.find(
+        (column) => column.key === "otherType",
+      ),
+    ).toMatchObject({
+      type: "suggest",
+      allowCustom: true,
+      options: [{ value: "Другой", label: "Другой" }],
+      visibleWhen: {
+        columnKey: "category",
+        equals: "Иной",
+      },
+      requiredWhen: {
+        columnKey: "category",
+        equals: "Иной",
+      },
+    });
   });
 
   it("covers all methodology effect categories without forcing invented targets", async () => {
