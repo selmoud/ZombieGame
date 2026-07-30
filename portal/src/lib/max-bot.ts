@@ -521,6 +521,7 @@ export async function deliverPendingMaxNotifications(limit = 20) {
           id: { not: notification.id },
           status: "SENT",
           linkUrl: { not: null },
+          NOT: { linkLabel: "Войти на портал" },
           maxMessageId: { not: null },
           buttonsHiddenAt: null,
         },

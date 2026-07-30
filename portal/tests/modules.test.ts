@@ -40,9 +40,14 @@ describe("module definitions", () => {
         (column) => column.key === "intersectionAssessment",
       ),
     ).toMatchObject({
-      required: true,
+      required: false,
       fullWidth: true,
     });
+    expect(
+      boundaries?.config.columns?.find(
+        (column) => column.key === "adjacentIndustries",
+      ),
+    ).toMatchObject({ required: false });
     expect(segments).toMatchObject({
       order: 2,
       title: "Направления отрасли",

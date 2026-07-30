@@ -112,6 +112,14 @@ function SearchableSelect({
   const listboxId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const isCustomValue =
+    allowCustom &&
+    Boolean(currentValue.trim()) &&
+    !options.some(
+      (option) =>
+        option.value.toLocaleLowerCase("ru") ===
+        currentValue.toLocaleLowerCase("ru"),
+    );
   const filteredOptions = options.filter((option) =>
     option.label.toLocaleLowerCase("ru").includes(
       inputValue.toLocaleLowerCase("ru"),
@@ -127,70 +135,77 @@ function SearchableSelect({
 
   return (
     <div className="relative">
-      <input
-        className={`field ${currentValue && !disabled ? "pr-16" : "pr-10"}`}
-        value={inputValue}
-        disabled={disabled}
-        autoComplete="off"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-controls={listboxId}
-        aria-expanded={isOpen}
-        placeholder="Начните вводить"
-        onFocus={(event) => {
-          event.currentTarget.select();
-          setIsOpen(true);
-        }}
-        onBlur={() => {
-          setIsOpen(false);
-          setSearchQuery(null);
-        }}
-        onChange={(event) => {
-          if (allowCustom) {
-            onChange(event.target.value);
-          } else {
-            setSearchQuery(event.target.value);
-            if (!event.target.value) onChange("");
-          }
-          setActiveIndex(0);
-          setIsOpen(true);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
+      <div className="relative">
+        <input
+          className={`field ${currentValue && !disabled ? "pr-16" : "pr-10"}`}
+          value={inputValue}
+          disabled={disabled}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          placeholder="Начните вводить"
+          onFocus={(event) => {
+            event.currentTarget.select();
             setIsOpen(true);
-            setActiveIndex((current) =>
-              Math.min(current + 1, Math.max(filteredOptions.length - 1, 0)),
-            );
-          } else if (event.key === "ArrowUp") {
-            event.preventDefault();
-            setActiveIndex((current) => Math.max(current - 1, 0));
-          } else if (event.key === "Enter" && isOpen && filteredOptions.length) {
-            event.preventDefault();
-            selectOption(filteredOptions[activeIndex] ?? filteredOptions[0]);
-          } else if (event.key === "Escape") {
-            setIsOpen(false);
-          }
-        }}
-      />
-      {currentValue && !disabled && (
-        <button
-          type="button"
-          aria-label="Очистить поле"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => {
-            setSearchQuery(null);
-            setIsOpen(false);
-            onChange("");
           }}
-          className="absolute right-8 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center text-lg leading-none text-neutral-400 hover:text-[#FF2F86]"
-        >
-          ×
-        </button>
+          onBlur={() => {
+            setIsOpen(false);
+            setSearchQuery(null);
+          }}
+          onChange={(event) => {
+            if (allowCustom) {
+              onChange(event.target.value);
+            } else {
+              setSearchQuery(event.target.value);
+              if (!event.target.value) onChange("");
+            }
+            setActiveIndex(0);
+            setIsOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setIsOpen(true);
+              setActiveIndex((current) =>
+                Math.min(current + 1, Math.max(filteredOptions.length - 1, 0)),
+              );
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex((current) => Math.max(current - 1, 0));
+            } else if (event.key === "Enter" && isOpen && filteredOptions.length) {
+              event.preventDefault();
+              selectOption(filteredOptions[activeIndex] ?? filteredOptions[0]);
+            } else if (event.key === "Escape") {
+              setIsOpen(false);
+            }
+          }}
+        />
+        {currentValue && !disabled && (
+          <button
+            type="button"
+            aria-label="Очистить поле"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setSearchQuery(null);
+              setIsOpen(false);
+              onChange("");
+            }}
+            className="absolute right-8 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center text-lg leading-none text-neutral-400 hover:text-[#FF2F86]"
+          >
+            ×
+          </button>
+        )}
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+          ▾
+        </span>
+      </div>
+      {isCustomValue && !disabled && (
+        <p className="mt-1.5 text-xs italic text-neutral-500">
+          Вы вводите свой вариант
+        </p>
       )}
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
-        ▾
-      </span>
       {isOpen && !disabled && filteredOptions.length > 0 && (
         <div
           id={listboxId}
@@ -242,6 +257,23 @@ function MultiSearchableSelect({
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const normalizedQuery = query.trim().toLocaleLowerCase("ru");
+  const hasCustomValue = selected.some(
+    (item) =>
+      !options.some(
+        (option) =>
+          option.value.toLocaleLowerCase("ru") ===
+          item.toLocaleLowerCase("ru"),
+      ),
+  );
+  const isEnteringCustomValue =
+    allowCustom &&
+    Boolean(normalizedQuery) &&
+    !options.some(
+      (option) =>
+        option.value.toLocaleLowerCase("ru") === normalizedQuery ||
+        option.label.toLocaleLowerCase("ru") === normalizedQuery,
+    );
   const filteredOptions = options.filter(
     (option) =>
       !selected.includes(option.value) &&
@@ -338,6 +370,13 @@ function MultiSearchableSelect({
           />
         )}
       </div>
+      {allowCustom &&
+        !disabled &&
+        (hasCustomValue || isEnteringCustomValue) && (
+          <p className="mt-1.5 text-xs italic text-neutral-500">
+            Вы вводите свой вариант
+          </p>
+        )}
       {isOpen && !disabled && filteredOptions.length > 0 && (
         <div
           id={listboxId}
@@ -832,6 +871,9 @@ function TableField({
                 comparisonValue !== undefined &&
                 comparisonValue !== "" &&
                 Number(row[column.key]) < Number(comparisonValue);
+              const isCustomVariantField =
+                column.visibleWhen?.equals === "Другое" ||
+                column.visibleWhen?.includes === "Другое";
               return (
               <div
                 key={column.key}
@@ -871,6 +913,11 @@ function TableField({
                     updateRow(rowIndex, column.key, cellValue)
                   }
                 />
+                {isCustomVariantField && !disabled && (
+                  <p className="mt-1.5 text-xs italic text-neutral-500">
+                    Вы вводите свой вариант
+                  </p>
+                )}
                 {hasPeriodError && (
                   <p className="mt-1.5 text-xs font-medium text-[#C80058]">
                     Год окончания не может быть раньше года начала

@@ -29,7 +29,7 @@ export default async function LoginPage({
           Вход на портал
         </h1>
         <p className="mt-3 leading-7 text-neutral-600">
-          Введите фамилию, имя и пароль, указанные при регистрации.
+          Введите фамилию и имя, указанные при регистрации.
         </p>
         <LoginForm />
       </section>
