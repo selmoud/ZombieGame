@@ -67,9 +67,12 @@ async function sendMaxMessage(
     notify: true,
   });
   const addresses = await resolve4(MAX_API_HOST).catch(() => []);
-  const candidates: Array<string | undefined> = addresses.length
+  const resolvedCandidates: Array<string | undefined> = addresses.length
     ? [...new Set(addresses)].slice(0, 3)
     : [undefined];
+  // A fresh connection to the first address often succeeds after a transient
+  // reset affecting the initial pass through the MAX edge nodes.
+  const candidates = [...resolvedCandidates, resolvedCandidates[0]];
   let lastError: Error = new Error("MAX API request failed");
   for (let attempt = 0; attempt < candidates.length; attempt += 1) {
     const address = candidates[attempt];
@@ -90,7 +93,7 @@ async function sendMaxMessage(
               "Content-Type": "application/json",
               "Content-Length": Buffer.byteLength(body),
             },
-            timeout: 8_000,
+            timeout: 6_000,
           },
           (response) => {
             response.resume();
