@@ -2,7 +2,10 @@ import type { Prisma } from "@/generated/prisma/client";
 import { resolve4 } from "node:dns/promises";
 import { request as httpsRequest } from "node:https";
 import { db } from "@/lib/db";
-import { completedAdminNotificationText } from "@/lib/max-admin-notification-policy";
+import {
+  completedAdminNotificationText,
+  maxAdminNotificationDedupeKey,
+} from "@/lib/max-admin-notification-policy";
 export {
   createMaxLinkToken,
   hashMaxLinkToken,
@@ -73,6 +76,7 @@ export async function queueMaxAdminNotification(
     eventType: string;
     entityType: "REGISTRATION" | "SUBMISSION";
     entityId: string;
+    dedupeScope?: string | number;
     text: string;
     linkUrl?: string;
     linkLabel?: string;
@@ -89,7 +93,12 @@ export async function queueMaxAdminNotification(
       eventType: input.eventType,
       entityType: input.entityType,
       entityId: input.entityId,
-      dedupeKey: `${input.eventType}:${input.entityId}:${channelId}`,
+      dedupeKey: maxAdminNotificationDedupeKey({
+        eventType: input.eventType,
+        entityId: input.entityId,
+        scope: input.dedupeScope,
+        channelId,
+      }),
       text: input.text,
       linkUrl: input.linkUrl,
       linkLabel: input.linkLabel,
@@ -169,7 +178,11 @@ export async function registerMaxAdminChannel(
         eventType: "ADMIN_REGISTRATION_PENDING",
         entityType: "REGISTRATION",
         entityId: request.id,
-        dedupeKey: `ADMIN_REGISTRATION_PENDING:${request.id}:${channel.id}`,
+        dedupeKey: maxAdminNotificationDedupeKey({
+          eventType: "ADMIN_REGISTRATION_PENDING",
+          entityId: request.id,
+          channelId: channel.id,
+        }),
         text: adminRegistrationText({
           fullName: request.fullName,
           companyName: request.companyName,
@@ -185,7 +198,12 @@ export async function registerMaxAdminChannel(
         eventType: "ADMIN_SUBMISSION_PENDING",
         entityType: "SUBMISSION",
         entityId: submission.id,
-        dedupeKey: `ADMIN_SUBMISSION_PENDING:${submission.id}:${channel.id}`,
+        dedupeKey: maxAdminNotificationDedupeKey({
+          eventType: "ADMIN_SUBMISSION_PENDING",
+          entityId: submission.id,
+          scope: submission.revision,
+          channelId: channel.id,
+        }),
         text: adminSubmissionText({
           fullName: submission.assignment.user.fullName,
           moduleTitle: submission.assignment.module.title,

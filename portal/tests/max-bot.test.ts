@@ -4,7 +4,10 @@ import {
   maxBotDeepLink,
   validMaxWebhookSecret,
 } from "../src/lib/max-bot-security";
-import { completedAdminNotificationText } from "../src/lib/max-admin-notification-policy";
+import {
+  completedAdminNotificationText,
+  maxAdminNotificationDedupeKey,
+} from "../src/lib/max-admin-notification-policy";
 
 const original = {
   MAX_LINK_TOKEN_PEPPER: process.env.MAX_LINK_TOKEN_PEPPER,
@@ -52,5 +55,16 @@ describe("MAX administrator channel notifications", () => {
     expect(completedAdminNotificationText("✅ Новая заявка")).toBe(
       "✅ Новая заявка",
     );
+  });
+
+  it("separates repeated submission revisions without duplicating one revision", () => {
+    expect(
+      maxAdminNotificationDedupeKey({
+        eventType: "ADMIN_SUBMISSION_PENDING",
+        entityId: "submission",
+        scope: 26,
+        channelId: "channel",
+      }),
+    ).toBe("ADMIN_SUBMISSION_PENDING:submission:26:channel");
   });
 });

@@ -82,6 +82,7 @@ export async function POST(
       eventType: "ADMIN_SUBMISSION_PENDING",
       entityType: "SUBMISSION",
       entityId: submission.id,
+      dedupeScope: submission.revision + 1,
       text: maxAdminNotificationText.submission({
         fullName: user.fullName,
         moduleTitle: assignment.module.title,
