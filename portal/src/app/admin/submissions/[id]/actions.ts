@@ -112,7 +112,7 @@ export async function acceptSubmission(formData: FormData) {
         text: finalModule
           ? `Модуль «${submission.assignment.module.title}» принят. Вы завершили прохождение всех экспертных модулей.`
           : `Модуль «${submission.assignment.module.title}» принят модератором. Следующий модуль открыт для заполнения.`,
-        linkUrl: portalLink(),
+        linkUrl: portalLink("/dashboard"),
         linkLabel: "Открыть портал",
       });
     }

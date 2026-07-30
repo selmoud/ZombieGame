@@ -68,7 +68,7 @@ async function handleBotStarted(update: MaxUpdate) {
               ? "Добрый день! Заявка не согласована. Для уточнения или исправления данных обратитесь к администратору рабочей группы."
               : 'Добрый день! Ваша заявка на регистрацию на портале экспертной группы «Коммуникации, медиа и развлечения» принята и находится на рассмотрении. Пожалуйста, дождитесь уведомления о результате проверки.',
           linkUrl: accessGranted ? portalLink("/login") : undefined,
-          linkLabel: accessGranted ? "Войти в портал" : undefined,
+          linkLabel: accessGranted ? "Войти на портал" : undefined,
         });
       }
     });
@@ -124,7 +124,7 @@ async function handleBotStarted(update: MaxUpdate) {
             ? "Заявка не согласована. Для уточнения или исправления данных обратитесь к администратору рабочей группы."
           : 'Добрый день! Ваша заявка на регистрацию на портале экспертной группы «Коммуникации, медиа и развлечения» принята и находится на рассмотрении. Пожалуйста, дождитесь уведомления о результате проверки.',
       linkUrl: accessGranted ? portalLink("/login") : undefined,
-      linkLabel: accessGranted ? "Войти в портал" : undefined,
+      linkLabel: accessGranted ? "Войти на портал" : undefined,
     });
   });
 }
@@ -163,7 +163,7 @@ async function queueStatus(maxUserId: bigint) {
       (item) => item.submission?.status === "NEEDS_REVISION",
     ).length;
     text = `Доступ открыт.\nПринято модулей: **${accepted} из ${assignments.length}**.${review ? `\nНа рассмотрении: ${review}.` : ""}${revision ? `\nТребуют доработки: ${revision}.` : ""}`;
-    linkUrl = portalLink();
+    linkUrl = portalLink("/dashboard");
   }
   await queueMaxNotification(db, {
     bindingId: binding.id,
@@ -194,7 +194,7 @@ async function handleMessage(update: MaxUpdate) {
       eventType: "HELP_REQUESTED",
       dedupeKey: `help:${binding.id}:${randomUUID()}`,
       text: "Я сообщаю о согласовании заявки и результатах проверки экспертных модулей.\n\n/status — проверить текущий статус\n/help — показать эту справку",
-      linkUrl: portalLink(),
+      linkUrl: portalLink("/dashboard"),
       linkLabel: "Открыть портал",
     });
   }

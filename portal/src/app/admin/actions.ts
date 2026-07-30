@@ -459,7 +459,7 @@ export async function approveRegistration(formData: FormData) {
         dedupeKey: `registration-approved:${request.id}`,
         text: "Ваша заявка согласована. Доступ к порталу открыт — войдите с указанными при регистрации ФИО и паролем.",
         linkUrl: portalLink("/login"),
-        linkLabel: "Войти в портал",
+        linkLabel: "Войти на портал",
       });
     }
     const modules = await tx.module.findMany({
