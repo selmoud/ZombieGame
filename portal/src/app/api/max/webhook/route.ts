@@ -6,6 +6,7 @@ import {
   deliverPendingMaxNotifications,
   hashMaxLinkToken,
   portalLink,
+  queueMaxAdminNotification,
   queueMaxNotification,
   registerMaxAdminChannel,
   validMaxWebhookSecret,
@@ -25,7 +26,7 @@ type MaxUpdate = {
   is_channel?: boolean;
   user?: { user_id?: number | string; is_bot?: boolean };
   message?: {
-    body?: { text?: string };
+    body?: { text?: string; mid?: string };
     sender?: { user_id?: number | string; is_bot?: boolean };
     recipient?: { chat_id?: number | string };
     url?: string | null;
@@ -189,10 +190,15 @@ async function handleMessage(update: MaxUpdate) {
     update.message?.sender?.user_id ?? update.user?.user_id,
   );
   if (!userId) return;
-  const text = update.message?.body?.text?.trim().toLowerCase() ?? "";
-  if (text === "/status" || text === "статус") {
+  const originalText = update.message?.body?.text?.trim() ?? "";
+  const command = originalText.toLowerCase();
+  if (command === "/status" || command === "статус") {
     await queueStatus(userId);
-  } else if (text === "/start" || text === "/help" || text === "помощь") {
+  } else if (
+    command === "/start" ||
+    command === "/help" ||
+    command === "помощь"
+  ) {
     const binding = await db.maxBotBinding.findUnique({
       where: { maxUserId: userId },
     });
@@ -205,7 +211,79 @@ async function handleMessage(update: MaxUpdate) {
       linkUrl: portalLink("/dashboard"),
       linkLabel: "Открыть портал",
     });
+  } else if (originalText && !originalText.startsWith("/")) {
+    await handleRegistrationReply(update, userId, originalText);
   }
+}
+
+async function handleRegistrationReply(
+  update: MaxUpdate,
+  maxUserId: bigint,
+  text: string,
+) {
+  const binding = await db.maxBotBinding.findUnique({
+    where: { maxUserId },
+    include: { registrationRequest: true },
+  });
+  const request = binding?.registrationRequest;
+  if (!binding?.enabled || !request || request.status !== "PENDING") return;
+
+  if (text.length > 2_000) {
+    await queueMaxNotification(db, {
+      bindingId: binding.id,
+      eventType: "REGISTRATION_REPLY_TOO_LONG",
+      dedupeKey: `registration-reply-too-long:${update.message?.body?.mid ?? randomUUID()}`,
+      text: "Сообщение слишком длинное. Сократите его до 2000 символов и отправьте ещё раз.",
+    });
+    return;
+  }
+
+  await db.$transaction(async (tx) => {
+    const activeRequest = await tx.registrationRequest.findFirst({
+      where: {
+        id: request.id,
+        status: "PENDING",
+        maxBotBinding: { id: binding.id, enabled: true },
+      },
+      select: { id: true },
+    });
+    if (!activeRequest) return;
+    const externalMessageId = update.message?.body?.mid || null;
+    const message = externalMessageId
+      ? await tx.registrationMessage.upsert({
+          where: { externalMessageId },
+          update: {},
+          create: {
+            registrationRequestId: request.id,
+            direction: "EXPERT_TO_ADMIN",
+            text,
+            externalMessageId,
+          },
+        })
+      : await tx.registrationMessage.create({
+          data: {
+            registrationRequestId: request.id,
+            direction: "EXPERT_TO_ADMIN",
+            text,
+          },
+        });
+
+    await queueMaxAdminNotification(tx, {
+      eventType: "ADMIN_REGISTRATION_REPLY",
+      entityType: "REGISTRATION",
+      entityId: request.id,
+      dedupeScope: message.id,
+      text: `Ответ эксперта по заявке\n\nФИО: ${request.fullName}\nСообщение: ${text}`,
+      linkUrl: portalLink(`/admin#registration-${request.id}`),
+      linkLabel: "Перейти к заявке",
+    });
+    await queueMaxNotification(tx, {
+      bindingId: binding.id,
+      eventType: "REGISTRATION_REPLY_RECEIVED",
+      dedupeKey: `registration-reply-received:${message.id}`,
+      text: "Сообщение передано администраторам.",
+    });
+  });
 }
 
 async function handleAdminChannelUpdate(update: MaxUpdate, enabled: boolean) {

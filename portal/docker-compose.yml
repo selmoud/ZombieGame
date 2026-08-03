@@ -62,6 +62,9 @@ services:
     environment:
       DATABASE_URL: postgresql://portal:${PORTAL_DB_PASSWORD:-portal}@db:5432/portal?schema=public
       INVITATION_TOKEN_PEPPER: ${INVITATION_TOKEN_PEPPER:?Set INVITATION_TOKEN_PEPPER in .env}
+      BOOTSTRAP_ADMIN_1_PASSWORD: ${BOOTSTRAP_ADMIN_1_PASSWORD:-}
+      BOOTSTRAP_ADMIN_2_PASSWORD: ${BOOTSTRAP_ADMIN_2_PASSWORD:-}
+      BOOTSTRAP_SUPERVISOR_PASSWORD: ${BOOTSTRAP_SUPERVISOR_PASSWORD:-}
     command: npm run db:setup
     depends_on:
       db:

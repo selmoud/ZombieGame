@@ -21,7 +21,12 @@ export function AppShell({
   }
 
   const currentMode =
-    mode ?? (user.role === "ADMIN" ? "admin" : "expert");
+    mode ??
+    (user.role === "ADMIN"
+      ? "admin"
+      : user.role === "SUPERVISOR"
+        ? "superExpert"
+        : "expert");
   const hasLeaderMode = Boolean(user.ledSubgroups?.length);
   const homeHref =
     currentMode === "admin"
@@ -46,31 +51,33 @@ export function AppShell({
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-4">
             {user.role === "ADMIN" && (
-              <nav className="flex rounded-xl border border-white/20 p-1">
+              <nav className="grid grid-cols-2 rounded-xl border border-white/20 p-1">
                 <Link
                   href="/admin"
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  className={`flex min-w-28 items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold ${
                     currentMode === "admin"
                       ? "bg-white text-black"
                       : "text-white hover:bg-white/10"
                   }`}
                 >
-                  Администратор
+                  admin
                 </Link>
-                <form action={enterSuperExpertMode}>
+                <form action={enterSuperExpertMode} className="contents">
                   <button
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                    className={`flex min-w-28 items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold ${
                       currentMode === "superExpert"
                         ? "bg-white text-black"
                         : "text-white hover:bg-white/10"
                     }`}
                   >
-                    Суперэксперт
+                    supervisor
                   </button>
                 </form>
               </nav>
             )}
-            {user.role !== "ADMIN" && hasLeaderMode && (
+            {user.role !== "ADMIN" &&
+              user.role !== "SUPERVISOR" &&
+              hasLeaderMode && (
               <nav className="flex rounded-xl border border-white/20 p-1">
                 <Link
                   href="/dashboard"
@@ -98,9 +105,9 @@ export function AppShell({
               <p className="text-sm font-medium">{user.fullName}</p>
               <p className="text-xs text-neutral-300">
                 {currentMode === "admin"
-                  ? "Администратор"
+                  ? "admin"
                   : currentMode === "superExpert"
-                    ? "Суперэксперт"
+                    ? "supervisor"
                   : currentMode === "lead"
                     ? "Руководитель подгруппы"
                     : "Эксперт"}

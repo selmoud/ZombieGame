@@ -21,7 +21,8 @@ export default async function ModulePage({
   params: Promise<{ assignmentId: string }>;
 }) {
   const user = await requireUser();
-  const isSuperExpert = user.role === "ADMIN";
+  const isSuperExpert =
+    user.role === "ADMIN" || user.role === "SUPERVISOR";
   const { assignmentId } = await params;
   const assignment = await db.moduleAssignment.findUnique({
     where: { id: assignmentId },

@@ -507,6 +507,49 @@ export async function approveRegistration(formData: FormData) {
   redirect("/admin?registration=approved");
 }
 
+export async function sendRegistrationMessage(formData: FormData) {
+  const admin = await requireRole("ADMIN");
+  const requestId = String(formData.get("requestId") ?? "");
+  const text = String(formData.get("message") ?? "")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+    .trim();
+  if (!text || text.length > 2_000) {
+    redirect(
+      `/admin?registration=message-invalid#registration-${requestId}`,
+    );
+  }
+
+  const sent = await db.$transaction(async (tx) => {
+    const request = await tx.registrationRequest.findFirst({
+      where: { id: requestId, status: "PENDING" },
+      include: { maxBotBinding: true },
+    });
+    if (!request?.maxBotBinding?.enabled) return false;
+    const message = await tx.registrationMessage.create({
+      data: {
+        registrationRequestId: request.id,
+        direction: "ADMIN_TO_EXPERT",
+        text,
+        adminAuthorId: admin.id,
+      },
+    });
+    await queueMaxNotification(tx, {
+      bindingId: request.maxBotBinding.id,
+      eventType: "REGISTRATION_ADMIN_MESSAGE",
+      dedupeKey: `registration-message:${message.id}`,
+      text: `Администратор уточняет данные заявки:\n\n${text}\n\nОтветьте на это сообщение в чате.`,
+    });
+    return true;
+  });
+  if (!sent) {
+    redirect(
+      `/admin?registration=message-unavailable#registration-${requestId}`,
+    );
+  }
+  revalidatePath("/admin");
+  redirect(`/admin?registration=message-sent#registration-${requestId}`);
+}
+
 export async function rejectRegistration(formData: FormData) {
   const admin = await requireRole("ADMIN");
   const requestId = String(formData.get("requestId") ?? "");
@@ -563,7 +606,24 @@ export async function createSubgroup(formData: FormData) {
     select: { id: true },
   });
   if (existing) redirect("/admin?subgroup=duplicate");
-  await db.subgroup.create({ data: { name } });
+  const supervisors = await db.user.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { role: "SUPERVISOR" },
+        { id: "00000000-0000-4000-8000-000000000004" },
+      ],
+    },
+    select: { id: true },
+  });
+  await db.subgroup.create({
+    data: {
+      name,
+      userMemberships: {
+        create: supervisors.map(({ id }) => ({ userId: id })),
+      },
+    },
+  });
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin?subgroup=created");

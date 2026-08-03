@@ -20,7 +20,7 @@ export async function POST(
   }
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  if (user.role === "ADMIN") {
+  if (user.role === "ADMIN" || user.role === "SUPERVISOR") {
     return Response.json(
       { error: "SUPER_EXPERT_DRAFT_ONLY" },
       { status: 403 },

@@ -12,7 +12,12 @@ export default async function LoginPage({
   const user = await getCurrentUser();
   if (user) redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
   const query = await searchParams;
-  const admin = query.role === "admin";
+  const roleLabel =
+    query.role === "admin"
+      ? "admin"
+      : query.role === "supervisor"
+        ? "supervisor"
+        : "Эксперт";
   const recoverSession = query.recover === "1";
 
   return (
@@ -23,7 +28,7 @@ export default async function LoginPage({
           ← На стартовую страницу
         </Link>
         <p className="mt-8 text-sm font-bold uppercase tracking-wider text-[#0059C7]">
-          {admin ? "Администратор" : "Эксперт"}
+          {roleLabel}
         </p>
         <h1 className="mt-2 text-3xl font-bold text-[#000000]">
           Вход на портал

@@ -10,6 +10,7 @@ import {
   approveRegistration,
   rejectRegistration,
   saveMinistryEconomicData,
+  sendRegistrationMessage,
 } from "./actions";
 
 export default async function AdminPage({
@@ -41,6 +42,17 @@ export default async function AdminPage({
         companyName: true,
         experienceSummary: true,
         expertiseReason: true,
+        maxBotBinding: { select: { enabled: true } },
+        messages: {
+          select: {
+            id: true,
+            direction: true,
+            text: true,
+            createdAt: true,
+            adminAuthor: { select: { fullName: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        },
         subgroupMemberships: { include: { subgroup: true } },
       },
       orderBy: { createdAt: "asc" },
@@ -87,6 +99,7 @@ export default async function AdminPage({
 
   return (
     <AppShell user={admin}>
+      <div className="flex flex-col">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
@@ -142,7 +155,7 @@ export default async function AdminPage({
 
       <section
         id="economic-data"
-        className="paper mt-7 overflow-hidden rounded-2xl"
+        className="paper order-last mt-7 overflow-hidden rounded-2xl"
       >
         <div className="border-b border-neutral-200 px-6 py-5">
           <p className="text-sm font-semibold uppercase tracking-wider text-[#8125C8]">
@@ -299,6 +312,12 @@ export default async function AdminPage({
               ? "Заявка согласована, кабинет эксперта создан."
               : query.registration === "rejected"
                 ? "Заявка отклонена."
+                : query.registration === "message-sent"
+                  ? "Сообщение отправлено эксперту в MAX."
+                  : query.registration === "message-unavailable"
+                    ? "Эксперт ещё не подключил бот MAX. Отправить сообщение пока нельзя."
+                    : query.registration === "message-invalid"
+                      ? "Введите сообщение длиной до 2000 символов."
                 : query.registration === "duplicate"
                   ? "Пользователь с такими ФИО уже существует."
                   : "Заявка уже была обработана."}
@@ -321,7 +340,7 @@ export default async function AdminPage({
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
-                  Компания
+                  Организация
                 </p>
                 <p className="mt-1 font-medium text-neutral-700">
                   {request.companyName}
@@ -369,6 +388,93 @@ export default async function AdminPage({
                   </div>
                 </div>
               )}
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 lg:col-span-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-[#000000]">
+                      Переписка с экспертом
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      Уточняйте данные заявки до её согласования.
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      request.maxBotBinding?.enabled
+                        ? "bg-[#E0EEFF] text-[#0059C7]"
+                        : "bg-neutral-200 text-neutral-600"
+                    }`}
+                  >
+                    {request.maxBotBinding?.enabled
+                      ? "MAX подключён"
+                      : "MAX не подключён"}
+                  </span>
+                </div>
+                {request.messages.length > 0 && (
+                  <div className="mt-4 grid gap-2">
+                    {request.messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`max-w-3xl rounded-xl px-4 py-3 text-sm ${
+                          message.direction === "ADMIN_TO_EXPERT"
+                            ? "ml-auto bg-[#E0EEFF] text-[#003A82]"
+                            : "border border-[#7BE3ED] bg-white text-neutral-800"
+                        }`}
+                      >
+                        <div className="mb-1 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold opacity-70">
+                          <span>
+                            {message.direction === "ADMIN_TO_EXPERT"
+                              ? message.adminAuthor?.fullName ?? "Администратор"
+                              : request.fullName}
+                          </span>
+                          <time>
+                            {message.createdAt.toLocaleString("ru-RU", {
+                              timeZone: "Europe/Moscow",
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </time>
+                        </div>
+                        <p className="whitespace-pre-wrap leading-6">
+                          {message.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <form
+                  action={sendRegistrationMessage}
+                  className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end"
+                >
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <label className="min-w-0 flex-1">
+                    <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+                      Сообщение эксперту
+                    </span>
+                    <textarea
+                      className="field min-h-24 resize-y"
+                      name="message"
+                      maxLength={2000}
+                      required
+                      disabled={!request.maxBotBinding?.enabled}
+                      placeholder={
+                        request.maxBotBinding?.enabled
+                          ? "Например: уточните вашу должность и опыт работы в отрасли"
+                          : "Эксперт ещё не подключил бот MAX"
+                      }
+                    />
+                  </label>
+                  <button
+                    disabled={!request.maxBotBinding?.enabled}
+                    className="rounded-xl bg-[#0059C7] px-5 py-3 font-semibold text-white hover:bg-[#00479F] disabled:cursor-not-allowed disabled:bg-neutral-300"
+                  >
+                    Отправить в MAX
+                  </button>
+                </form>
+              </div>
             </div>
           ))}
           {!registrations.length && (
@@ -458,6 +564,7 @@ export default async function AdminPage({
         </div>
       </section>
 
+      </div>
     </AppShell>
   );
 }

@@ -11,6 +11,7 @@ enum UserRole {
   EXPERT
   LEAD
   ADMIN
+  SUPERVISOR
 }
 
 enum SubmissionStatus {
@@ -91,6 +92,7 @@ model User {
   economicDataUpdates   MinistryEconomicData[] @relation("EconomicDataUpdater")
   approvedRegistration  RegistrationRequest?   @relation("ApprovedExpert")
   maxBotBinding         MaxBotBinding?
+  registrationMessages  RegistrationMessage[]  @relation("RegistrationMessageAuthor")
   createdAt             DateTime               @default(now()) @map("created_at")
   updatedAt             DateTime               @updatedAt @map("updated_at")
 
@@ -133,11 +135,32 @@ model RegistrationRequest {
   approvedUser        User?                         @relation("ApprovedExpert", fields: [approvedUserId], references: [id], onDelete: SetNull)
   maxLinkToken        MaxLinkToken?
   maxBotBinding       MaxBotBinding?
+  messages            RegistrationMessage[]
   createdAt           DateTime                      @default(now()) @map("created_at")
   updatedAt           DateTime                      @updatedAt @map("updated_at")
 
   @@index([status, createdAt])
   @@map("registration_requests")
+}
+
+enum RegistrationMessageDirection {
+  ADMIN_TO_EXPERT
+  EXPERT_TO_ADMIN
+}
+
+model RegistrationMessage {
+  id                    String                       @id @default(uuid()) @db.Uuid
+  registrationRequestId String                       @map("registration_request_id") @db.Uuid
+  direction             RegistrationMessageDirection
+  text                  String
+  adminAuthorId         String?                      @map("admin_author_id") @db.Uuid
+  externalMessageId     String?                      @unique @map("external_message_id")
+  registrationRequest   RegistrationRequest          @relation(fields: [registrationRequestId], references: [id], onDelete: Cascade)
+  adminAuthor           User?                        @relation("RegistrationMessageAuthor", fields: [adminAuthorId], references: [id], onDelete: SetNull)
+  createdAt             DateTime                     @default(now()) @map("created_at")
+
+  @@index([registrationRequestId, createdAt])
+  @@map("registration_messages")
 }
 
 model MaxLinkToken {

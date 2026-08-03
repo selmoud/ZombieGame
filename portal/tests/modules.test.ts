@@ -70,6 +70,11 @@ describe("module definitions", () => {
       fullWidth: true,
     });
     expect(
+      segments?.config.columns
+        ?.find((column) => column.key === "segment")
+        ?.options?.map((option) => option.value),
+    ).toContain("Электронная коммерция");
+    expect(
       industry.questions.find(
         (question) => question.key === "segment_assessment_file",
       ),

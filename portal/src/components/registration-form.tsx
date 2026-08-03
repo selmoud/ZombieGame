@@ -175,7 +175,7 @@ export function RegistrationForm({
       </button>
       <Link
         href="/login?role=admin"
-        className="block rounded-xl border border-neutral-300 px-5 py-3.5 text-center font-bold text-[#000000] transition hover:bg-neutral-50"
+        className="flex min-h-14 items-center justify-center rounded-xl border border-neutral-300 px-4 py-3 text-center font-bold text-[#000000] transition hover:bg-neutral-50"
       >
         Войти как администратор
       </Link>

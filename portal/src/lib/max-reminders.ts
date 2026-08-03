@@ -22,7 +22,7 @@ export async function queueScheduledMaxReminders(now = new Date()) {
   const users = await db.user.findMany({
     where: {
       isActive: true,
-      role: { not: "ADMIN" },
+      role: { notIn: ["ADMIN", "SUPERVISOR"] },
       maxBotBinding: { is: { enabled: true } },
     },
     select: {

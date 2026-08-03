@@ -35,7 +35,7 @@ async function main() {
     const existing = await db.user.findUnique({ where: { id } });
     const commonData = {
       fullName,
-      position: "Администратор рабочей группы",
+      position: "admin",
       role: "ADMIN" as const,
       isActive: true,
       companyId: vkCompany.id,
@@ -82,6 +82,55 @@ async function main() {
     fullName: "Киселев Виталий",
     passwordEnvironmentVariable: "BOOTSTRAP_ADMIN_2_PASSWORD",
   });
+  const supervisorPasswordEnvironmentVariable =
+    "BOOTSTRAP_SUPERVISOR_PASSWORD";
+  const supervisorId = "00000000-0000-4000-8000-000000000004";
+  const supervisorSubgroups = await db.subgroup.findMany({
+    select: { id: true },
+  });
+  const existingSupervisor = await db.user.findUnique({
+    where: { id: supervisorId },
+  });
+  const supervisorData = {
+    fullName: "Владимир Кириенко",
+    position: "admin / supervisor",
+    role: "ADMIN" as const,
+    isActive: true,
+    unlockAllModules: true,
+    companyId: vkCompany.id,
+  };
+  let supervisor;
+  if (existingSupervisor) {
+    supervisor = await db.user.update({
+      where: { id: supervisorId },
+      data: {
+        ...supervisorData,
+        subgroupMemberships: {
+          deleteMany: {},
+          create: supervisorSubgroups.map(({ id }) => ({ subgroupId: id })),
+        },
+      },
+    });
+  } else {
+    const bootstrapPassword =
+      process.env[supervisorPasswordEnvironmentVariable] ?? "";
+    if (bootstrapPassword.length < 16 || bootstrapPassword.length > 128) {
+      throw new Error(
+        `${supervisorPasswordEnvironmentVariable} must contain 16–128 characters for a new installation`,
+      );
+    }
+    supervisor = await db.user.create({
+      data: {
+        id: supervisorId,
+        ...supervisorData,
+        activatedAt: new Date(),
+        passwordHash: await hashPassword(bootstrapPassword),
+        subgroupMemberships: {
+          create: supervisorSubgroups.map(({ id }) => ({ subgroupId: id })),
+        },
+      },
+    });
+  }
   const modules = await loadModuleDefinitions();
   for (const definition of modules) {
     const moduleRecord = await db.module.upsert({
@@ -177,6 +226,23 @@ async function main() {
         },
       });
     }
+
+    await db.moduleAssignment.upsert({
+      where: {
+        userId_moduleId: {
+          userId: supervisor.id,
+          moduleId: moduleRecord.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: supervisor.id,
+        moduleId: moduleRecord.id,
+        moduleVersionId: version.id,
+        assignedById: supervisor.id,
+        submission: { create: {} },
+      },
+    });
   }
 
   await db.invitationToken.updateMany({
