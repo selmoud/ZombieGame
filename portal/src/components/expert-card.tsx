@@ -5,12 +5,15 @@ import {
   deleteExpert,
   resetExpertPassword,
   updateExpertCompany,
+  updateExpertPhone,
   type ResetExpertPasswordState,
   type UpdateExpertCompanyState,
+  type UpdateExpertPhoneState,
 } from "@/app/admin/actions";
 
 const initialPasswordState: ResetExpertPasswordState = {};
 const initialCompanyState: UpdateExpertCompanyState = {};
+const initialPhoneState: UpdateExpertPhoneState = {};
 
 export function ExpertCard({
   id,
@@ -46,10 +49,14 @@ export function ExpertCard({
     updateExpertCompany,
     initialCompanyState,
   );
+  const [phoneState, phoneAction, phonePending] = useActionState(
+    updateExpertPhone,
+    initialPhoneState,
+  );
 
   return (
     <article className="px-6 py-5">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_0.9fr_1.7fr_0.9fr_1.1fr_0.7fr]">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_1.2fr_1.7fr_0.9fr_1.1fr_0.7fr]">
         <DataItem label="ФИО">
           <span className="font-bold text-black">{fullName}</span>
           <span className="mt-1 block text-xs text-neutral-400">
@@ -66,12 +73,35 @@ export function ExpertCard({
           </span>
         </DataItem>
         <DataItem label="Телефон">
-          {phoneNumber ? (
-            <a className="font-medium text-[#0059C7]" href={`tel:${phoneNumber}`}>
-              {phoneNumber}
-            </a>
-          ) : (
-            "—"
+          <form action={phoneAction} className="grid gap-2">
+            <input type="hidden" name="userId" value={id} />
+            <input
+              className="field min-w-0 py-2"
+              name="phoneNumber"
+              type="tel"
+              inputMode="tel"
+              defaultValue={phoneNumber ?? ""}
+              placeholder="+7 999 123-45-67"
+              maxLength={24}
+              aria-label={`Телефон эксперта ${fullName}`}
+              required
+            />
+            <button
+              disabled={phonePending}
+              className="justify-self-start rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold text-black hover:bg-neutral-50 disabled:opacity-60"
+            >
+              {phonePending ? "…" : "Сохранить"}
+            </button>
+          </form>
+          {phoneState.error && (
+            <span className="mt-1 block text-xs text-[#A9004A]">
+              {phoneState.error}
+            </span>
+          )}
+          {phoneState.success && (
+            <span className="mt-1 block text-xs text-[#00616C]">
+              Телефон сохранён
+            </span>
           )}
         </DataItem>
         <DataItem label="Организация">

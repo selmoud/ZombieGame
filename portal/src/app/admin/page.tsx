@@ -11,6 +11,7 @@ import {
   rejectRegistration,
   saveMinistryEconomicData,
   sendRegistrationMessage,
+  updateRegistrationPhone,
 } from "./actions";
 
 export default async function AdminPage({
@@ -320,6 +321,12 @@ export default async function AdminPage({
                     ? "Эксперт ещё не подключил бот MAX. Отправить сообщение пока нельзя."
                     : query.registration === "message-invalid"
                       ? "Введите сообщение длиной до 2000 символов."
+                      : query.registration === "phone-saved"
+                        ? "Номер телефона сохранён."
+                        : query.registration === "phone-invalid"
+                          ? "Укажите номер в формате +7 999 123-45-67."
+                          : query.registration === "phone-unavailable"
+                            ? "Заявка уже обработана или не найдена."
                 : query.registration === "duplicate"
                   ? "Пользователь с такими ФИО уже существует."
                   : "Заявка уже была обработана."}
@@ -330,7 +337,7 @@ export default async function AdminPage({
             <div
               key={request.id}
               id={`registration-${request.id}`}
-              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_0.8fr_1fr_auto]"
+              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1.2fr_0.8fr_1fr_auto]"
             >
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
@@ -344,9 +351,23 @@ export default async function AdminPage({
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
                   Телефон
                 </p>
-                <p className="mt-1 font-medium text-neutral-700">
-                  {request.phoneNumber ?? "—"}
-                </p>
+                <form action={updateRegistrationPhone} className="mt-1 grid gap-2">
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <input
+                    className="field min-w-0 py-2"
+                    name="phoneNumber"
+                    type="tel"
+                    inputMode="tel"
+                    defaultValue={request.phoneNumber ?? ""}
+                    placeholder="+7 999 123-45-67"
+                    maxLength={24}
+                    aria-label={`Телефон заявителя ${request.fullName}`}
+                    required
+                  />
+                  <button className="justify-self-start rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold text-black hover:bg-neutral-50">
+                    Сохранить
+                  </button>
+                </form>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">

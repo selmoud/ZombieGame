@@ -220,6 +220,30 @@ export type UpdateExpertCompanyState = {
   success?: boolean;
 };
 
+export type UpdateExpertPhoneState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateExpertPhone(
+  _previousState: UpdateExpertPhoneState,
+  formData: FormData,
+): Promise<UpdateExpertPhoneState> {
+  await requireRole("ADMIN");
+  const userId = String(formData.get("userId") ?? "");
+  const phoneNumber = normalizePhoneNumber(formData.get("phoneNumber"));
+  if (!phoneNumber) {
+    return { error: "Укажите номер в формате +7 999 123-45-67." };
+  }
+  const updated = await db.user.updateMany({
+    where: { id: userId, role: { in: ["EXPERT", "LEAD"] } },
+    data: { phoneNumber },
+  });
+  if (!updated.count) return { error: "Эксперт не найден." };
+  revalidatePath("/admin");
+  return { success: true };
+}
+
 export async function updateExpertCompany(
   _previousState: UpdateExpertCompanyState,
   formData: FormData,
@@ -511,6 +535,28 @@ export async function approveRegistration(formData: FormData) {
     });
   });
   redirect("/admin?registration=approved");
+}
+
+export async function updateRegistrationPhone(formData: FormData) {
+  await requireRole("ADMIN");
+  const requestId = String(formData.get("requestId") ?? "");
+  const phoneNumber = normalizePhoneNumber(formData.get("phoneNumber"));
+  if (!phoneNumber) {
+    redirect(
+      `/admin?registration=phone-invalid#registration-${requestId}`,
+    );
+  }
+  const updated = await db.registrationRequest.updateMany({
+    where: { id: requestId, status: "PENDING" },
+    data: { phoneNumber },
+  });
+  if (!updated.count) {
+    redirect(
+      `/admin?registration=phone-unavailable#registration-${requestId}`,
+    );
+  }
+  revalidatePath("/admin");
+  redirect(`/admin?registration=phone-saved#registration-${requestId}`);
 }
 
 export async function sendRegistrationMessage(formData: FormData) {
