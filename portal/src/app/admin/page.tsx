@@ -41,6 +41,7 @@ export default async function AdminPage({
         id: true,
         fullName: true,
         companyName: true,
+        phoneNumber: true,
         experienceSummary: true,
         expertiseReason: true,
         maxBotBinding: { select: { enabled: true } },
@@ -329,7 +330,7 @@ export default async function AdminPage({
             <div
               key={request.id}
               id={`registration-${request.id}`}
-              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_1fr_auto]"
+              className="grid gap-4 px-6 py-5 lg:grid-cols-[1fr_1fr_0.8fr_1fr_auto]"
             >
               <div>
                 <p className="text-xs uppercase tracking-wider text-neutral-400">
@@ -337,6 +338,14 @@ export default async function AdminPage({
                 </p>
                 <p className="mt-1 font-bold text-[#000000]">
                   {request.fullName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-neutral-400">
+                  Телефон
+                </p>
+                <p className="mt-1 font-medium text-neutral-700">
+                  {request.phoneNumber ?? "—"}
                 </p>
               </div>
               <div>
@@ -370,7 +379,7 @@ export default async function AdminPage({
                 </form>
               </div>
               {(request.experienceSummary || request.expertiseReason) && (
-                <div className="grid gap-4 rounded-xl bg-neutral-50 p-4 lg:col-span-4 lg:grid-cols-2">
+                <div className="grid gap-4 rounded-xl bg-neutral-50 p-4 lg:col-span-5 lg:grid-cols-2">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-neutral-400">
                       Опыт работы
@@ -389,7 +398,7 @@ export default async function AdminPage({
                   </div>
                 </div>
               )}
-              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 lg:col-span-4">
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 lg:col-span-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-bold text-[#000000]">
@@ -530,6 +539,7 @@ export default async function AdminPage({
                 key={user.id}
                 id={user.id}
                 fullName={user.fullName}
+                phoneNumber={user.phoneNumber}
                 company={user.company?.name ?? "—"}
                 subgroup={formatSubgroups(user.subgroupMemberships)}
                 progress={`${accepted}/${user.assignments.length}`}

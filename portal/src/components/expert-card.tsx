@@ -15,6 +15,7 @@ const initialCompanyState: UpdateExpertCompanyState = {};
 export function ExpertCard({
   id,
   fullName,
+  phoneNumber,
   company,
   subgroup,
   progress,
@@ -26,6 +27,7 @@ export function ExpertCard({
 }: {
   id: string;
   fullName: string;
+  phoneNumber?: string | null;
   company: string;
   subgroup: string;
   progress: string;
@@ -47,7 +49,7 @@ export function ExpertCard({
 
   return (
     <article className="px-6 py-5">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_1.8fr_1fr_1.2fr_0.7fr]">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_0.9fr_1.7fr_0.9fr_1.1fr_0.7fr]">
         <DataItem label="ФИО">
           <span className="font-bold text-black">{fullName}</span>
           <span className="mt-1 block text-xs text-neutral-400">
@@ -63,7 +65,16 @@ export function ExpertCard({
             {maxConnected ? "MAX подключён" : "MAX не подключён"}
           </span>
         </DataItem>
-        <DataItem label="Компания">
+        <DataItem label="Телефон">
+          {phoneNumber ? (
+            <a className="font-medium text-[#0059C7]" href={`tel:${phoneNumber}`}>
+              {phoneNumber}
+            </a>
+          ) : (
+            "—"
+          )}
+        </DataItem>
+        <DataItem label="Организация">
           <form action={companyAction} className="flex items-center gap-2">
             <input type="hidden" name="userId" value={id} />
             <input
@@ -71,7 +82,7 @@ export function ExpertCard({
               name="company"
               defaultValue={company === "—" ? "" : company}
               maxLength={160}
-              aria-label={`Компания эксперта ${fullName}`}
+              aria-label={`Организация эксперта ${fullName}`}
               required
             />
             <button
@@ -88,7 +99,7 @@ export function ExpertCard({
           )}
           {companyState.success && (
             <span className="mt-1 block text-xs text-[#00616C]">
-              Компания сохранена
+              Организация сохранена
             </span>
           )}
         </DataItem>

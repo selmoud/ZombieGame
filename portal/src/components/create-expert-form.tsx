@@ -48,13 +48,28 @@ export function CreateExpertForm({
         </label>
         <label>
           <span className="mb-1.5 block text-xs font-medium text-neutral-600">
-            Компания
+            Организация
           </span>
           <input
             className="field"
             name="company"
             placeholder="Название организации"
             autoComplete="organization"
+            required
+          />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+            Номер телефона
+          </span>
+          <input
+            className="field"
+            name="phoneNumber"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+7 999 123-45-67"
+            maxLength={24}
             required
           />
         </label>

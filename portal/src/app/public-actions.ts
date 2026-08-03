@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { normalizePhoneNumber } from "@/lib/phone";
 import {
   createMaxLinkToken,
   hashMaxLinkToken,
@@ -40,6 +41,7 @@ export async function submitRegistration(
 ): Promise<RegistrationState> {
   const fullName = normalizeSingleLine(formData.get("fullName"));
   const companyName = normalizeSingleLine(formData.get("company"));
+  const phoneNumber = normalizePhoneNumber(formData.get("phoneNumber"));
   const subgroupIds = [
     ...new Set(formData.getAll("subgroupIds").map(String).filter(Boolean)),
   ];
@@ -53,10 +55,14 @@ export async function submitRegistration(
     companyName.length > 160 ||
     fullName.split(" ").length < 2 ||
     !companyName ||
+    !phoneNumber ||
     !subgroupIds.length ||
     subgroupIds.length > 10
   ) {
-    return { error: "Укажите фамилию, имя, компанию и хотя бы одну подгруппу." };
+    return {
+      error:
+        "Укажите фамилию, имя, организацию, номер телефона в формате +7 и хотя бы одну подгруппу.",
+    };
   }
   if (password.length < 8 || password.length > 128) {
     return { error: "Пароль должен содержать не менее 8 символов." };
@@ -119,6 +125,7 @@ export async function submitRegistration(
       data: {
         fullName,
         companyName,
+        phoneNumber,
         passwordHash,
         subgroupMemberships: {
           create: subgroups.map((subgroup) => ({ subgroupId: subgroup.id })),
@@ -142,6 +149,7 @@ export async function submitRegistration(
       text: maxAdminNotificationText.registration({
         fullName,
         companyName,
+        phoneNumber,
         subgroupNames: subgroups.map(({ name }) => name),
       }),
       linkUrl: portalLink(`/admin#registration-${registration.id}`),

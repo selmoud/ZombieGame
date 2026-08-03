@@ -47,6 +47,7 @@ export async function queueMaxNotification(
 function adminRegistrationText(input: {
   fullName: string;
   companyName: string;
+  phoneNumber?: string | null;
   subgroupNames: string[];
 }) {
   return [
@@ -54,6 +55,7 @@ function adminRegistrationText(input: {
     "",
     `ФИО: ${input.fullName}`,
     `Организация: ${input.companyName}`,
+    `Телефон: ${input.phoneNumber ?? "не указан"}`,
     `Подгруппы: ${input.subgroupNames.join(", ") || "не указаны"}`,
   ].join("\n");
 }
@@ -186,6 +188,7 @@ export async function registerMaxAdminChannel(
         text: adminRegistrationText({
           fullName: request.fullName,
           companyName: request.companyName,
+          phoneNumber: request.phoneNumber,
           subgroupNames: request.subgroupMemberships.map(
             ({ subgroup }) => subgroup.name,
           ),

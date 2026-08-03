@@ -117,6 +117,24 @@ export function RegistrationForm({
           required
         />
       </label>
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-medium text-neutral-600">
+          Номер телефона
+        </span>
+        <input
+          className="field"
+          name="phoneNumber"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="+7 999 123-45-67"
+          maxLength={24}
+          required
+        />
+        <span className="mt-1.5 block text-xs text-neutral-500">
+          Используется администраторами для связи по заявке.
+        </span>
+      </label>
       <fieldset>
         <legend className="text-xs font-medium text-neutral-600">
           Подгруппы

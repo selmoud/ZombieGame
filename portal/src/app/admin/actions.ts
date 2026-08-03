@@ -12,6 +12,7 @@ import {
   resolveMaxAdminNotification,
 } from "@/lib/max-bot";
 import { hashPassword } from "@/lib/password";
+import { normalizePhoneNumber } from "@/lib/phone";
 
 export type CreateExpertState = {
   error?: string;
@@ -108,6 +109,7 @@ export async function createExpert(
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+  const phoneNumber = normalizePhoneNumber(formData.get("phoneNumber"));
   const subgroupIds = [
     ...new Set(formData.getAll("subgroupIds").map(String).filter(Boolean)),
   ];
@@ -121,10 +123,12 @@ export async function createExpert(
     subgroupIds.length > 10 ||
     fullName.split(/\s+/).length < 2 ||
     !companyName ||
+    !phoneNumber ||
     !subgroupIds.length
   ) {
     return {
-      error: "Укажите фамилию, имя, компанию и хотя бы одну подгруппу.",
+      error:
+        "Укажите фамилию, имя, организацию, номер телефона в формате +7 и хотя бы одну подгруппу.",
     };
   }
   if (password.length < 8 || password.length > 128) {
@@ -171,6 +175,7 @@ export async function createExpert(
     const user = await tx.user.create({
       data: {
         fullName,
+        phoneNumber,
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         companyId: company.id,
@@ -432,6 +437,7 @@ export async function approveRegistration(formData: FormData) {
     const expert = await tx.user.create({
       data: {
         fullName: request.fullName,
+        phoneNumber: request.phoneNumber,
         companyId: company.id,
         experienceSummary: request.experienceSummary,
         expertiseReason: request.expertiseReason,
