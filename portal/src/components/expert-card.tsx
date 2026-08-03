@@ -19,6 +19,7 @@ export function ExpertCard({
   subgroup,
   progress,
   isActive,
+  maxConnected,
   hasPassword,
   experienceSummary,
   expertiseReason,
@@ -29,6 +30,7 @@ export function ExpertCard({
   subgroup: string;
   progress: string;
   isActive: boolean;
+  maxConnected: boolean;
   hasPassword: boolean;
   experienceSummary?: string | null;
   expertiseReason?: string | null;
@@ -50,6 +52,15 @@ export function ExpertCard({
           <span className="font-bold text-black">{fullName}</span>
           <span className="mt-1 block text-xs text-neutral-400">
             {isActive ? "Доступ активен" : "Ожидает входа"}
+          </span>
+          <span
+            className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+              maxConnected
+                ? "bg-[#E0EEFF] text-[#0059C7]"
+                : "bg-neutral-100 text-neutral-500"
+            }`}
+          >
+            {maxConnected ? "MAX подключён" : "MAX не подключён"}
           </span>
         </DataItem>
         <DataItem label="Компания">

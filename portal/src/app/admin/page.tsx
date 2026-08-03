@@ -26,6 +26,7 @@ export default async function AdminPage({
       where: { role: { in: ["EXPERT", "LEAD"] } },
       include: {
         company: true,
+        maxBotBinding: { select: { enabled: true } },
         subgroupMemberships: { include: { subgroup: true } },
         assignments: { include: { submission: true } },
       },
@@ -533,6 +534,7 @@ export default async function AdminPage({
                 subgroup={formatSubgroups(user.subgroupMemberships)}
                 progress={`${accepted}/${user.assignments.length}`}
                 isActive={user.isActive}
+                maxConnected={Boolean(user.maxBotBinding?.enabled)}
                 hasPassword={Boolean(user.passwordHash)}
                 experienceSummary={user.experienceSummary}
                 expertiseReason={user.expertiseReason}
