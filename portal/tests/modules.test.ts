@@ -18,6 +18,17 @@ describe("module definitions", () => {
       "current_state",
       "key_metrics",
     ]);
+    expect(
+      [...industry.questions]
+        .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+        .map((question) => question.key),
+    ).toEqual([
+      "analysis_object",
+      "current_state",
+      "key_metrics",
+      "industry_boundaries",
+      "segment_assessment_file",
+    ]);
     const boundaries = industry.questions.find((question) => question.key === "analysis_object");
     const segments = industry.questions.find(
       (question) => question.key === "industry_boundaries",
@@ -49,7 +60,7 @@ describe("module definitions", () => {
       ),
     ).toMatchObject({ required: false });
     expect(segments).toMatchObject({
-      order: 2,
+      order: 4,
       title: "Направления отрасли",
     });
     expect(segments?.config.columns?.map((column) => column.type)).toEqual([
@@ -87,7 +98,7 @@ describe("module definitions", () => {
     expect(
       industry.questions.find((question) => question.key === "current_state"),
     ).toMatchObject({
-      order: 3,
+      order: 2,
       type: "table",
       config: {
         minRows: 1,
@@ -107,7 +118,7 @@ describe("module definitions", () => {
     expect(
       industry.questions.find((question) => question.key === "key_metrics"),
     ).toMatchObject({
-      order: 4,
+      order: 3,
       title: "Ключевые показатели развития отрасли",
       required: true,
       config: {
