@@ -68,6 +68,7 @@ model User {
   id                    String                 @id @default(uuid()) @db.Uuid
   fullName              String                 @map("full_name")
   phoneNumber           String?                @map("phone_number")
+  maxLinkCode           String?                @unique @map("max_link_code")
   position              String?
   direction             String?
   experienceSummary     String?                @map("experience_summary")
@@ -185,6 +186,9 @@ model MaxBotBinding {
   maxUserId             BigInt               @unique @map("max_user_id")
   maxChatId             BigInt               @map("max_chat_id")
   enabled               Boolean              @default(true)
+  linkAttemptCount      Int                  @default(0) @map("link_attempt_count")
+  linkAttemptWindowAt   DateTime?            @map("link_attempt_window_at")
+  linkBlockedUntil      DateTime?            @map("link_blocked_until")
   user                  User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   registrationRequest   RegistrationRequest? @relation(fields: [registrationRequestId], references: [id], onDelete: Cascade)
   notifications         MaxNotification[]

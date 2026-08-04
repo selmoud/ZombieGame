@@ -9,6 +9,7 @@ import {
 } from "../src/generated/prisma/client";
 import { validateAnswers } from "../src/lib/answer-validation";
 import { hashPassword } from "../src/lib/password";
+import { createExpertLinkCode } from "../src/lib/expert-link-code";
 import { isQuestionHidden } from "../src/lib/questions";
 
 const connectionString = process.env.DATABASE_URL;
@@ -1149,6 +1150,7 @@ async function main() {
           data: {
             id: profile.id,
             fullName: profile.fullName,
+            maxLinkCode: await createExpertLinkCode(tx),
             passwordHash: passwordHashes.get(profile.id)!,
             companyId: company.id,
             position: profile.position,

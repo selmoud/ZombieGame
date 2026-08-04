@@ -561,6 +561,7 @@ export default async function AdminPage({
                 id={user.id}
                 fullName={user.fullName}
                 phoneNumber={user.phoneNumber}
+                maxLinkCode={user.maxLinkCode}
                 company={user.company?.name ?? "—"}
                 subgroup={formatSubgroups(user.subgroupMemberships)}
                 progress={`${accepted}/${user.assignments.length}`}

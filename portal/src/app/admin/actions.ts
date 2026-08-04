@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createExpertLinkCode } from "@/lib/expert-link-code";
 import {
   portalLink,
   queueMaxNotification,
@@ -176,6 +177,7 @@ export async function createExpert(
       data: {
         fullName,
         phoneNumber,
+        maxLinkCode: await createExpertLinkCode(tx),
         direction: "Коммуникации, медиа и развлечения",
         role: "EXPERT",
         companyId: company.id,
@@ -462,6 +464,7 @@ export async function approveRegistration(formData: FormData) {
       data: {
         fullName: request.fullName,
         phoneNumber: request.phoneNumber,
+        maxLinkCode: await createExpertLinkCode(tx),
         companyId: company.id,
         experienceSummary: request.experienceSummary,
         expertiseReason: request.expertiseReason,

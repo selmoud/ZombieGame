@@ -2,6 +2,10 @@ import { after } from "next/server";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import {
+  isExpertLinkCodeAttempt,
+  normalizeExpertLinkCode,
+} from "@/lib/expert-link-code";
+import {
   disableMaxAdminChannel,
   deliverPendingMaxNotifications,
   hashMaxLinkToken,
@@ -153,7 +157,8 @@ async function queueStatus(maxUserId: bigint) {
     },
   });
   if (!binding || !binding.enabled) return;
-  let text = "Бот не связан с активной заявкой.";
+  let text =
+    "Бот не связан с профилем эксперта. Отправьте выданный администратором ID вида id123456.";
   let linkUrl: string | undefined;
   if (binding.registrationRequest) {
     text =
@@ -185,12 +190,22 @@ async function queueStatus(maxUserId: bigint) {
 }
 
 async function handleMessage(update: MaxUpdate) {
-  if (update.message?.sender?.is_bot) return;
+  if (
+    update.is_channel === true ||
+    update.message?.url ||
+    update.message?.sender?.is_bot
+  ) {
+    return;
+  }
   const userId = maxId(
     update.message?.sender?.user_id ?? update.user?.user_id,
   );
   if (!userId) return;
   const originalText = update.message?.body?.text?.trim() ?? "";
+  if (isExpertLinkCodeAttempt(originalText)) {
+    await handleExpertLinkCode(update, userId, originalText);
+    return;
+  }
   const command = originalText.toLowerCase();
   if (command === "/status" || command === "статус") {
     await queueStatus(userId);
@@ -207,13 +222,144 @@ async function handleMessage(update: MaxUpdate) {
       bindingId: binding.id,
       eventType: "HELP_REQUESTED",
       dedupeKey: `help:${binding.id}:${randomUUID()}`,
-      text: "Я сообщаю о согласовании заявки и результатах проверки экспертных модулей.\n\n/status — проверить текущий статус\n/help — показать эту справку",
+      text: "Я сообщаю о согласовании заявки и результатах проверки экспертных модулей.\n\nЕсли ваш профиль ещё не связан с MAX, отправьте выданный администратором ID вида id123456.\n\n/status — проверить текущий статус\n/help — показать эту справку",
       linkUrl: portalLink("/dashboard"),
       linkLabel: "Открыть портал",
     });
   } else if (originalText && !originalText.startsWith("/")) {
     await handleRegistrationReply(update, userId, originalText);
   }
+}
+
+async function handleExpertLinkCode(
+  update: MaxUpdate,
+  maxUserId: bigint,
+  rawCode: string,
+) {
+  const chatId = maxId(
+    update.message?.recipient?.chat_id ?? update.chat_id,
+  );
+  if (!chatId) return;
+  const code = normalizeExpertLinkCode(rawCode);
+  const now = new Date();
+
+  await db.$transaction(async (tx) => {
+    const binding = await tx.maxBotBinding.upsert({
+      where: { maxUserId },
+      update: { maxChatId: chatId, enabled: true },
+      create: { maxUserId, maxChatId: chatId },
+    });
+    const responseKey = `${binding.id}:${update.message?.body?.mid ?? randomUUID()}`;
+
+    if (binding.userId) {
+      const linkedUser = await tx.user.findUnique({
+        where: { id: binding.userId },
+        select: { maxLinkCode: true },
+      });
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "EXPERT_LINK_ALREADY_ACTIVE",
+        dedupeKey: `expert-link-already-active:${responseKey}`,
+        text:
+          linkedUser?.maxLinkCode === code
+            ? "Ваш профиль уже связан с этим аккаунтом MAX."
+            : "Этот аккаунт MAX уже связан с другим профилем. Для изменения связи обратитесь к администратору.",
+        linkUrl: portalLink("/dashboard"),
+        linkLabel: "Открыть портал",
+      });
+      return;
+    }
+    if (binding.registrationRequestId) {
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "EXPERT_LINK_HAS_PENDING_REGISTRATION",
+        dedupeKey: `expert-link-pending-registration:${responseKey}`,
+        text: "Этот аккаунт MAX уже связан с заявкой на регистрацию. Дождитесь результата её рассмотрения.",
+      });
+      return;
+    }
+    if (binding.linkBlockedUntil && binding.linkBlockedUntil > now) {
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "EXPERT_LINK_BLOCKED",
+        dedupeKey: `expert-link-blocked:${responseKey}`,
+        text: "Слишком много неверных попыток. Повторите ввод ID через час или обратитесь к администратору.",
+      });
+      return;
+    }
+
+    const expert = code
+      ? await tx.user.findFirst({
+          where: {
+            maxLinkCode: code,
+            role: { in: ["EXPERT", "LEAD"] },
+            isActive: true,
+          },
+          select: {
+            id: true,
+            fullName: true,
+            maxBotBinding: { select: { id: true } },
+          },
+        })
+      : null;
+    if (!expert) {
+      const currentWindow =
+        binding.linkAttemptWindowAt &&
+        binding.linkAttemptWindowAt.getTime() > now.getTime() - 60 * 60 * 1000;
+      const attemptCount = currentWindow
+        ? binding.linkAttemptCount + 1
+        : 1;
+      const blocked = attemptCount >= 5;
+      await tx.maxBotBinding.update({
+        where: { id: binding.id },
+        data: {
+          linkAttemptCount: attemptCount,
+          linkAttemptWindowAt: currentWindow
+            ? binding.linkAttemptWindowAt
+            : now,
+          linkBlockedUntil: blocked
+            ? new Date(now.getTime() + 60 * 60 * 1000)
+            : null,
+        },
+      });
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "EXPERT_LINK_INVALID",
+        dedupeKey: `expert-link-invalid:${responseKey}`,
+        text: blocked
+          ? "ID не найден. Ввод новых ID заблокирован на один час."
+          : `ID не найден. Проверьте код и повторите попытку. Осталось попыток: ${5 - attemptCount}.`,
+      });
+      return;
+    }
+    if (expert.maxBotBinding && expert.maxBotBinding.id !== binding.id) {
+      await queueMaxNotification(tx, {
+        bindingId: binding.id,
+        eventType: "EXPERT_LINK_IN_USE",
+        dedupeKey: `expert-link-in-use:${responseKey}`,
+        text: "Этот ID уже связан с другим аккаунтом MAX. Обратитесь к администратору.",
+      });
+      return;
+    }
+
+    await tx.maxBotBinding.update({
+      where: { id: binding.id },
+      data: {
+        userId: expert.id,
+        linkAttemptCount: 0,
+        linkAttemptWindowAt: null,
+        linkBlockedUntil: null,
+      },
+    });
+    await queueMaxNotification(tx, {
+      bindingId: binding.id,
+      eventType: "EXPERT_LINKED_BY_CODE",
+      dedupeKey: `expert-linked-by-code:${responseKey}`,
+      text: `MAX подключён к профилю «${expert.fullName}». Теперь вы будете получать уведомления о работе на портале.`,
+      linkUrl: portalLink("/dashboard"),
+      linkLabel: "Открыть портал",
+    });
+  });
 }
 
 async function handleRegistrationReply(

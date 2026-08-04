@@ -19,6 +19,7 @@ export function ExpertCard({
   id,
   fullName,
   phoneNumber,
+  maxLinkCode,
   company,
   subgroup,
   progress,
@@ -31,6 +32,7 @@ export function ExpertCard({
   id: string;
   fullName: string;
   phoneNumber?: string | null;
+  maxLinkCode?: string | null;
   company: string;
   subgroup: string;
   progress: string;
@@ -71,6 +73,14 @@ export function ExpertCard({
           >
             {maxConnected ? "MAX подключён" : "MAX не подключён"}
           </span>
+          {maxLinkCode && (
+            <span className="mt-2 block text-xs text-neutral-500">
+              ID для подключения: {" "}
+              <code className="select-all font-mono font-bold text-black">
+                {maxLinkCode}
+              </code>
+            </span>
+          )}
         </DataItem>
         <DataItem label="Телефон">
           <form action={phoneAction} className="grid gap-2">
