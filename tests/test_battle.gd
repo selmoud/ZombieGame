@@ -359,7 +359,7 @@ func test_enemy_garrison_returns_to_its_post() -> void:
 func test_default_mission_is_set_up_and_reproducible() -> void:
 	var battle := Battle.new(5)
 	check_eq(battle.map.objectives.size(), 3)
-	check_eq(battle.count_units(ENEMY), 5)
+	check(battle.count_units(ENEMY) >= 6, "three garrisons, a strongpoint, a patrol and a reserve")
 	check_eq(battle.count_held(ENEMY), 3)
 	for objective in battle.map.objectives:
 		check(battle.map.is_passable(objective.cell, Terrain.Mover.VEHICLE), "%s is reachable by road" % objective.title)
@@ -372,9 +372,66 @@ func test_default_mission_is_set_up_and_reproducible() -> void:
 	for mission: Battle in [battle, other]:
 		mission.buy_unit(RIFLE)
 		mission.buy_unit(APC)
-		mission.order_capture(5, 0)
-		mission.order_capture(6, 0)
+		var first := mission.units.size() - 2
+		mission.order_capture(first, 0)
+		mission.order_capture(first + 1, 0)
 		mission.advance(200.0)
-	check_eq(battle.units[5].strength, other.units[5].strength)
-	check_eq(battle.units[6].position, other.units[6].position)
+	check_eq(battle.units.size(), other.units.size())
+	for i in battle.units.size():
+		check_eq(battle.units[i].strength, other.units[i].strength)
+		check_eq(battle.units[i].position, other.units[i].position)
 	check_eq(battle.events.size(), other.events.size())
+
+
+func test_enemy_force_differs_between_missions() -> void:
+	var setups: Dictionary[String, bool] = {}
+	for seed_value in 12:
+		var battle := Battle.new(seed_value)
+		var setup := ""
+		for unit in battle.units:
+			setup += "%d@%s " % [unit.kind, Vector2i(unit.position.floor())]
+		setups[setup] = true
+	check(setups.size() >= 4, "only %d different enemy setups in 12 missions" % setups.size())
+
+
+func test_group_size_is_capped() -> void:
+	var battle := _battle()
+	battle.funds = 10000.0
+	for i in battle.rules.max_units:
+		check(battle.buy_unit(SCOUT))
+	check(not battle.can_buy(SCOUT), "the group is full")
+	battle.advance(1.0)
+	battle.units[0].strength = 1
+	battle.add_unit(ENEMY, RIFLE, Vector2i(3, 10))
+	battle.advance(40.0)
+	check(battle.count_units(PLAYER) < battle.rules.max_units)
+	check(battle.can_buy(SCOUT), "a lost unit can be replaced")
+
+
+func test_unit_resting_at_the_base_is_refitted() -> void:
+	var battle := _battle()
+	var at_base := battle.add_unit(PLAYER, RIFLE, Vector2i(2, 10))
+	var away := battle.add_unit(PLAYER, RIFLE, Vector2i(15, 3))
+	at_base.strength = 4
+	away.strength = 4
+	battle.advance(battle.rules.refit_interval * 3.0 + 1.0)
+	check_eq(at_base.strength, 7, "one man back per interval")
+	check_eq(away.strength, 4, "no refit away from the base")
+	battle.advance(battle.rules.refit_interval * 4.0)
+	check_eq(at_base.strength, 10)
+	check(battle.events.any(func(event: Dictionary) -> bool: return event.kind == &"refitted"))
+
+
+## Guards the balance targets from docs/design.md against accidental rule changes.
+func test_balance_targets_hold() -> void:
+	var missions := 12
+	var wins: Dictionary[BattleBots.Style, int] = {}
+	for style: BattleBots.Style in BattleBots.Style.values():
+		wins[style] = 0
+		for i in missions:
+			if BattleBots.play(i + 1, style).result == Battle.Result.WON:
+				wins[style] += 1
+	check_eq(wins[BattleBots.Style.IDLE], 0, "doing nothing must lose")
+	check(wins[BattleBots.Style.RUSH] * 2 < missions, "rushing wins %d of %d" % [wins[BattleBots.Style.RUSH], missions])
+	check(wins[BattleBots.Style.RECON] * 3 >= missions, "scouting wins %d of %d" % [wins[BattleBots.Style.RECON], missions])
+	check(wins[BattleBots.Style.RECON] > wins[BattleBots.Style.RUSH], "scouting must pay")

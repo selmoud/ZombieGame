@@ -60,6 +60,18 @@ func to_screen(position: Vector2) -> Vector2:
 	return position * CELL
 
 
+## Where the unit's symbol is drawn, in map coordinates. Units standing together are
+## spread sideways so every symbol and call sign stays readable and clickable.
+func shown_position(unit: BattleUnit) -> Vector2:
+	var shift := 0
+	for other in battle.units:
+		if other.id >= unit.id:
+			break
+		if other.side == unit.side and other.is_on_map() and other.position.distance_to(unit.position) < 1.2:
+			shift += 1
+	return unit.position + Vector2(shift * (SYMBOL_SIZE.x + 6.0) / CELL, 0.0)
+
+
 ## Player unit under the point, or -1.
 func unit_at(position: Vector2) -> int:
 	var best := -1
@@ -67,7 +79,7 @@ func unit_at(position: Vector2) -> int:
 	for unit in battle.units:
 		if unit.side != BattleUnit.Side.PLAYER or not unit.is_on_map():
 			continue
-		var distance := unit.position.distance_to(position)
+		var distance := shown_position(unit).distance_to(position)
 		if distance <= best_distance:
 			best_distance = distance
 			best = unit.id
@@ -278,7 +290,7 @@ func _draw_objective(objective: BattleMap.Objective) -> void:
 # --- Units ------------------------------------------------------------------
 
 func _draw_unit(unit: BattleUnit) -> void:
-	var centre := to_screen(unit.position)
+	var centre := to_screen(shown_position(unit))
 	var rect := Rect2(centre - SYMBOL_SIZE / 2.0, SYMBOL_SIZE)
 	if battle.time - unit.hit_at < 0.6:
 		draw_arc(centre, 22.0, 0.0, TAU, 32, COLOR_ENEMY, 3.0, true)
@@ -315,7 +327,7 @@ func _draw_fire(unit: BattleUnit) -> void:
 	# Tracers flicker instead of drawing a steady line.
 	if int(battle.time * 10.0) % 3 == 0:
 		return
-	var from := to_screen(unit.position)
+	var from := to_screen(shown_position(unit))
 	var to := to_screen(battle.contacts[unit.target].position)
 	draw_dashed_line(from, to, Color(COLOR_OWN, 0.8), 1.5, 6.0)
 

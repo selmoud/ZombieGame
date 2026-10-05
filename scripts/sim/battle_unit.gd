@@ -36,6 +36,8 @@ var fired_at := -100.0
 var hit_at := -100.0
 ## Damage not yet turned into a loss of strength.
 var damage := 0.0
+## Time spent resting at the base since the last man came back.
+var refit := 0.0
 ## Battle time of the last radio report of each kind, to avoid repeating it.
 var reported: Dictionary[StringName, float] = {}
 

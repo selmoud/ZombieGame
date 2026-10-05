@@ -85,7 +85,7 @@ func _init(seed_value: int, battle_rules: BattleRules = null, battle_map: Battle
 		map = battle_map
 	else:
 		map = MapLibrary.create_valley()
-		MapLibrary.place_valley_enemy(self)
+		MapLibrary.place_valley_enemy(self, _rng)
 	funds = rules.start_funds
 	var count := map.objectives.size()
 	owners.resize(count)
@@ -135,6 +135,11 @@ func count_held(side: int) -> int:
 
 func is_seen_by(side: BattleUnit.Side, unit_id: int) -> bool:
 	return _visible[side].has(unit_id)
+
+
+## Random number from the mission's own generator, so a seed replays the same mission.
+func random_range(from: float, to: float) -> float:
+	return _rng.randf_range(from, to)
 
 
 func base_of(side: BattleUnit.Side) -> Vector2i:
@@ -225,7 +230,9 @@ func order_disembark(carrier_id: int) -> bool:
 
 
 func can_buy(kind: UnitKind.Type) -> bool:
-	return result == Result.ONGOING and funds >= UnitKind.COST[kind]
+	if result != Result.ONGOING or funds < UnitKind.COST[kind]:
+		return false
+	return count_units(BattleUnit.Side.PLAYER) + arrivals.size() < rules.max_units
 
 
 ## Units bought before the mission starts arrive at once, later ones after a delay.
@@ -279,6 +286,7 @@ func _tick() -> void:
 	_move_units()
 	_fight()
 	_process_strikes()
+	_refit_units()
 	_update_objectives()
 	_check_result()
 
@@ -544,12 +552,31 @@ func _process_strikes() -> void:
 			if not unit.is_on_map() or unit.position.distance_to(impact) > rules.strike_radius:
 				continue
 			var share := _rng.randf_range(rules.strike_damage_min, rules.strike_damage_max)
-			var losses := (
-				unit.max_strength() * share
-				* Terrain.COVER[map.terrain_at(unit.position)] * UnitKind.ARMOUR[unit.kind]
-			)
+			var cover := lerpf(1.0, Terrain.COVER[map.terrain_at(unit.position)], rules.strike_cover)
+			var losses := unit.max_strength() * share * cover * UnitKind.ARMOUR[unit.kind]
 			unit.hit_at = time
 			_hurt(unit, maxi(roundi(losses), 1))
+
+
+## Units resting at their base slowly get their losses replaced.
+func _refit_units() -> void:
+	for unit in units:
+		if not unit.is_on_map() or unit.strength >= unit.max_strength():
+			continue
+		var base := BattleMap.cell_centre(base_of(unit.side))
+		var resting := (
+			not unit.is_moving() and unit.target < 0 and time - unit.hit_at > rules.refit_interval
+			and unit.position.distance_to(base) <= rules.refit_radius
+		)
+		if not resting:
+			unit.refit = 0.0
+			continue
+		unit.refit += STEP
+		if unit.refit >= rules.refit_interval:
+			unit.refit = 0.0
+			unit.strength += 1
+			if unit.strength == unit.max_strength():
+				_report(&"refitted", unit)
 
 
 # --- Objectives and the result ----------------------------------------------

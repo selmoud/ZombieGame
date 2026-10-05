@@ -61,6 +61,8 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 			return "%s: погрузились, борт %s." % [who, battle.units[event.carrier].call_sign]
 		&"disembarked":
 			return "%s: спешились." % who
+		&"refitted":
+			return "%s: пополнение принял, состав полный." % who
 		&"arrived_reinforcement":
 			return "%s: прибыл в район высадки." % who
 		&"enemy_destroyed":

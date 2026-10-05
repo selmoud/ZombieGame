@@ -35,7 +35,8 @@ func think(battle: Battle) -> void:
 				_counterattack(battle, unit)
 
 	if battle.time >= _next_reinforcement:
-		_next_reinforcement += battle.rules.enemy_reinforce_interval
+		# Reinforcements do not come like clockwork.
+		_next_reinforcement += battle.rules.enemy_reinforce_interval * battle.random_range(0.7, 1.3)
 		if battle.count_units(BattleUnit.Side.ENEMY) < battle.rules.enemy_unit_cap:
 			_reinforcements += 1
 			var kind := UnitKind.Type.APC if _reinforcements % 3 == 0 else UnitKind.Type.RIFLE

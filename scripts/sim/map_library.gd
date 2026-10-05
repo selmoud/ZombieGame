@@ -52,17 +52,37 @@ static func create_valley() -> BattleMap:
 	return map
 
 
-static func place_valley_enemy(battle: Battle) -> void:
+## The enemy force differs from mission to mission: which objective is held in strength,
+## where the patrol walks and what waits in reserve are drawn from the mission's seed.
+static func place_valley_enemy(battle: Battle, rng: RandomNumberGenerator) -> void:
 	# Garrisons sit in cover next to the objective, not on the road through it.
 	var posts: Array[Vector2i] = [Vector2i(28, 8), Vector2i(41, 21), Vector2i(51, 32)]
-	for post in posts:
-		var garrison := battle.add_unit(BattleUnit.Side.ENEMY, UnitKind.Type.RIFLE, post)
-		garrison.role = BattleUnit.Role.GARRISON
-		garrison.home_cell = post
+	var second_posts: Array[Vector2i] = [Vector2i(30, 10), Vector2i(42, 22), Vector2i(49, 34)]
+	var strongpoint := rng.randi_range(1, 2)
+	for i in posts.size():
+		_add_garrison(battle, UnitKind.Type.RIFLE, posts[i])
+		if i == strongpoint:
+			var kind := UnitKind.Type.APC if rng.randf() < 0.4 else UnitKind.Type.RIFLE
+			# A vehicle cannot stand among the houses; it holds the road.
+			var post := second_posts[i] if kind == UnitKind.Type.RIFLE else battle.map.objectives[i].cell
+			_add_garrison(battle, kind, post)
 
-	var patrol := battle.add_unit(BattleUnit.Side.ENEMY, UnitKind.Type.RIFLE, Vector2i(36, 31))
+	var routes: Array[Array] = [
+		[Vector2i(36, 31), Vector2i(40, 12), Vector2i(48, 16)],
+		[Vector2i(34, 12), Vector2i(34, 26), Vector2i(44, 26)],
+		[Vector2i(46, 14), Vector2i(36, 24), Vector2i(46, 30)],
+	]
+	var route: Array = routes[rng.randi_range(0, routes.size() - 1)]
+	var patrol := battle.add_unit(BattleUnit.Side.ENEMY, UnitKind.Type.RIFLE, route[0])
 	patrol.role = BattleUnit.Role.PATROL
-	patrol.patrol = [Vector2i(36, 31), Vector2i(40, 12), Vector2i(48, 16)]
+	patrol.patrol.assign(route)
 
-	var reserve := battle.add_unit(BattleUnit.Side.ENEMY, UnitKind.Type.APC, battle.map.enemy_base)
+	var reserve_kind := UnitKind.Type.APC if rng.randf() < 0.5 else UnitKind.Type.RIFLE
+	var reserve := battle.add_unit(BattleUnit.Side.ENEMY, reserve_kind, battle.map.enemy_base)
 	reserve.role = BattleUnit.Role.RESERVE
+
+
+static func _add_garrison(battle: Battle, kind: UnitKind.Type, post: Vector2i) -> void:
+	var garrison := battle.add_unit(BattleUnit.Side.ENEMY, kind, post)
+	garrison.role = BattleUnit.Role.GARRISON
+	garrison.home_cell = post
