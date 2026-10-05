@@ -16,7 +16,7 @@ func _run() -> void:
 	var total := 0
 	for file in _find_test_files():
 		var script: GDScript = load("%s/%s" % [TESTS_DIR, file])
-		if script == null:
+		if script == null or not script.can_instantiate():
 			failed += 1
 			total += 1
 			print("FAIL %s: script does not load" % file)
