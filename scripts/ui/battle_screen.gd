@@ -7,10 +7,17 @@ const BAR_HEIGHT := 48
 const SPEEDS: Array[float] = [1.0, 2.0, 4.0]
 const RADIO_LINES := 60
 
-const COLOR_BACKGROUND := Color("1b2530")
-const COLOR_PANEL := Color("202b38")
-const COLOR_MUTED := Color("8fa1b3")
-const COLOR_ALARM := Color("f0876b")
+const COLOR_BACKGROUND := Color("06121d")
+const COLOR_PANEL := Color("081a2a")
+const COLOR_FRAME := Color("1f6687")
+const COLOR_TEXT := Color("d3eef9")
+const COLOR_ACCENT := Color("7fd8f5")
+const COLOR_MUTED := Color("5f93ab")
+const COLOR_RADIO := Color("8fd0e6")
+const COLOR_ALARM := Color("ff5a66")
+const COLOR_BUTTON := Color("0d2a40")
+const COLOR_BUTTON_HOVER := Color("14405e")
+const COLOR_BUTTON_ACTIVE := Color("1fa3dc")
 
 var battle: Battle
 var paused := true
@@ -149,6 +156,7 @@ func is_result_shown() -> bool:
 
 
 func _build_layout() -> void:
+	theme = _make_theme()
 	var background := ColorRect.new()
 	background.color = COLOR_BACKGROUND
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -164,8 +172,9 @@ func _build_layout() -> void:
 	bar_row.add_theme_constant_override("separation", 10)
 	bar.add_child(bar_row)
 	var title := Label.new()
-	title.text = "Контакт"
+	title.text = "КОНТАКТ"
 	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", COLOR_ACCENT)
 	bar_row.add_child(title)
 	_status = Label.new()
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -232,7 +241,7 @@ func _build_layout() -> void:
 	side.add_child(_strike_button)
 
 	side.add_child(HSeparator.new())
-	_heading(side, "Радио")
+	_heading(side, "Радиообмен")
 	_radio_scroll = ScrollContainer.new()
 	_radio_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_radio_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -243,7 +252,7 @@ func _build_layout() -> void:
 	_radio_scroll.add_child(_radio)
 
 	_overlay = PanelContainer.new()
-	_overlay.add_theme_stylebox_override("panel", _flat(Color("2b3a4c"), 36, 28))
+	_overlay.add_theme_stylebox_override("panel", _flat(Color("0b2236"), 36, 28))
 	_overlay.set_anchors_preset(Control.PRESET_CENTER)
 	_overlay.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_overlay.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -281,10 +290,11 @@ func _refresh() -> void:
 	var unit := get_selected_unit()
 	if unit == null:
 		_map.selected_unit = -1
-		_unit_title.text = "Отряд не выбран"
+		_unit_title.text = "ОТРЯД НЕ ВЫБРАН"
 		_unit_details.text = "ЛКМ — выбрать отряд.\nПКМ — идти; по объекту — занять; по БТР — погрузка."
 	else:
-		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind].to_lower()]
+		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind]]
+		_unit_title.text = _unit_title.text.to_upper()
 		var lines: PackedStringArray = [
 			"Состав: %d из %d" % [unit.strength, unit.max_strength()],
 			"Задача: %s" % BattleText.order_title(battle, unit),
@@ -326,8 +336,7 @@ func _add_radio_line(text: String, alarm: bool) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", 13)
-	if alarm:
-		label.add_theme_color_override("font_color", COLOR_ALARM)
+	label.add_theme_color_override("font_color", COLOR_ALARM if alarm else COLOR_RADIO)
 	_radio.add_child(label)
 	if _radio.get_child_count() > RADIO_LINES:
 		_radio.get_child(0).queue_free()
@@ -353,8 +362,9 @@ func _show_result() -> void:
 
 func _heading(parent: Control, text: String) -> Label:
 	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 16)
+	label.text = text.to_upper()
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", COLOR_ACCENT)
 	parent.add_child(label)
 	return label
 
@@ -370,11 +380,35 @@ func _button(parent: Control, text: String, action: Callable) -> Button:
 	return button
 
 
-func _flat(color: Color, margin_x: int, margin_y: int) -> StyleBoxFlat:
+## Dark panel with a thin bright frame, the look of every surface on this screen.
+func _flat(color: Color, margin_x: int, margin_y: int, frame: Color = COLOR_FRAME) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = color
+	box.border_color = frame
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(2)
 	box.content_margin_left = margin_x
 	box.content_margin_right = margin_x
 	box.content_margin_top = margin_y
 	box.content_margin_bottom = margin_y
 	return box
+
+
+func _make_theme() -> Theme:
+	var result := Theme.new()
+	result.set_color("font_color", "Label", COLOR_TEXT)
+	result.set_stylebox("normal", "Button", _flat(COLOR_BUTTON, 8, 5))
+	result.set_stylebox("hover", "Button", _flat(COLOR_BUTTON_HOVER, 8, 5, COLOR_ACCENT))
+	result.set_stylebox("pressed", "Button", _flat(COLOR_BUTTON_ACTIVE, 8, 5, COLOR_ACCENT))
+	result.set_stylebox("disabled", "Button", _flat(COLOR_PANEL, 8, 5, Color(COLOR_FRAME, 0.35)))
+	result.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+	result.set_color("font_color", "Button", COLOR_TEXT)
+	result.set_color("font_hover_color", "Button", Color.WHITE)
+	result.set_color("font_pressed_color", "Button", Color("03121c"))
+	result.set_color("font_hover_pressed_color", "Button", Color("03121c"))
+	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.55))
+	var line := StyleBoxLine.new()
+	line.color = Color(COLOR_FRAME, 0.7)
+	line.thickness = 1
+	result.set_stylebox("separator", "HSeparator", line)
+	return result
