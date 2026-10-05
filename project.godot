@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="New Game"
-run/main_scene="res://scenes/boot.tscn"
+config/name="Контакт"
+run/main_scene="res://scenes/battle.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
