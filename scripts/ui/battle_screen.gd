@@ -7,14 +7,14 @@ const BAR_HEIGHT := 48
 const SPEEDS: Array[float] = [1.0, 2.0, 4.0]
 const RADIO_LINES := 60
 
-const COLOR_BACKGROUND := Color("f4f0e6")
-const COLOR_PANEL := Color("ebe6da")
-const COLOR_TEXT := Color("32343a")
-const COLOR_MUTED := Color("8d877b")
-const COLOR_ALARM := Color("e2372f")
-const COLOR_BUTTON := Color("fbf9f4")
-const COLOR_BUTTON_HOVER := Color("ffffff")
-const COLOR_LINE := Color("cfc8ba")
+const COLOR_BACKGROUND := Color("33382f")
+const COLOR_PANEL := Color("454c41")
+const COLOR_TEXT := Color("edebdf")
+const COLOR_MUTED := Color("b4b7a5")
+const COLOR_ALARM := Color("ff9b7d")
+const COLOR_BUTTON := Color("596153")
+const COLOR_BUTTON_HOVER := Color("6b7464")
+const COLOR_LINE := Color("272b24")
 
 var battle: Battle
 var paused := true
@@ -250,7 +250,7 @@ func _build_layout() -> void:
 	_radio_scroll.add_child(_radio)
 
 	_overlay = PanelContainer.new()
-	_overlay.add_theme_stylebox_override("panel", _flat(Color("ffffff"), 40, 30, 14))
+	_overlay.add_theme_stylebox_override("panel", _framed(COLOR_PANEL, 40, 30))
 	_overlay.set_anchors_preset(Control.PRESET_CENTER)
 	_overlay.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_overlay.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -378,11 +378,9 @@ func _button(parent: Control, text: String, action: Callable) -> Button:
 	return button
 
 
-## Flat surface without a frame; buttons and the result card get rounded corners.
-func _flat(color: Color, margin_x: int, margin_y: int, radius: int = 0) -> StyleBoxFlat:
+func _flat(color: Color, margin_x: int, margin_y: int) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = color
-	box.set_corner_radius_all(radius)
 	box.content_margin_left = margin_x
 	box.content_margin_right = margin_x
 	box.content_margin_top = margin_y
@@ -390,28 +388,28 @@ func _flat(color: Color, margin_x: int, margin_y: int, radius: int = 0) -> Style
 	return box
 
 
+## A surface with a dark edge, like the windows of a staff planning tool.
+func _framed(color: Color, margin_x: int, margin_y: int, edge: Color = COLOR_LINE) -> StyleBoxFlat:
+	var box := _flat(color, margin_x, margin_y)
+	box.border_color = edge
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(3)
+	return box
+
+
 func _make_theme() -> Theme:
 	var result := Theme.new()
 	result.set_color("font_color", "Label", COLOR_TEXT)
-	var normal := _flat(COLOR_BUTTON, 10, 6, 8)
-	normal.border_color = COLOR_LINE
-	normal.set_border_width_all(1)
-	var hover := _flat(COLOR_BUTTON_HOVER, 10, 6, 8)
-	hover.border_color = COLOR_TEXT
-	hover.set_border_width_all(1)
-	var disabled := _flat(Color(COLOR_BUTTON, 0.0), 10, 6, 8)
-	disabled.border_color = Color(COLOR_LINE, 0.6)
-	disabled.set_border_width_all(1)
-	result.set_stylebox("normal", "Button", normal)
-	result.set_stylebox("hover", "Button", hover)
-	result.set_stylebox("pressed", "Button", _flat(COLOR_TEXT, 10, 6, 8))
-	result.set_stylebox("disabled", "Button", disabled)
+	result.set_stylebox("normal", "Button", _framed(COLOR_BUTTON, 10, 5))
+	result.set_stylebox("hover", "Button", _framed(COLOR_BUTTON_HOVER, 10, 5, COLOR_TEXT))
+	result.set_stylebox("pressed", "Button", _framed(COLOR_TEXT, 10, 5))
+	result.set_stylebox("disabled", "Button", _framed(Color(COLOR_BUTTON, 0.35), 10, 5))
 	result.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	result.set_color("font_color", "Button", COLOR_TEXT)
-	result.set_color("font_hover_color", "Button", COLOR_TEXT)
-	result.set_color("font_pressed_color", "Button", COLOR_BUTTON)
-	result.set_color("font_hover_pressed_color", "Button", COLOR_BUTTON)
-	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.6))
+	result.set_color("font_hover_color", "Button", Color.WHITE)
+	result.set_color("font_pressed_color", "Button", COLOR_LINE)
+	result.set_color("font_hover_pressed_color", "Button", COLOR_LINE)
+	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.5))
 	var line := StyleBoxLine.new()
 	line.color = COLOR_LINE
 	line.thickness = 1
