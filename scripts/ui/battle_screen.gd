@@ -7,17 +7,14 @@ const BAR_HEIGHT := 48
 const SPEEDS: Array[float] = [1.0, 2.0, 4.0]
 const RADIO_LINES := 60
 
-const COLOR_BACKGROUND := Color("06121d")
-const COLOR_PANEL := Color("081a2a")
-const COLOR_FRAME := Color("1f6687")
-const COLOR_TEXT := Color("d3eef9")
-const COLOR_ACCENT := Color("7fd8f5")
-const COLOR_MUTED := Color("5f93ab")
-const COLOR_RADIO := Color("8fd0e6")
-const COLOR_ALARM := Color("ff5a66")
-const COLOR_BUTTON := Color("0d2a40")
-const COLOR_BUTTON_HOVER := Color("14405e")
-const COLOR_BUTTON_ACTIVE := Color("1fa3dc")
+const COLOR_BACKGROUND := Color("f4f0e6")
+const COLOR_PANEL := Color("ebe6da")
+const COLOR_TEXT := Color("32343a")
+const COLOR_MUTED := Color("8d877b")
+const COLOR_ALARM := Color("e2372f")
+const COLOR_BUTTON := Color("fbf9f4")
+const COLOR_BUTTON_HOVER := Color("ffffff")
+const COLOR_LINE := Color("cfc8ba")
 
 var battle: Battle
 var paused := true
@@ -172,9 +169,8 @@ func _build_layout() -> void:
 	bar_row.add_theme_constant_override("separation", 10)
 	bar.add_child(bar_row)
 	var title := Label.new()
-	title.text = "КОНТАКТ"
+	title.text = "Контакт"
 	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", COLOR_ACCENT)
 	bar_row.add_child(title)
 	_status = Label.new()
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -212,6 +208,8 @@ func _build_layout() -> void:
 	panel.add_child(side)
 
 	_unit_title = _heading(side, "")
+	_unit_title.add_theme_font_size_override("font_size", 16)
+	_unit_title.add_theme_color_override("font_color", COLOR_TEXT)
 	_unit_details = Label.new()
 	_unit_details.add_theme_font_size_override("font_size", 13)
 	_unit_details.add_theme_color_override("font_color", COLOR_MUTED)
@@ -241,7 +239,7 @@ func _build_layout() -> void:
 	side.add_child(_strike_button)
 
 	side.add_child(HSeparator.new())
-	_heading(side, "Радиообмен")
+	_heading(side, "Радио")
 	_radio_scroll = ScrollContainer.new()
 	_radio_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_radio_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -252,7 +250,7 @@ func _build_layout() -> void:
 	_radio_scroll.add_child(_radio)
 
 	_overlay = PanelContainer.new()
-	_overlay.add_theme_stylebox_override("panel", _flat(Color("0b2236"), 36, 28))
+	_overlay.add_theme_stylebox_override("panel", _flat(Color("ffffff"), 40, 30, 14))
 	_overlay.set_anchors_preset(Control.PRESET_CENTER)
 	_overlay.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_overlay.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -290,11 +288,10 @@ func _refresh() -> void:
 	var unit := get_selected_unit()
 	if unit == null:
 		_map.selected_unit = -1
-		_unit_title.text = "ОТРЯД НЕ ВЫБРАН"
+		_unit_title.text = "Отряд не выбран"
 		_unit_details.text = "ЛКМ — выбрать отряд.\nПКМ — идти; по объекту — занять; по БТР — погрузка."
 	else:
-		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind]]
-		_unit_title.text = _unit_title.text.to_upper()
+		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind].to_lower()]
 		var lines: PackedStringArray = [
 			"Состав: %d из %d" % [unit.strength, unit.max_strength()],
 			"Задача: %s" % BattleText.order_title(battle, unit),
@@ -336,7 +333,8 @@ func _add_radio_line(text: String, alarm: bool) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", 13)
-	label.add_theme_color_override("font_color", COLOR_ALARM if alarm else COLOR_RADIO)
+	if alarm:
+		label.add_theme_color_override("font_color", COLOR_ALARM)
 	_radio.add_child(label)
 	if _radio.get_child_count() > RADIO_LINES:
 		_radio.get_child(0).queue_free()
@@ -362,9 +360,9 @@ func _show_result() -> void:
 
 func _heading(parent: Control, text: String) -> Label:
 	var label := Label.new()
-	label.text = text.to_upper()
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", COLOR_ACCENT)
+	label.text = text
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", COLOR_MUTED)
 	parent.add_child(label)
 	return label
 
@@ -380,13 +378,11 @@ func _button(parent: Control, text: String, action: Callable) -> Button:
 	return button
 
 
-## Dark panel with a thin bright frame, the look of every surface on this screen.
-func _flat(color: Color, margin_x: int, margin_y: int, frame: Color = COLOR_FRAME) -> StyleBoxFlat:
+## Flat surface without a frame; buttons and the result card get rounded corners.
+func _flat(color: Color, margin_x: int, margin_y: int, radius: int = 0) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = color
-	box.border_color = frame
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(2)
+	box.set_corner_radius_all(radius)
 	box.content_margin_left = margin_x
 	box.content_margin_right = margin_x
 	box.content_margin_top = margin_y
@@ -397,18 +393,27 @@ func _flat(color: Color, margin_x: int, margin_y: int, frame: Color = COLOR_FRAM
 func _make_theme() -> Theme:
 	var result := Theme.new()
 	result.set_color("font_color", "Label", COLOR_TEXT)
-	result.set_stylebox("normal", "Button", _flat(COLOR_BUTTON, 8, 5))
-	result.set_stylebox("hover", "Button", _flat(COLOR_BUTTON_HOVER, 8, 5, COLOR_ACCENT))
-	result.set_stylebox("pressed", "Button", _flat(COLOR_BUTTON_ACTIVE, 8, 5, COLOR_ACCENT))
-	result.set_stylebox("disabled", "Button", _flat(COLOR_PANEL, 8, 5, Color(COLOR_FRAME, 0.35)))
+	var normal := _flat(COLOR_BUTTON, 10, 6, 8)
+	normal.border_color = COLOR_LINE
+	normal.set_border_width_all(1)
+	var hover := _flat(COLOR_BUTTON_HOVER, 10, 6, 8)
+	hover.border_color = COLOR_TEXT
+	hover.set_border_width_all(1)
+	var disabled := _flat(Color(COLOR_BUTTON, 0.0), 10, 6, 8)
+	disabled.border_color = Color(COLOR_LINE, 0.6)
+	disabled.set_border_width_all(1)
+	result.set_stylebox("normal", "Button", normal)
+	result.set_stylebox("hover", "Button", hover)
+	result.set_stylebox("pressed", "Button", _flat(COLOR_TEXT, 10, 6, 8))
+	result.set_stylebox("disabled", "Button", disabled)
 	result.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	result.set_color("font_color", "Button", COLOR_TEXT)
-	result.set_color("font_hover_color", "Button", Color.WHITE)
-	result.set_color("font_pressed_color", "Button", Color("03121c"))
-	result.set_color("font_hover_pressed_color", "Button", Color("03121c"))
-	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.55))
+	result.set_color("font_hover_color", "Button", COLOR_TEXT)
+	result.set_color("font_pressed_color", "Button", COLOR_BUTTON)
+	result.set_color("font_hover_pressed_color", "Button", COLOR_BUTTON)
+	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.6))
 	var line := StyleBoxLine.new()
-	line.color = Color(COLOR_FRAME, 0.7)
+	line.color = COLOR_LINE
 	line.thickness = 1
 	result.set_stylebox("separator", "HSeparator", line)
 	return result

@@ -16,6 +16,8 @@ class Objective:
 
 var size: Vector2i
 var objectives: Array[Objective] = []
+## Roads as the lines they were laid along, in cell units; the map view draws them.
+var roads: Array[PackedVector2Array] = []
 ## Where the player's units arrive.
 var player_base: Vector2i
 ## Where enemy reinforcements arrive.
@@ -143,6 +145,10 @@ func paint_blob(centre: Vector2, radius: Vector2, type: Terrain.Type) -> void:
 
 ## Paints a line of cells through the points. A road over water becomes a bridge.
 func paint_road(points: Array[Vector2i]) -> void:
+	var line := PackedVector2Array()
+	for point in points:
+		line.append(cell_centre(point))
+	roads.append(line)
 	for i in range(1, points.size()):
 		var from := points[i - 1]
 		var to := points[i]

@@ -48,7 +48,7 @@ func test_clicks_select_and_order_units() -> void:
 	screen.click_map(squad.position, MOUSE_BUTTON_LEFT)
 	check_eq(screen.get_selected_unit(), squad)
 	carrier.position = squad.position
-	screen.click_map(squad.position + Vector2(2.1, 0.0), MOUSE_BUTTON_LEFT)
+	screen.click_map(squad.position + Vector2(2.6, 0.0), MOUSE_BUTTON_LEFT)
 	check_eq(screen.get_selected_unit(), carrier, "units standing together are shown side by side")
 	screen.click_map(squad.position, MOUSE_BUTTON_LEFT)
 	carrier.position = squad.position + Vector2(0.0, 6.0)
