@@ -4,6 +4,8 @@ extends RefCounted
 
 const CITY_PICTURE := "res://assets/maps/city.png"
 const CITY_TERRAIN := "res://assets/maps/city_terrain.png"
+## Where vehicles may drive: built from the picture the owner painted red.
+const CITY_DRIVE := "res://assets/maps/city_drive.png"
 ## Road and landmark positions below are in pixels of a picture this wide.
 const CITY_PICTURE_WIDTH := 1254.0
 ## The rules measure distances in units; the map is this many units across.
@@ -15,8 +17,9 @@ const BRIDGE := 0
 const SQUARE := 1
 const ROUNDABOUT := 2
 
-## Main roads of the city, traced over the painted map. Vehicles move only along
-## these; a road that crosses the river is a bridge. Infantry is not tied to them.
+## Main roads of the city, traced over the painted map. Vehicles are fastest on
+## them, and a road that crosses the river is a bridge. Where vehicles may drive at
+## all is decided by the vehicle layer, not by this list.
 const CITY_ROADS: Array[Array] = [
 	# North bridge road, west edge to the northern junction.
 	[Vector2(0, 120), Vector2(60, 155), Vector2(150, 185), Vector2(250, 198), Vector2(345, 203),
@@ -78,6 +81,8 @@ static func create_city(fresh: bool = false) -> BattleMap:
 	var map := BattleMap.from_mask(texture.get_image())
 	map.background = CITY_PICTURE
 	map.unit = map.size.x / CITY_UNITS_ACROSS
+	var drive: Texture2D = load(CITY_DRIVE)
+	map.set_drivable(drive.get_image())
 	var cell := map.size.x / CITY_PICTURE_WIDTH
 	var half_width := maxi(roundi(CITY_ROAD_HALF_WIDTH * cell), 1)
 	for road: Array in CITY_ROADS:
@@ -85,11 +90,16 @@ static func create_city(fresh: bool = false) -> BattleMap:
 		points.assign(road)
 		map.paint_road(_to_cells(map, points), 0, half_width)
 
-	map.add_objective("Мост", _to_cell(map, Vector2(465, 520)))
-	map.add_objective("Площадь", _to_cell(map, Vector2(655, 620)))
-	map.add_objective("Кольцо", _to_cell(map, Vector2(914, 525)))
-	map.player_base = _to_cell(map, Vector2(120, 490))
-	map.enemy_base = _to_cell(map, Vector2(1200, 488))
+	# A landmark's exact centre may be a fountain or a traffic island; the objective
+	# is the nearest spot a vehicle can stand on.
+	var landmarks: Dictionary[String, Vector2] = {
+		"Мост": Vector2(465, 520), "Площадь": Vector2(655, 620), "Кольцо": Vector2(914, 525),
+	}
+	for title: String in landmarks:
+		var spot := map.nearest_passable(_to_cell(map, landmarks[title]), Terrain.Mover.VEHICLE, 30)
+		map.add_objective(title, spot)
+	map.player_base = map.nearest_passable(_to_cell(map, Vector2(120, 490)), Terrain.Mover.VEHICLE, 30)
+	map.enemy_base = map.nearest_passable(_to_cell(map, Vector2(1200, 488)), Terrain.Mover.VEHICLE, 30)
 	if not fresh:
 		_city = map
 	return map

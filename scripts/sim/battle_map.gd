@@ -6,6 +6,8 @@ extends RefCounted
 ## One map square of the coordinate grid is this many cells wide and high.
 const SQUARE_CELLS := 6
 const SQUARE_LETTERS := "АБВГДЕЖЗИКЛМНОПР"
+## Speed multiplier of a vehicle on open ground it is allowed to drive on.
+const OFF_ROAD_SPEED := 1.0
 
 
 class Objective:
@@ -29,6 +31,9 @@ var player_base: Vector2i
 var enemy_base: Vector2i
 
 var _cells := PackedByteArray()
+## Where vehicles may drive, one byte per cell; empty when the map has no such
+## layer and vehicles simply follow the terrain table.
+var _drivable := PackedByteArray()
 var _grids: Dictionary[Terrain.Mover, AStarGrid2D] = {}
 
 
@@ -107,7 +112,50 @@ func terrain_at(position: Vector2) -> Terrain.Type:
 
 
 func is_passable(cell: Vector2i, mover: Terrain.Mover) -> bool:
-	return contains(cell) and Terrain.is_passable(get_terrain(cell), mover)
+	return contains(cell) and speed_in(cell, mover) > 0.0
+
+
+## Speed multiplier of the mover in the cell; 0 when it cannot enter.
+func speed_in(cell: Vector2i, mover: Terrain.Mover) -> float:
+	var type := get_terrain(cell)
+	if mover != Terrain.Mover.VEHICLE or _drivable.is_empty():
+		return Terrain.speed(type, mover)
+	# With a vehicle layer the layer decides where vehicles go, and the terrain
+	# only how fast: full speed on a road, slower off it.
+	if not contains(cell) or _drivable[cell.y * size.x + cell.x] == 0:
+		return 0.0
+	match type:
+		Terrain.Type.ROAD, Terrain.Type.BRIDGE:
+			return Terrain.speed(type, mover)
+		Terrain.Type.WATER, Terrain.Type.BUILDING:
+			return 0.0
+		Terrain.Type.FOREST, Terrain.Type.HILL:
+			return OFF_ROAD_SPEED * 0.5
+	return OFF_ROAD_SPEED
+
+
+func speed_at(position: Vector2, mover: Terrain.Mover) -> float:
+	return speed_in(Vector2i(position.floor()), mover)
+
+
+func is_drivable(cell: Vector2i) -> bool:
+	return is_passable(cell, Terrain.Mover.VEHICLE)
+
+
+## Sets where vehicles may drive from a picture with one pixel per cell:
+## light pixels are open to vehicles, dark ones are not.
+func set_drivable(layer: Image) -> void:
+	var image := layer.duplicate() as Image
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_L8)
+	if image.get_size() != size:
+		image.resize(size.x, size.y, Image.INTERPOLATE_NEAREST)
+	var data := image.get_data()
+	_drivable.resize(size.x * size.y)
+	for i in _drivable.size():
+		_drivable[i] = 1 if data[i] > 127 else 0
+	_grids.clear()
 
 
 static func cell_centre(cell: Vector2i) -> Vector2:
@@ -166,7 +214,7 @@ func _grid(mover: Terrain.Mover) -> AStarGrid2D:
 	for y in size.y:
 		for x in size.x:
 			var cell := Vector2i(x, y)
-			var speed := Terrain.speed(get_terrain(cell), mover)
+			var speed := speed_in(cell, mover)
 			if speed <= 0.0:
 				grid.set_point_solid(cell, true)
 			else:
@@ -240,6 +288,10 @@ func paint_road(points: Array[Vector2i], verge: int = 0, half_width: int = 0) ->
 
 func _paint_road_cell(cell: Vector2i) -> void:
 	if not contains(cell):
+		return
+	# On a map with a vehicle layer a road is laid only where vehicles may drive,
+	# so a line traced a little off never runs over a house.
+	if not _drivable.is_empty() and _drivable[cell.y * size.x + cell.x] == 0:
 		return
 	var water := get_terrain(cell) == Terrain.Type.WATER or get_terrain(cell) == Terrain.Type.BRIDGE
 	set_terrain(cell, Terrain.Type.BRIDGE if water else Terrain.Type.ROAD)

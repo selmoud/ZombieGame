@@ -469,8 +469,11 @@ func test_infantry_finds_a_way_between_houses() -> void:
 		if type == Terrain.Type.TOWN:
 			through_yards += 1
 	for point in by_road:
-		var type := map.terrain_at(point)
-		check(type == Terrain.Type.ROAD or type == Terrain.Type.BRIDGE, "vehicles stay on the road")
+		var cell := Vector2i(point.floor())
+		check(map.is_drivable(cell), "vehicles stay where the owner painted the map red")
+		var type := map.get_terrain(cell)
+		check(type != Terrain.Type.BUILDING and type != Terrain.Type.TOWN and type != Terrain.Type.WATER,
+				"vehicles never enter houses, yards or water")
 	# Houses must be real obstacles, not a rare speck: a fair share of the city is roof.
 	var houses := 0
 	var yards := 0
@@ -482,6 +485,32 @@ func test_infantry_finds_a_way_between_houses() -> void:
 				Terrain.Type.TOWN:
 					yards += 1
 	check(houses * 6 > yards, "houses %d, yards %d" % [houses, yards])
+
+
+func test_vehicle_layer_decides_where_vehicles_drive() -> void:
+	var map := _field()
+	map.paint_rect(Rect2i(0, 0, 40, 3), Terrain.Type.FOREST)
+	check(not map.is_drivable(Vector2i(5, 5)), "without a layer vehicles keep to roads")
+	var layer := Image.create(40, 20, false, Image.FORMAT_L8)
+	layer.fill_rect(Rect2i(0, 0, 20, 20), Color.WHITE)
+	map.set_drivable(layer)
+	check(map.is_drivable(Vector2i(5, 5)), "open ground painted for vehicles")
+	check(not map.is_drivable(Vector2i(30, 5)), "open ground not painted")
+	check(map.speed_in(Vector2i(5, 1), Terrain.Mover.VEHICLE) < map.speed_in(Vector2i(5, 5), Terrain.Mover.VEHICLE),
+			"orchards slow a vehicle down")
+	map.paint_road([Vector2i(0, 10), Vector2i(39, 10)])
+	check_eq(map.get_terrain(Vector2i(10, 10)), Terrain.Type.ROAD)
+	check_eq(map.get_terrain(Vector2i(30, 10)), Terrain.Type.FIELD, "a road is not laid where vehicles may not go")
+	check(map.speed_in(Vector2i(10, 10), Terrain.Mover.VEHICLE) > map.speed_in(Vector2i(5, 5), Terrain.Mover.VEHICLE),
+			"a road is faster than open ground")
+	check(map.is_passable(Vector2i(30, 5), Terrain.Mover.INFANTRY), "the layer does not concern infantry")
+
+	var city := MapLibrary.create_city()
+	var cell := city.size.x / MapLibrary.CITY_PICTURE_WIDTH
+	check(city.is_drivable(Vector2i((Vector2(640, 600) * cell).floor())), "the central square is open to vehicles")
+	check(city.is_drivable(Vector2i((Vector2(900, 1150) * cell).floor())), "so is the open desert")
+	check(not city.is_drivable(Vector2i((Vector2(600, 480) * cell).floor())), "the citadel is not")
+	check(not city.is_drivable(Vector2i((Vector2(400, 300) * cell).floor())), "nor the river")
 
 
 func test_enemy_force_differs_between_missions() -> void:

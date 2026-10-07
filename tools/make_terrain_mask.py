@@ -3,14 +3,18 @@
 
 Usage: tools/make_terrain_mask.py [PREVIEW.png]
 
-Input:  assets/maps/city.png          the map as painted
-Output: assets/maps/city_terrain.png  one pixel per game cell, coloured by terrain
+Input:  assets/maps/city.png           the map as painted
+        assets/maps/source/city_vehicles.png  the same map with everything vehicles may
+                                       drive on painted red (made by the owner)
+Output: assets/maps/city_terrain.png   one pixel per game cell, coloured by terrain
+        assets/maps/city_drive.png     one pixel per game cell, white where vehicles go
 
 A game cell is CELL x CELL pixels of the picture, small enough to keep the gaps
 between houses open. The mask is an ordinary picture: it can be opened and
 corrected by hand, and the game reads whatever is in it.
 
 Colours:
+  white   street: red in the vehicle picture and inside the built-up area
   red     building: nobody passes
   magenta yards and alleys between buildings: infantry only, good cover
   green   orchards, fields and trees: infantry only, slow, concealed
@@ -19,10 +23,10 @@ Colours:
   black   open ground: infantry only
 
 Water and buildings are found from colour. Hills cannot be told from open ground
-that way, so they are outlined by hand below. Roads are not in the mask: they are
-traced by hand in scripts/sim/map_library.gd and laid over it when the map loads,
-which keeps the road network connected. The game also reads white as road and
-cyan as bridge, for a mask painted by hand.
+that way, so they are outlined by hand below. Where vehicles may drive comes
+from the owner's red picture and nothing else. The main roads, which only make
+vehicles faster, are traced by hand in scripts/sim/map_library.gd and laid over
+the mask when the map loads; there a road over water becomes a bridge.
 """
 import sys
 
@@ -30,7 +34,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 SOURCE = "assets/maps/city.png"
+VEHICLES = "assets/maps/source/city_vehicles.png"
 MASK = "assets/maps/city_terrain.png"
+DRIVE = "assets/maps/city_drive.png"
 CELL = 2
 REFERENCE = 1254.0  # the hand-made coordinates below are for a picture this wide
 
@@ -43,7 +49,7 @@ HILLS = [
 ]
 
 COLORS = {
-    "building": (255, 0, 0),
+    "road": (255, 255, 255), "building": (255, 0, 0),
     "town": (255, 0, 255), "grove": (0, 255, 0), "high": (255, 255, 0),
     "water": (0, 0, 255), "open": (0, 0, 0),
 }
@@ -121,6 +127,12 @@ def main():
     streets = grow(long_runs(light, 27), 1) & light
     buildings = light & ~streets & built
 
+    # Vehicles: everything the owner painted red. Red means more red than blue;
+    # the untouched parts of the picture are blue.
+    painted = np.asarray(Image.open(VEHICLES).convert("RGB").resize(picture.size), float)
+    drive = (painted[..., 0] - painted[..., 2]) > 40
+    streets = drive & built
+
     outline = Image.new("L", picture.size, 0)
     for hill in HILLS:
         ImageDraw.Draw(outline).polygon([(x * scale, y * scale) for x, y in hill], fill=255)
@@ -129,7 +141,8 @@ def main():
 
     cells = size // CELL
     layers = [
-        ("water", water, 0.5), ("building", buildings, 0.5), ("town", built, 0.5),
+        ("water", water, 0.5), ("road", streets, 0.5), ("building", buildings, 0.5),
+        ("town", built, 0.5),
         ("high", high, 0.5), ("grove", grove, 0.5),
     ]
     result = np.zeros((cells, cells, 3), np.uint8)
@@ -145,6 +158,11 @@ def main():
     counts["open"] = int((~decided).sum())
     Image.fromarray(result).save(MASK)
     print(MASK, f"{cells}x{cells}", counts)
+
+    trimmed = drive[:cells * CELL, :cells * CELL].astype(float)
+    drive_cells = trimmed.reshape(cells, CELL, cells, CELL).mean(axis=(1, 3)) >= 0.5
+    image_of(drive_cells).save(DRIVE)
+    print(DRIVE, f"{100.0 * drive_cells.mean():.0f}% of the map is open to vehicles")
 
     if len(sys.argv) > 1:
         tint = np.asarray(Image.fromarray(result).resize(picture.size, Image.NEAREST), float)

@@ -471,7 +471,7 @@ func _approach_carrier(unit: BattleUnit) -> bool:
 
 
 func _step(unit: BattleUnit) -> void:
-	var terrain_speed := Terrain.speed(map.terrain_at(unit.position), unit.mover())
+	var terrain_speed := map.speed_at(unit.position, unit.mover())
 	var remaining := UnitKind.SPEED[unit.kind] * map.unit * maxf(terrain_speed, 0.3) * STEP
 	while remaining > 0.0 and unit.is_moving():
 		var to := unit.path[unit.path_index]
