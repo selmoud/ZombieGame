@@ -26,8 +26,8 @@ const COLOR_STRIKE := Color("ffc24a")
 const FRAME := Vector2(30, 20)
 const PICK_RADIUS := 18.0
 const ZOOM_STEP := 1.15
-## The closest view shows this many cells across the width.
-const CLOSEST_CELLS := 22.0
+## The closest view shows this many units of distance across the width.
+const CLOSEST_UNITS := 14.0
 const PAN_SPEED := 600.0
 
 var battle: Battle
@@ -73,7 +73,7 @@ func to_screen(position: Vector2) -> Vector2:
 ## Zooms in (steps > 0) or out, keeping the map point under `anchor` where it is.
 func zoom(steps: int, anchor: Vector2) -> void:
 	var fixed := to_map(anchor)
-	var closest := size.x / CLOSEST_CELLS
+	var closest := size.x / (CLOSEST_UNITS * battle.map.unit)
 	_scale = clampf(_scale * pow(ZOOM_STEP, steps), _widest_scale(), closest)
 	_origin = anchor - fixed * _scale
 	_clamp_view()
@@ -114,7 +114,7 @@ func shown_position(unit: BattleUnit) -> Vector2:
 	for other in battle.units:
 		if other.id >= unit.id:
 			break
-		if other.side == unit.side and other.is_on_map() and other.position.distance_to(unit.position) < 1.2:
+		if other.side == unit.side and other.is_on_map() and other.position.distance_to(unit.position) < 1.2 * battle.map.unit:
 			shift += 1
 	return unit.position + Vector2(shift * (FRAME.x + 10.0) / _scale, 0.0)
 
@@ -136,7 +136,7 @@ func unit_at(position: Vector2) -> int:
 ## Objective whose capture circle contains the point, or -1.
 func objective_at(position: Vector2) -> int:
 	for objective in battle.map.objectives:
-		if BattleMap.cell_centre(objective.cell).distance_to(position) <= battle.rules.capture_radius:
+		if BattleMap.cell_centre(objective.cell).distance_to(position) <= battle.rules.capture_radius * battle.map.unit:
 			return objective.index
 	return -1
 
@@ -195,9 +195,9 @@ func _draw() -> void:
 
 ## Map squares with their names in the corner, as on the maps of tactical shooters.
 func _draw_grid() -> void:
-	var square := BattleMap.SQUARE_CELLS * _scale
-	var columns := ceili(battle.map.size.x / float(BattleMap.SQUARE_CELLS))
-	var rows := ceili(battle.map.size.y / float(BattleMap.SQUARE_CELLS))
+	var square := BattleMap.SQUARE_CELLS * battle.map.unit * _scale
+	var columns := ceili(battle.map.size.x / (BattleMap.SQUARE_CELLS * battle.map.unit))
+	var rows := ceili(battle.map.size.y / (BattleMap.SQUARE_CELLS * battle.map.unit))
 	var extent := Vector2(battle.map.size) * _scale
 	for column in range(1, columns):
 		var x := _origin.x + column * square
@@ -219,7 +219,7 @@ func _draw_grid() -> void:
 ## An objective as a tactical graphic: a closed line in the colour of whoever holds it.
 func _draw_objective(objective: BattleMap.Objective) -> void:
 	var centre := to_screen(BattleMap.cell_centre(objective.cell))
-	var radius := battle.rules.capture_radius * _scale
+	var radius := battle.rules.capture_radius * battle.map.unit * _scale
 	var owner := battle.owners[objective.index]
 	var color := COLOR_NEUTRAL
 	if owner == BattleUnit.Side.PLAYER:
@@ -336,7 +336,7 @@ func _draw_contact(contact: Battle.Contact) -> void:
 	if not contact.visible:
 		alpha = lerpf(0.7, 0.25, clampf(age / battle.rules.contact_fade, 0.0, 1.0))
 	var ink := Color(COLOR_INK, alpha)
-	if contact.error > 0.8:
+	if contact.error > 0.8 * battle.map.unit:
 		draw_arc(centre, contact.error * _scale, 0.0, TAU, 40, Color(COLOR_HOSTILE_LINE, 0.7 * alpha), 1.5, true)
 
 	if contact.kind < 0:
@@ -364,7 +364,7 @@ func _draw_contact(contact: Battle.Contact) -> void:
 func _draw_strike(strike: Battle.Strike) -> void:
 	var centre := to_screen(strike.target)
 	var left := strike.lands_at - battle.time
-	var radius := (battle.rules.strike_radius + battle.rules.strike_scatter) * _scale
+	var radius := (battle.rules.strike_radius + battle.rules.strike_scatter) * battle.map.unit * _scale
 	draw_arc(centre, radius, 0.0, TAU, 48, COLOR_STRIKE, 2.0, true)
 	draw_line(centre + Vector2(-radius, 0), centre + Vector2(radius, 0), Color(COLOR_STRIKE, 0.6), 1.0)
 	draw_line(centre + Vector2(0, -radius), centre + Vector2(0, radius), Color(COLOR_STRIKE, 0.6), 1.0)
@@ -380,16 +380,16 @@ func _draw_impacts() -> void:
 		if event.kind != &"strike_landed":
 			continue
 		var centre := to_screen(event.position)
-		var radius := battle.rules.strike_radius * _scale
+		var radius := battle.rules.strike_radius * battle.map.unit * _scale
 		draw_circle(centre, radius, Color(1.0, 0.6, 0.2, 0.6 * (1.0 - age / 1.5)), true, -1.0, true)
 		draw_arc(centre, radius, 0.0, TAU, 48, COLOR_STRIKE, 2.0, true)
 
 
 func _draw_strike_cursor() -> void:
 	var centre := get_local_mouse_position()
-	var radius := (battle.rules.strike_radius + battle.rules.strike_scatter) * _scale
+	var radius := (battle.rules.strike_radius + battle.rules.strike_scatter) * battle.map.unit * _scale
 	draw_arc(centre, radius, 0.0, TAU, 48, COLOR_STRIKE, 2.0, true)
-	draw_arc(centre, battle.rules.strike_radius * _scale, 0.0, TAU, 48, Color(COLOR_STRIKE, 0.5), 1.0, true)
+	draw_arc(centre, battle.rules.strike_radius * battle.map.unit * _scale, 0.0, TAU, 48, Color(COLOR_STRIKE, 0.5), 1.0, true)
 	draw_line(centre + Vector2(-radius, 0), centre + Vector2(radius, 0), Color(COLOR_STRIKE, 0.6), 1.0)
 	draw_line(centre + Vector2(0, -radius), centre + Vector2(0, radius), Color(COLOR_STRIKE, 0.6), 1.0)
 

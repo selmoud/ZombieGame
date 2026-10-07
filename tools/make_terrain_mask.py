@@ -6,12 +6,23 @@ Usage: tools/make_terrain_mask.py [PREVIEW.png]
 Input:  assets/maps/city.png          the map as painted
 Output: assets/maps/city_terrain.png  one pixel per game cell, coloured by terrain
 
-The mask is an ordinary picture: it can be opened and corrected by hand, and the
-game reads whatever is in it. Roads are not detected here; they are listed in
-scripts/sim/map_library.gd and laid over the mask when the map loads.
+A game cell is CELL x CELL pixels of the picture, small enough to keep the gaps
+between houses open. The mask is an ordinary picture: it can be opened and
+corrected by hand, and the game reads whatever is in it.
 
-Colours: black open ground, blue water, red buildings, green orchards and fields,
-yellow high ground.
+Colours:
+  red     building: nobody passes
+  magenta yards and alleys between buildings: infantry only, good cover
+  green   orchards, fields and trees: infantry only, slow, concealed
+  yellow  high ground: infantry only, slow, sees far
+  blue    water: nobody passes
+  black   open ground: infantry only
+
+Water and buildings are found from colour. Hills cannot be told from open ground
+that way, so they are outlined by hand below. Roads are not in the mask: they are
+traced by hand in scripts/sim/map_library.gd and laid over it when the map loads,
+which keeps the road network connected. The game also reads white as road and
+cyan as bridge, for a mask painted by hand.
 """
 import sys
 
@@ -20,23 +31,34 @@ from PIL import Image, ImageDraw, ImageFilter
 
 SOURCE = "assets/maps/city.png"
 MASK = "assets/maps/city_terrain.png"
-CELLS = 84
+CELL = 2
+REFERENCE = 1254.0  # the hand-made coordinates below are for a picture this wide
 
-# High ground cannot be told from dark fields by colour, so the hills are outlined
-# by hand, in pixels of a 1254 px wide picture.
 HILLS = [
-    [(0, 0), (95, 0), (90, 90), (40, 170), (0, 180)],
-    [(1040, 0), (1254, 0), (1254, 280), (1130, 260), (1080, 150)],
-    [(1100, 310), (1254, 310), (1254, 470), (1160, 440)],
-    [(1010, 830), (1254, 850), (1254, 1254), (860, 1254), (900, 1090), (1000, 1020)],
-    [(0, 930), (240, 930), (290, 1000), (300, 1254), (0, 1254)],
+    [(0, 0), (195, 0), (190, 60), (170, 110), (120, 100), (60, 115), (0, 110)],
+    [(1005, 0), (1254, 0), (1254, 140), (1190, 150), (1130, 110), (1050, 90), (1010, 40)],
+    [(0, 945), (110, 945), (200, 985), (250, 1060), (250, 1254), (0, 1254)],
+    [(1090, 1000), (1150, 960), (1254, 980), (1254, 1254), (950, 1254), (960, 1160),
+     (1010, 1130), (1090, 1120)],
 ]
 
-OPEN = (0, 0, 0)
-WATER = (0, 0, 255)
-TOWN = (255, 0, 0)
-GROVE = (0, 255, 0)
-HIGH = (255, 255, 0)
+COLORS = {
+    "building": (255, 0, 0),
+    "town": (255, 0, 255), "grove": (0, 255, 0), "high": (255, 255, 0),
+    "water": (0, 0, 255), "open": (0, 0, 0),
+}
+
+
+def image_of(mask):
+    return Image.fromarray((mask * 255).astype(np.uint8))
+
+
+def grow(mask, pixels):
+    return np.asarray(image_of(mask).filter(ImageFilter.MaxFilter(2 * pixels + 1))) > 127
+
+
+def shrink(mask, pixels):
+    return np.asarray(image_of(mask).filter(ImageFilter.MinFilter(2 * pixels + 1))) > 127
 
 
 def blurred(array, radius):
@@ -44,61 +66,90 @@ def blurred(array, radius):
     return np.asarray(image.filter(ImageFilter.GaussianBlur(radius)), float)
 
 
+def shifted(mask, dx, dy):
+    """The mask moved by (dx, dy); what moves in from outside is empty."""
+    result = np.zeros_like(mask)
+    height, width = mask.shape
+    xs = slice(max(dx, 0), width + min(dx, 0))
+    ys = slice(max(dy, 0), height + min(dy, 0))
+    xs_from = slice(max(-dx, 0), width + min(-dx, 0))
+    ys_from = slice(max(-dy, 0), height + min(-dy, 0))
+    result[ys, xs] = mask[ys_from, xs_from]
+    return result
+
+
+def long_runs(mask, length):
+    """Pixels lying on a straight run of the mask at least `length` long, in any
+    of eight directions. Streets are long; a roof is over in a few pixels."""
+    half = length // 2
+    found = np.zeros_like(mask)
+    for step in range(8):
+        angle = np.pi * step / 8.0
+        offsets = sorted({(round(k * np.cos(angle)), round(k * np.sin(angle))) for k in range(-half, half + 1)})
+        whole = np.ones_like(mask)
+        for dx, dy in offsets:
+            whole &= shifted(mask, dx, dy)
+        for dx, dy in offsets:
+            found |= shifted(whole, -dx, -dy)
+    return found
+
+
 def main():
     picture = Image.open(SOURCE).convert("RGB")
     size = picture.size[0]
-    rgb = np.asarray(picture.filter(ImageFilter.GaussianBlur(3)), float)
-    grey = np.asarray(picture.convert("L"), float)
-    bright = rgb.mean(axis=2)
+    scale = size / REFERENCE
+    rgb = np.asarray(picture, float)
+    grey = rgb.mean(axis=2)
     blueness = rgb[..., 2] - rgb[..., 0]
 
-    grad_y, grad_x = np.gradient(blurred(grey, 1))
-    texture = blurred(np.hypot(grad_x, grad_y) * 4.0, 6) / 4.0
-    # Roofs are the only near-white things on the map.
-    roofs = blurred((grey > 175) * 255.0, 7) / 255.0
-    broad = blurred(bright, 22)
+    # Water is one flat, dark, saturated colour that nothing else on the map has.
+    # Closing it fills the gaps under the bridges, so the river is unbroken and the
+    # roads laid over it later become the only crossings.
+    water = grow(shrink((grey < 64) & (blueness > 60), 2), 2)
+    water = shrink(grow(water, 12), 12)
 
-    water = (blueness > 47) & (texture < 5.5) & (bright < 96)
-    # Close the gaps that ripples and small islands leave in the river.
-    closed = Image.fromarray((water * 255).astype(np.uint8))
-    closed = closed.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.MinFilter(13)).filter(ImageFilter.MaxFilter(5))
+    # Roofs are near-white, and the built-up area is where roofs and the shadows
+    # between them alternate. Road markings are white too, but the game lays the
+    # roads over the mask afterwards.
+    white = (grey > 200) & ~water
+    dark_around = blurred((grey < 128) * 255.0, 11) / 255.0
+    built = ((blurred(white * 255.0, 10) / 255.0) > 0.14) & (dark_around > 0.1) & ~water
+    # Inside the built-up area a roof is anything clearly lighter than the streets
+    # and the shadowed gaps between houses.
+    light = blurred(grey, 0.7) > 184
+    # Streets are light too. What tells them from roofs is length.
+    streets = grow(long_runs(light, 27), 1) & light
+    buildings = light & ~streets & built
+
     outline = Image.new("L", picture.size, 0)
-    scale = size / 1254.0
     for hill in HILLS:
         ImageDraw.Draw(outline).polygon([(x * scale, y * scale) for x, y in hill], fill=255)
-    hills = np.asarray(outline) > 0
-    # Dark slopes look like water to the colour test; there is none in the hills.
-    water = (np.asarray(closed) > 127) & ~hills
-    town = (roofs > 0.085) & ~water
-    high = hills & ~town
-    grove = (bright < 94) & (broad < 112) & ~water & ~town & ~high
+    high = (np.asarray(outline) > 0) & ~water & ~built
+    grove = (blurred(grey, 1.5) < 128) & ~water & ~built & ~high
 
-    cell = size / CELLS
-    mask = Image.new("RGB", (CELLS, CELLS), OPEN)
-    for y in range(CELLS):
-        for x in range(CELLS):
-            box = (slice(int(y * cell), int((y + 1) * cell)), slice(int(x * cell), int((x + 1) * cell)))
-            if water[box].mean() > 0.45:
-                mask.putpixel((x, y), WATER)
-            elif town[box].mean() > 0.5:
-                mask.putpixel((x, y), TOWN)
-            elif high[box].mean() > 0.55:
-                mask.putpixel((x, y), HIGH)
-            elif grove[box].mean() > 0.5:
-                mask.putpixel((x, y), GROVE)
-    mask.save(MASK)
-
+    cells = size // CELL
+    layers = [
+        ("water", water, 0.5), ("building", buildings, 0.5), ("town", built, 0.5),
+        ("high", high, 0.5), ("grove", grove, 0.5),
+    ]
+    result = np.zeros((cells, cells, 3), np.uint8)
+    decided = np.zeros((cells, cells), bool)
     counts = {}
-    for pixel in mask.getdata():
-        counts[pixel] = counts.get(pixel, 0) + 1
-    print(MASK, {name: counts.get(color, 0) for name, color in
-                 (("open", OPEN), ("water", WATER), ("town", TOWN), ("grove", GROVE), ("high", HIGH))})
+    for name, layer, share in layers:
+        trimmed = layer[:cells * CELL, :cells * CELL].astype(float)
+        density = trimmed.reshape(cells, CELL, cells, CELL).mean(axis=(1, 3))
+        chosen = (density >= share) & ~decided
+        result[chosen] = COLORS[name]
+        decided |= chosen
+        counts[name] = int(chosen.sum())
+    counts["open"] = int((~decided).sum())
+    Image.fromarray(result).save(MASK)
+    print(MASK, f"{cells}x{cells}", counts)
 
     if len(sys.argv) > 1:
-        tint = mask.resize(picture.size, Image.NEAREST)
-        shown = np.asarray(tint, float)
-        covered = (shown.sum(axis=2, keepdims=True) > 0) * 0.42
-        preview = np.asarray(picture, float) * (1.0 - covered) + shown * covered
+        tint = np.asarray(Image.fromarray(result).resize(picture.size, Image.NEAREST), float)
+        covered = (tint.sum(axis=2, keepdims=True) > 0) * 0.5
+        preview = rgb * (1.0 - covered) + tint * covered
         Image.fromarray(preview.astype(np.uint8)).save(sys.argv[1])
 
 

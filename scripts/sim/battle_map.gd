@@ -20,6 +20,9 @@ var objectives: Array[Objective] = []
 var roads: Array[PackedVector2Array] = []
 ## Painted picture of the map that the screen shows under the units; "" for none.
 var background := ""
+## How many cells make one unit of distance in the rules. Speeds, sight and weapon
+## ranges are given in these units, so a finely gridded map plays like a coarse one.
+var unit := 1.0
 ## Where the player's units arrive.
 var player_base: Vector2i
 ## Where enemy reinforcements arrive.
@@ -36,25 +39,34 @@ func _init(map_size: Vector2i) -> void:
 
 
 ## Builds a map from a terrain mask: one pixel per cell, coloured as
-## tools/make_terrain_mask.py writes it. Black is open ground, blue water,
-## red buildings, green orchards and fields, yellow high ground.
+## tools/make_terrain_mask.py writes it.
 static func from_mask(mask: Image) -> BattleMap:
-	var map := BattleMap.new(mask.get_size())
-	for y in map.size.y:
-		for x in map.size.x:
-			var color := mask.get_pixel(x, y)
-			var red := color.r > 0.5
-			var green := color.g > 0.5
-			var type := Terrain.Type.FIELD
-			if red and green:
-				type = Terrain.Type.HILL
-			elif red:
-				type = Terrain.Type.TOWN
-			elif green:
-				type = Terrain.Type.FOREST
-			elif color.b > 0.5:
-				type = Terrain.Type.WATER
-			map._cells[y * map.size.x + x] = type
+	var image := mask.duplicate() as Image
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_RGB8)
+	var map := BattleMap.new(image.get_size())
+	var data := image.get_data()
+	for i in map.size.x * map.size.y:
+		var red := data[i * 3] > 127
+		var green := data[i * 3 + 1] > 127
+		var blue := data[i * 3 + 2] > 127
+		var type := Terrain.Type.FIELD
+		if red and green and blue:
+			type = Terrain.Type.ROAD
+		elif red and green:
+			type = Terrain.Type.HILL
+		elif red and blue:
+			type = Terrain.Type.TOWN
+		elif green and blue:
+			type = Terrain.Type.BRIDGE
+		elif red:
+			type = Terrain.Type.BUILDING
+		elif green:
+			type = Terrain.Type.FOREST
+		elif blue:
+			type = Terrain.Type.WATER
+		map._cells[i] = type
 	return map
 
 
@@ -104,8 +116,9 @@ static func cell_centre(cell: Vector2i) -> Vector2:
 
 ## Name of the map square, like "В4", used in radio reports.
 func square_name(position: Vector2) -> String:
-	var column := clampi(int(position.x) / SQUARE_CELLS, 0, SQUARE_LETTERS.length() - 1)
-	var row := int(position.y) / SQUARE_CELLS + 1
+	var square := SQUARE_CELLS * unit
+	var column := clampi(int(position.x / square), 0, SQUARE_LETTERS.length() - 1)
+	var row := int(position.y / square) + 1
 	return "%s%d" % [SQUARE_LETTERS[column], row]
 
 
@@ -198,9 +211,9 @@ func paint_line(points: Array[Vector2i], type: Terrain.Type, radius: int) -> voi
 
 
 ## Paints a line of cells through the points. A road over water becomes a bridge.
-## `verge` clears buildings this many cells to each side, for a highway that the
-## terrain mask mistook for a row of roofs.
-func paint_road(points: Array[Vector2i], verge: int = 0) -> void:
+## `half_width` widens the road by this many cells to each side; `verge` clears
+## the ground between houses beyond that.
+func paint_road(points: Array[Vector2i], verge: int = 0, half_width: int = 0) -> void:
 	var line := PackedVector2Array()
 	for point in points:
 		line.append(cell_centre(point))
@@ -215,7 +228,9 @@ func paint_road(points: Array[Vector2i], verge: int = 0) -> void:
 			# Fill the corner of a diagonal step so vehicles are never forced off the road.
 			if cell.x != previous.x and cell.y != previous.y:
 				_paint_road_cell(Vector2i(cell.x, previous.y))
-			_paint_road_cell(cell)
+			for dy in range(-half_width, half_width + 1):
+				for dx in range(-half_width, half_width + 1):
+					_paint_road_cell(cell + Vector2i(dx, dy))
 			for dy in range(-verge, verge + 1):
 				for dx in range(-verge, verge + 1):
 					if get_terrain(cell + Vector2i(dx, dy)) == Terrain.Type.TOWN:
@@ -224,5 +239,7 @@ func paint_road(points: Array[Vector2i], verge: int = 0) -> void:
 
 
 func _paint_road_cell(cell: Vector2i) -> void:
+	if not contains(cell):
+		return
 	var water := get_terrain(cell) == Terrain.Type.WATER or get_terrain(cell) == Terrain.Type.BRIDGE
 	set_terrain(cell, Terrain.Type.BRIDGE if water else Terrain.Type.ROAD)

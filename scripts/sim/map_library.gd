@@ -6,87 +6,92 @@ const CITY_PICTURE := "res://assets/maps/city.png"
 const CITY_TERRAIN := "res://assets/maps/city_terrain.png"
 ## Road and landmark positions below are in pixels of a picture this wide.
 const CITY_PICTURE_WIDTH := 1254.0
+## The rules measure distances in units; the map is this many units across.
+const CITY_UNITS_ACROSS := 84.0
+## Half the width of a main road, in pixels of the picture.
+const CITY_ROAD_HALF_WIDTH := 5.0
 
 const BRIDGE := 0
 const SQUARE := 1
-const WORKS := 2
+const ROUNDABOUT := 2
 
 ## Main roads of the city, traced over the painted map. Vehicles move only along
-## these inside the built-up area; a road that crosses the river is a bridge.
+## these; a road that crosses the river is a bridge. Infantry is not tied to them.
 const CITY_ROADS: Array[Array] = [
-	# Northern bridge and the ring road along the north edge of the city.
-	[Vector2(0, 205), Vector2(100, 160), Vector2(165, 165), Vector2(305, 208), Vector2(400, 255),
-			Vector2(412, 275), Vector2(500, 272), Vector2(600, 250), Vector2(705, 215),
-			Vector2(900, 215), Vector2(960, 228), Vector2(1010, 252)],
-	# Road in from the north.
-	[Vector2(835, 0), Vector2(825, 60), Vector2(790, 120), Vector2(740, 195), Vector2(705, 215)],
-	# Middle bridge and the avenue from it to the central square.
-	[Vector2(0, 385), Vector2(95, 390), Vector2(215, 425), Vector2(250, 440), Vector2(380, 385),
-			Vector2(500, 397), Vector2(600, 428), Vector2(688, 457)],
-	# Western avenue, north to south.
-	[Vector2(412, 275), Vector2(395, 340), Vector2(380, 385), Vector2(345, 470), Vector2(315, 540),
-			Vector2(300, 645), Vector2(335, 740), Vector2(340, 828)],
-	# Third bridge.
-	[Vector2(0, 725), Vector2(100, 690), Vector2(200, 648), Vector2(300, 645)],
-	# Fourth bridge and the southern edge road.
-	[Vector2(0, 925), Vector2(150, 890), Vector2(310, 845), Vector2(340, 828), Vector2(450, 815),
-			Vector2(520, 850), Vector2(600, 860)],
-	# Central avenue, north to south, through the square.
-	[Vector2(705, 215), Vector2(695, 330), Vector2(688, 457), Vector2(675, 560), Vector2(650, 660),
-			Vector2(620, 760), Vector2(600, 860), Vector2(590, 940), Vector2(560, 1010),
-			Vector2(640, 1100), Vector2(720, 1180), Vector2(800, 1254)],
-	# Avenue from the square east to the highway.
-	[Vector2(688, 457), Vector2(800, 485), Vector2(900, 512), Vector2(980, 515), Vector2(1050, 492),
-			Vector2(1100, 500)],
-	# Road through the works and on south along the eastern districts.
-	[Vector2(900, 215), Vector2(905, 300), Vector2(910, 400), Vector2(900, 512), Vector2(915, 600),
-			Vector2(930, 700), Vector2(1000, 790), Vector2(960, 860), Vector2(930, 900),
-			Vector2(930, 1000), Vector2(940, 1100), Vector2(1000, 1254)],
-	# Southern cross street.
-	[Vector2(620, 760), Vector2(760, 800), Vector2(900, 830), Vector2(960, 860)],
-	# Roads out to the east and south-east.
-	[Vector2(1010, 252), Vector2(1060, 290), Vector2(1150, 300), Vector2(1254, 305)],
-	[Vector2(930, 900), Vector2(1050, 1000), Vector2(1150, 1080), Vector2(1254, 1150)],
+	# North bridge road, west edge to the northern junction.
+	[Vector2(0, 120), Vector2(60, 155), Vector2(150, 185), Vector2(250, 198), Vector2(345, 203),
+			Vector2(455, 222), Vector2(500, 225), Vector2(530, 238)],
+	# Road in from the north-west along the river.
+	[Vector2(455, 0), Vector2(470, 60), Vector2(500, 150), Vector2(522, 225), Vector2(530, 238)],
+	# Western avenue and the ring along the south of the city.
+	[Vector2(530, 238), Vector2(510, 300), Vector2(480, 380), Vector2(468, 460), Vector2(465, 520),
+			Vector2(470, 600), Vector2(500, 657), Vector2(505, 727), Vector2(540, 792),
+			Vector2(590, 852), Vector2(627, 872), Vector2(702, 887), Vector2(777, 897),
+			Vector2(877, 887), Vector2(942, 877)],
+	# Diagonal from the northern junction to the eastern roundabout.
+	[Vector2(530, 238), Vector2(560, 270), Vector2(627, 310), Vector2(692, 330), Vector2(752, 370),
+			Vector2(842, 430), Vector2(892, 480), Vector2(914, 525)],
+	# Middle bridge road, west edge to the western avenue.
+	[Vector2(0, 410), Vector2(60, 450), Vector2(120, 490), Vector2(180, 518), Vector2(300, 520),
+			Vector2(400, 520), Vector2(465, 520)],
+	[Vector2(0, 590), Vector2(60, 570), Vector2(130, 540), Vector2(180, 518)],
+	# From the western avenue to the central square.
+	[Vector2(465, 520), Vector2(520, 535), Vector2(600, 552), Vector2(640, 585), Vector2(655, 620)],
+	# North road down to the square.
+	[Vector2(724, 0), Vector2(722, 50), Vector2(707, 200), Vector2(692, 330), Vector2(690, 420),
+			Vector2(700, 500), Vector2(690, 560), Vector2(668, 600), Vector2(655, 620)],
+	# Square south to the ring and out of the city.
+	[Vector2(655, 620), Vector2(668, 650), Vector2(688, 660), Vector2(690, 740), Vector2(702, 802),
+			Vector2(702, 887), Vector2(700, 1000), Vector2(700, 1254)],
+	# Square east to the roundabout.
+	[Vector2(655, 620), Vector2(700, 648), Vector2(760, 630), Vector2(830, 580), Vector2(890, 540),
+			Vector2(914, 525)],
+	# South-west bridge road.
+	[Vector2(0, 937), Vector2(100, 887), Vector2(200, 827), Vector2(260, 787), Vector2(350, 752),
+			Vector2(370, 747), Vector2(465, 724), Vector2(505, 727)],
+	# South bridge road.
+	[Vector2(280, 967), Vector2(360, 1002), Vector2(385, 1010), Vector2(490, 1027),
+			Vector2(530, 1037), Vector2(550, 1017), Vector2(565, 952), Vector2(590, 852)],
+	# North-east road.
+	[Vector2(1254, 150), Vector2(1177, 200), Vector2(1097, 255), Vector2(1027, 320),
+			Vector2(1000, 350), Vector2(1002, 400), Vector2(1007, 475), Vector2(1010, 510)],
+	# East road through the roundabout.
+	[Vector2(914, 525), Vector2(1007, 515), Vector2(1127, 505), Vector2(1254, 475)],
+	# South-east roads.
+	[Vector2(914, 525), Vector2(960, 580), Vector2(997, 627), Vector2(1027, 677), Vector2(1102, 762),
+			Vector2(1177, 827), Vector2(1254, 872)],
+	[Vector2(997, 627), Vector2(997, 752), Vector2(977, 792), Vector2(952, 867), Vector2(942, 877),
+			Vector2(1002, 952), Vector2(1077, 1052), Vector2(1152, 1127), Vector2(1254, 1202)],
 ]
-## The river's main channel. The terrain mask finds most of the water but leaves
-## gaps at ripples and sandbanks; this line closes them so that the river can only
-## be crossed by a bridge.
-const CITY_RIVER: Array[Array] = [
-	[Vector2(345, 0), Vector2(330, 110), Vector2(260, 185), Vector2(165, 250), Vector2(130, 330),
-			Vector2(118, 420), Vector2(110, 520), Vector2(130, 600), Vector2(190, 690),
-			Vector2(245, 790), Vector2(285, 880), Vector2(325, 960), Vector2(318, 1050),
-			Vector2(325, 1150), Vector2(335, 1254)],
-	[Vector2(150, 0), Vector2(180, 90), Vector2(230, 165), Vector2(260, 185)],
-]
-## The highway east of the city; the terrain mask sees its lane markings as roofs.
-const CITY_HIGHWAY: Array[Vector2] = [
-	Vector2(975, 0), Vector2(990, 150), Vector2(1010, 252), Vector2(1055, 400), Vector2(1100, 500),
-	Vector2(1150, 600), Vector2(1195, 700), Vector2(1240, 800), Vector2(1254, 830),
-]
+
+## The city map is the same for every mission and slow to build, so it is built once.
+static var _city: BattleMap
 
 
 ## The painted desert city: the player comes from the west bank, the river with its
-## bridges lies between him and the three objectives.
-static func create_city() -> BattleMap:
+## bridges lies between him and the three objectives. Pass `fresh` to get a copy that
+## may be changed without affecting other missions.
+static func create_city(fresh: bool = false) -> BattleMap:
+	if _city != null and not fresh:
+		return _city
 	var texture: Texture2D = load(CITY_TERRAIN)
 	var map := BattleMap.from_mask(texture.get_image())
 	map.background = CITY_PICTURE
+	map.unit = map.size.x / CITY_UNITS_ACROSS
 	var cell := map.size.x / CITY_PICTURE_WIDTH
-	for channel: Array in CITY_RIVER:
-		var course: Array[Vector2] = []
-		course.assign(channel)
-		map.paint_line(_to_cells(course, cell), Terrain.Type.WATER, 1)
-	map.paint_road(_to_cells(CITY_HIGHWAY, cell), 1)
+	var half_width := maxi(roundi(CITY_ROAD_HALF_WIDTH * cell), 1)
 	for road: Array in CITY_ROADS:
 		var points: Array[Vector2] = []
 		points.assign(road)
-		map.paint_road(_to_cells(points, cell))
+		map.paint_road(_to_cells(map, points), 0, half_width)
 
-	map.add_objective("Мост", Vector2i((Vector2(250, 440) * cell).floor()))
-	map.add_objective("Площадь", Vector2i((Vector2(688, 457) * cell).floor()))
-	map.add_objective("Завод", Vector2i((Vector2(908, 400) * cell).floor()))
-	map.player_base = Vector2i((Vector2(40, 387) * cell).floor())
-	map.enemy_base = Vector2i((Vector2(1225, 304) * cell).floor())
+	map.add_objective("Мост", _to_cell(map, Vector2(465, 520)))
+	map.add_objective("Площадь", _to_cell(map, Vector2(655, 620)))
+	map.add_objective("Кольцо", _to_cell(map, Vector2(914, 525)))
+	map.player_base = _to_cell(map, Vector2(120, 490))
+	map.enemy_base = _to_cell(map, Vector2(1200, 488))
+	if not fresh:
+		_city = map
 	return map
 
 
@@ -94,13 +99,14 @@ static func create_city() -> BattleMap:
 ## where the patrol walks and what waits in reserve are drawn from the mission's seed.
 static func place_city_enemy(battle: Battle, rng: RandomNumberGenerator) -> void:
 	var map := battle.map
+	var reach := roundi(4.0 * map.unit)
+	var step := roundi(2.0 * map.unit)
 	var strongpoint := rng.randi_range(1, 2)
 	for objective in map.objectives:
-		# Garrisons sit among the buildings next to the objective, not on the road through it.
-		# Two squads hold each objective from opposite sides of it.
-		var post := map.nearest_terrain(objective.cell + Vector2i(-1, -1), Terrain.Type.TOWN)
+		# Two squads hold each objective from the yards on opposite sides of it.
+		var post := map.nearest_terrain(objective.cell + Vector2i(-step, -step), Terrain.Type.TOWN, reach)
 		_add_garrison(battle, UnitKind.Type.RIFLE, post)
-		var second := map.nearest_terrain(objective.cell + Vector2i(2, 2), Terrain.Type.TOWN)
+		var second := map.nearest_terrain(objective.cell + Vector2i(step, step), Terrain.Type.TOWN, reach)
 		_add_garrison(battle, UnitKind.Type.RIFLE, second)
 		if objective.index != strongpoint:
 			continue
@@ -108,19 +114,18 @@ static func place_city_enemy(battle: Battle, rng: RandomNumberGenerator) -> void
 			# A vehicle cannot stand among the houses; it holds the road.
 			_add_garrison(battle, UnitKind.Type.APC, objective.cell)
 		else:
-			var third := map.nearest_terrain(objective.cell + Vector2i(-2, 2), Terrain.Type.TOWN)
+			var third := map.nearest_terrain(objective.cell + Vector2i(-step, step), Terrain.Type.TOWN, reach)
 			_add_garrison(battle, UnitKind.Type.RIFLE, third)
 
-	var cell := map.size.x / CITY_PICTURE_WIDTH
 	var routes: Array[Array] = [
-		[Vector2(450, 420), Vector2(688, 457), Vector2(900, 512)],
-		[Vector2(600, 270), Vector2(688, 457), Vector2(650, 660)],
-		[Vector2(908, 400), Vector2(900, 600), Vector2(650, 660)],
+		[Vector2(560, 330), Vector2(655, 620), Vector2(800, 800)],
+		[Vector2(700, 300), Vector2(914, 525), Vector2(760, 630)],
+		[Vector2(505, 727), Vector2(655, 620), Vector2(914, 525)],
 	]
 	var route: Array = routes[rng.randi_range(0, routes.size() - 1)]
 	var points: Array[Vector2] = []
 	points.assign(route)
-	var patrol_cells := _to_cells(points, cell)
+	var patrol_cells := _to_cells(map, points)
 	var patrol := battle.add_unit(BattleUnit.Side.ENEMY, UnitKind.Type.RIFLE, patrol_cells[0])
 	patrol.role = BattleUnit.Role.PATROL
 	patrol.patrol = patrol_cells
@@ -136,8 +141,13 @@ static func _add_garrison(battle: Battle, kind: UnitKind.Type, post: Vector2i) -
 	garrison.home_cell = post
 
 
-static func _to_cells(points: Array[Vector2], cell: float) -> Array[Vector2i]:
+## Cell under a point given in pixels of the picture.
+static func _to_cell(map: BattleMap, point: Vector2) -> Vector2i:
+	return Vector2i((point * (map.size.x / CITY_PICTURE_WIDTH)).floor())
+
+
+static func _to_cells(map: BattleMap, points: Array[Vector2]) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	for point in points:
-		cells.append(Vector2i((point * cell).floor()))
+		cells.append(_to_cell(map, point))
 	return cells

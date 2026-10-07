@@ -46,7 +46,7 @@ func think(battle: Battle) -> void:
 
 func _hold_objective(battle: Battle, unit: BattleUnit) -> void:
 	var home := BattleMap.cell_centre(unit.home_cell)
-	if unit.position.distance_to(home) > 0.8 and not unit.is_moving():
+	if unit.position.distance_to(home) > 0.8 * battle.map.unit and not unit.is_moving():
 		battle.order_move(unit.id, unit.home_cell)
 
 

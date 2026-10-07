@@ -104,7 +104,7 @@ func add_unit(side: BattleUnit.Side, kind: UnitKind.Type, cell: Vector2i) -> Bat
 	unit.side = side
 	unit.kind = kind
 	unit.strength = UnitKind.STRENGTH[kind]
-	var free := map.nearest_passable(cell, unit.mover())
+	var free := map.nearest_passable(cell, unit.mover(), ceili(8.0 * map.unit))
 	unit.position = BattleMap.cell_centre(free if free.x >= 0 else cell)
 	if side == BattleUnit.Side.PLAYER:
 		var number := count_units(side, false)
@@ -214,12 +214,13 @@ func order_disembark(carrier_id: int) -> bool:
 	# Next to the carrier rather than under it, so both symbols stay readable.
 	var at := Vector2i(carrier.position.floor())
 	var cell := Vector2i(-1, -1)
+	var aside := roundi(2.0 * map.unit)
 	for step: Vector2i in [Vector2i.DOWN, Vector2i.UP, Vector2i.LEFT, Vector2i.RIGHT]:
-		if map.is_passable(at + step * 2, Terrain.Mover.INFANTRY):
-			cell = at + step * 2
+		if map.is_passable(at + step * aside, Terrain.Mover.INFANTRY):
+			cell = at + step * aside
 			break
 	if cell.x < 0:
-		cell = map.nearest_passable(at, Terrain.Mover.INFANTRY)
+		cell = map.nearest_passable(at, Terrain.Mover.INFANTRY, ceili(8.0 * map.unit))
 	if cell.x < 0:
 		return false
 	var passenger := units[carrier.passenger]
@@ -306,7 +307,8 @@ func _spawn_player_unit(kind: UnitKind.Type) -> BattleUnit:
 	# symbols and call signs not to overlap even when the whole map is in view.
 	var index := count_units(BattleUnit.Side.PLAYER, false) % 8
 	var row := (index / 2 + 1) / 2 * (1 if (index / 2) % 2 == 1 else -1)
-	return add_unit(BattleUnit.Side.PLAYER, kind, map.player_base + Vector2i((index % 2) * 5, row * 6))
+	var offset := Vector2((index % 2) * 5.0, row * 6.0) * map.unit
+	return add_unit(BattleUnit.Side.PLAYER, kind, map.player_base + Vector2i(offset.round()))
 
 
 # --- Observation ------------------------------------------------------------
@@ -317,7 +319,9 @@ func _update_sight() -> void:
 	for observer in units:
 		if not observer.is_on_map():
 			continue
-		var sight := UnitKind.SIGHT[observer.kind] * Terrain.SIGHT[map.terrain_at(observer.position)]
+		var sight := (
+			UnitKind.SIGHT[observer.kind] * map.unit * Terrain.SIGHT[map.terrain_at(observer.position)]
+		)
 		for other in units:
 			if other.side == observer.side or not other.is_on_map():
 				continue
@@ -359,7 +363,7 @@ func _update_contacts() -> void:
 			contacts[unit_id] = contact
 		contact.visible = true
 		contact.last_seen = time
-		contact.error = maxf(0.3, ratio * rules.contact_error)
+		contact.error = maxf(0.3, ratio * rules.contact_error) * map.unit
 		if ratio <= IDENTIFY_RATIO:
 			contact.kind = enemy.kind
 		if time - contact.offset_at > 4.0:
@@ -379,7 +383,7 @@ func _update_contacts() -> void:
 
 
 func _is_enemy_close(unit: BattleUnit) -> bool:
-	var limit := UnitKind.HALT_DISTANCE[unit.kind]
+	var limit := UnitKind.HALT_DISTANCE[unit.kind] * map.unit
 	for unit_id: int in _visible[unit.side]:
 		if unit.position.distance_to(units[unit_id].position) <= limit:
 			return true
@@ -391,7 +395,7 @@ func _is_enemy_close(unit: BattleUnit) -> bool:
 func _set_path(unit: BattleUnit, cell: Vector2i) -> bool:
 	var mover := unit.mover()
 	var from := Vector2i(unit.position.floor())
-	var to := map.nearest_passable(cell, mover)
+	var to := map.nearest_passable(cell, mover, ceili(8.0 * map.unit))
 	if to.x < 0:
 		return false
 	if from == to:
@@ -452,7 +456,7 @@ func _approach_carrier(unit: BattleUnit) -> bool:
 	if carrier == null or not carrier.is_on_map() or carrier.passenger >= 0:
 		_stop(unit)
 		return false
-	if unit.position.distance_to(carrier.position) <= EMBARK_DISTANCE:
+	if unit.position.distance_to(carrier.position) <= EMBARK_DISTANCE * map.unit:
 		_stop(unit)
 		unit.carrier = carrier.id
 		unit.position = carrier.position
@@ -468,7 +472,7 @@ func _approach_carrier(unit: BattleUnit) -> bool:
 
 func _step(unit: BattleUnit) -> void:
 	var terrain_speed := Terrain.speed(map.terrain_at(unit.position), unit.mover())
-	var remaining := UnitKind.SPEED[unit.kind] * maxf(terrain_speed, 0.3) * STEP
+	var remaining := UnitKind.SPEED[unit.kind] * map.unit * maxf(terrain_speed, 0.3) * STEP
 	while remaining > 0.0 and unit.is_moving():
 		var to := unit.path[unit.path_index]
 		var distance := unit.position.distance_to(to)
@@ -490,7 +494,7 @@ func _fight() -> void:
 		if not unit.is_on_map():
 			continue
 		var best := -1
-		var best_distance := UnitKind.WEAPON_RANGE[unit.kind]
+		var best_distance := UnitKind.WEAPON_RANGE[unit.kind] * map.unit
 		for unit_id: int in _visible[unit.side]:
 			var distance := unit.position.distance_to(units[unit_id].position)
 			if distance <= best_distance:
@@ -564,11 +568,11 @@ func _process_strikes() -> void:
 		strikes.remove_at(i)
 		var impact := (
 			strike.target
-			+ Vector2.from_angle(_rng.randf() * TAU) * _rng.randf() * rules.strike_scatter
+			+ Vector2.from_angle(_rng.randf() * TAU) * _rng.randf() * rules.strike_scatter * map.unit
 		)
 		_report(&"strike_landed", null, {"position": impact})
 		for unit in units:
-			if not unit.is_on_map() or unit.position.distance_to(impact) > rules.strike_radius:
+			if not unit.is_on_map() or unit.position.distance_to(impact) > rules.strike_radius * map.unit:
 				continue
 			var share := _rng.randf_range(rules.strike_damage_min, rules.strike_damage_max)
 			var cover := lerpf(1.0, Terrain.COVER[map.terrain_at(unit.position)], rules.strike_cover)
@@ -585,7 +589,7 @@ func _refit_units() -> void:
 		var base := BattleMap.cell_centre(base_of(unit.side))
 		var resting := (
 			not unit.is_moving() and unit.target < 0 and time - unit.hit_at > rules.refit_interval
-			and unit.position.distance_to(base) <= rules.refit_radius
+			and unit.position.distance_to(base) <= rules.refit_radius * map.unit
 		)
 		if not resting:
 			unit.refit = 0.0
@@ -606,7 +610,7 @@ func _update_objectives() -> void:
 		var present := [false, false]
 		var centre := BattleMap.cell_centre(objective.cell)
 		for unit in units:
-			if unit.is_on_map() and unit.position.distance_to(centre) <= rules.capture_radius:
+			if unit.is_on_map() and unit.position.distance_to(centre) <= rules.capture_radius * map.unit:
 				present[unit.side] = true
 		var alone := -1
 		if present[0] != present[1]:

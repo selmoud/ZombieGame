@@ -45,14 +45,18 @@ func test_clicks_select_and_order_units() -> void:
 	var squad := battle.units[battle.units.size() - 2]
 	var carrier := battle.units[battle.units.size() - 1]
 
+	var u := battle.map.unit
+	var view: BattleMapView = screen.get_child(2)
 	screen.click_map(squad.position, MOUSE_BUTTON_LEFT)
 	check_eq(screen.get_selected_unit(), squad)
+	var parked := carrier.position
 	carrier.position = squad.position
-	screen.click_map(squad.position + Vector2(2.6, 0.0), MOUSE_BUTTON_LEFT)
-	check_eq(screen.get_selected_unit(), carrier, "units standing together are shown side by side")
+	check(view.shown_position(carrier).x > squad.position.x, "units standing together are shown side by side")
+	screen.click_map(view.shown_position(carrier), MOUSE_BUTTON_LEFT)
+	check_eq(screen.get_selected_unit(), carrier, "and each can be clicked")
 	screen.click_map(squad.position, MOUSE_BUTTON_LEFT)
-	carrier.position = squad.position + Vector2(0.0, 6.0)
-	screen.click_map(squad.position + Vector2(4.0, 2.0), MOUSE_BUTTON_RIGHT)
+	carrier.position = parked
+	screen.click_map(squad.position + Vector2(-1.0, 5.0) * u, MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.MOVE)
 
 	var objective := BattleMap.cell_centre(battle.map.objectives[0].cell)
@@ -63,9 +67,9 @@ func test_clicks_select_and_order_units() -> void:
 	screen.click_map(carrier.position, MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.EMBARK, "right click on a carrier boards it")
 
-	screen.click_map(Vector2(40.5, 2.5), MOUSE_BUTTON_LEFT)
+	screen.click_map(Vector2(40.5, 2.5) * u, MOUSE_BUTTON_LEFT)
 	check_eq(screen.get_selected_unit(), null, "a click on empty ground clears the selection")
-	screen.click_map(squad.position + Vector2(4.0, 2.0), MOUSE_BUTTON_RIGHT)
+	screen.click_map(squad.position + Vector2(-1.0, 5.0) * u, MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.EMBARK, "no order without a selection")
 	await _close_screen(screen)
 
@@ -78,10 +82,10 @@ func test_orders_to_a_carried_squad_go_to_its_carrier() -> void:
 	var squad := battle.units[battle.units.size() - 2]
 	var carrier := battle.units[battle.units.size() - 1]
 	battle.order_embark(squad.id, carrier.id)
-	battle.advance(15.0)
+	battle.advance(40.0)
 	check_eq(squad.carrier, carrier.id)
 	screen.select_unit(squad.id)
-	screen.click_map(carrier.position + Vector2(6.0, 0.0), MOUSE_BUTTON_RIGHT)
+	screen.click_map(carrier.position + Vector2(6.0, 0.0) * battle.map.unit, MOUSE_BUTTON_RIGHT)
 	check_eq(carrier.order, BattleUnit.Order.MOVE)
 	await _close_screen(screen)
 
@@ -99,21 +103,22 @@ func test_map_view_zooms_and_stays_on_the_map() -> void:
 	check(view.to_map(Vector2.ZERO).distance_to(Vector2.ZERO) < 0.01, "cannot be dragged off the map")
 	view.zoom(-40, centre)
 	view.zoom(40, centre)
-	check(view.size.x / view.get_scale_px() >= BattleMapView.CLOSEST_CELLS - 0.01, "zoom has a limit")
+	var closest := BattleMapView.CLOSEST_UNITS * screen.battle.map.unit
+	check(view.size.x / view.get_scale_px() >= closest - 0.01, "zoom has a limit")
 	await _close_screen(screen)
 
 
 func test_armed_strike_is_placed_with_a_left_click() -> void:
 	var screen := await _open_screen()
 	screen.set_strike_mode(true)
-	screen.click_map(Vector2(29.5, 9.5), MOUSE_BUTTON_LEFT)
+	screen.click_map(Vector2(300.5, 300.5), MOUSE_BUTTON_LEFT)
 	check_eq(screen.battle.strikes.size(), 1)
 	check_eq(screen.battle.funds, screen.battle.rules.start_funds - screen.battle.rules.strike_cost)
-	screen.click_map(Vector2(29.5, 9.5), MOUSE_BUTTON_LEFT)
+	screen.click_map(Vector2(300.5, 300.5), MOUSE_BUTTON_LEFT)
 	check_eq(screen.battle.strikes.size(), 1, "the strike mode switches off after one strike")
 
 	screen.set_strike_mode(true)
-	screen.click_map(Vector2(29.5, 9.5), MOUSE_BUTTON_RIGHT)
+	screen.click_map(Vector2(300.5, 300.5), MOUSE_BUTTON_RIGHT)
 	check_eq(screen.battle.strikes.size(), 1, "a right click cancels the strike mode")
 	await _close_screen(screen)
 

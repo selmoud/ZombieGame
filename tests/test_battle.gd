@@ -40,7 +40,8 @@ func test_terrain_limits_each_kind_of_mover() -> void:
 	map.paint_road([Vector2i(8, 5), Vector2i(24, 5)])
 	check_eq(map.get_terrain(Vector2i(10, 5)), Terrain.Type.BRIDGE)
 	check_eq(map.get_terrain(Vector2i(15, 5)), Terrain.Type.ROAD)
-	var route := map.find_path(Vector2i(5, 5), Vector2i(24, 5), Terrain.Mover.VEHICLE)
+	check(not map.is_passable(Vector2i(5, 5), Terrain.Mover.VEHICLE), "vehicles keep to the roads")
+	var route := map.find_path(Vector2i(8, 5), Vector2i(24, 5), Terrain.Mover.VEHICLE)
 	check(not route.is_empty(), "the road and the bridge make a way")
 	for point in route:
 		check(map.is_passable(Vector2i(point.floor()), Terrain.Mover.VEHICLE))
@@ -84,7 +85,9 @@ func test_forest_slows_infantry() -> void:
 
 
 func test_infantry_rides_in_a_carrier() -> void:
-	var battle := _battle()
+	var map := _field()
+	map.paint_road([Vector2i(0, 10), Vector2i(39, 10)])
+	var battle := _battle(map)
 	var squad := battle.add_unit(PLAYER, RIFLE, Vector2i(3, 10))
 	var carrier := battle.add_unit(PLAYER, APC, Vector2i(6, 10))
 	var second := battle.add_unit(PLAYER, SCOUT, Vector2i(3, 12))
@@ -389,16 +392,16 @@ func test_default_mission_is_set_up_and_reproducible() -> void:
 	check(battle.count_units(ENEMY) >= 6, "three garrisons, a strongpoint, a patrol and a reserve")
 	check_eq(battle.count_held(ENEMY), 3)
 	check(not map.background.is_empty() and ResourceLoader.exists(map.background), "the painted map is there")
-	var start := map.nearest_passable(map.player_base, Terrain.Mover.VEHICLE)
+	var start := map.nearest_passable(map.player_base, Terrain.Mover.VEHICLE, 60)
 	for objective in map.objectives:
 		check(map.is_passable(objective.cell, Terrain.Mover.VEHICLE), "%s lies on a road" % objective.title)
 		check(not map.find_path(start, objective.cell, Terrain.Mover.VEHICLE).is_empty(),
 				"a vehicle can drive to %s" % objective.title)
-		check(not map.find_path(map.nearest_passable(map.enemy_base, Terrain.Mover.VEHICLE),
+		check(not map.find_path(map.nearest_passable(map.enemy_base, Terrain.Mover.VEHICLE, 60),
 				objective.cell, Terrain.Mover.VEHICLE).is_empty(), "the enemy can drive to %s" % objective.title)
 	for unit in battle.units:
 		if unit.role == BattleUnit.Role.GARRISON and unit.kind == RIFLE:
-			check_eq(map.terrain_at(unit.position), Terrain.Type.TOWN, "garrisons sit among buildings")
+			check_eq(map.terrain_at(unit.position), Terrain.Type.TOWN, "garrisons sit in the yards between houses")
 	check_eq(map.square_name(Vector2(0.5, 0.5)), "А1")
 
 	var other := Battle.new(5)
@@ -417,7 +420,7 @@ func test_default_mission_is_set_up_and_reproducible() -> void:
 
 
 func test_city_river_is_crossed_only_by_bridges() -> void:
-	var map := MapLibrary.create_city()
+	var map := MapLibrary.create_city(true)
 	var west := map.nearest_passable(map.player_base, Terrain.Mover.INFANTRY)
 	var square := map.objectives[1].cell
 	check(not map.find_path(west, square, Terrain.Mover.INFANTRY).is_empty(), "infantry reaches the city")
@@ -432,19 +435,53 @@ func test_city_river_is_crossed_only_by_bridges() -> void:
 
 
 func test_map_is_read_from_a_terrain_mask() -> void:
-	var mask := Image.create(5, 1, false, Image.FORMAT_RGB8)
-	mask.set_pixel(0, 0, Color.BLACK)
-	mask.set_pixel(1, 0, Color.BLUE)
-	mask.set_pixel(2, 0, Color.RED)
-	mask.set_pixel(3, 0, Color.GREEN)
-	mask.set_pixel(4, 0, Color.YELLOW)
-	var map := BattleMap.from_mask(mask)
-	check_eq(map.size, Vector2i(5, 1))
-	var expected: Array[Terrain.Type] = [
-		Terrain.Type.FIELD, Terrain.Type.WATER, Terrain.Type.TOWN, Terrain.Type.FOREST, Terrain.Type.HILL,
+	var colors: Array[Color] = [
+		Color.BLACK, Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW,
+		Color.MAGENTA, Color.WHITE, Color.CYAN,
 	]
-	for x in 5:
+	var expected: Array[Terrain.Type] = [
+		Terrain.Type.FIELD, Terrain.Type.WATER, Terrain.Type.BUILDING, Terrain.Type.FOREST,
+		Terrain.Type.HILL, Terrain.Type.TOWN, Terrain.Type.ROAD, Terrain.Type.BRIDGE,
+	]
+	var mask := Image.create(colors.size(), 1, false, Image.FORMAT_RGB8)
+	for x in colors.size():
+		mask.set_pixel(x, 0, colors[x])
+	var map := BattleMap.from_mask(mask)
+	check_eq(map.size, Vector2i(colors.size(), 1))
+	for x in colors.size():
 		check_eq(map.get_terrain(Vector2i(x, 0)), expected[x])
+	check(not map.is_passable(Vector2i(2, 0), Terrain.Mover.INFANTRY), "nobody walks through a house")
+	check(map.is_passable(Vector2i(5, 0), Terrain.Mover.INFANTRY), "infantry passes between houses")
+	check(not map.is_passable(Vector2i(5, 0), Terrain.Mover.VEHICLE), "vehicles do not")
+
+
+func test_infantry_finds_a_way_between_houses() -> void:
+	var map := MapLibrary.create_city()
+	var from := map.objectives[MapLibrary.BRIDGE].cell
+	var to := map.objectives[MapLibrary.SQUARE].cell
+	var on_foot := map.find_path(from, to, Terrain.Mover.INFANTRY)
+	var by_road := map.find_path(from, to, Terrain.Mover.VEHICLE)
+	check(not on_foot.is_empty() and not by_road.is_empty())
+	var through_yards := 0
+	for point in on_foot:
+		var type := map.terrain_at(point)
+		check(type != Terrain.Type.BUILDING and type != Terrain.Type.WATER, "the way never crosses a house")
+		if type == Terrain.Type.TOWN:
+			through_yards += 1
+	for point in by_road:
+		var type := map.terrain_at(point)
+		check(type == Terrain.Type.ROAD or type == Terrain.Type.BRIDGE, "vehicles stay on the road")
+	# Houses must be real obstacles, not a rare speck: a fair share of the city is roof.
+	var houses := 0
+	var yards := 0
+	for y in range(from.y - 40, from.y + 40):
+		for x in range(from.x + 10, from.x + 90):
+			match map.get_terrain(Vector2i(x, y)):
+				Terrain.Type.BUILDING:
+					houses += 1
+				Terrain.Type.TOWN:
+					yards += 1
+	check(houses * 6 > yards, "houses %d, yards %d" % [houses, yards])
 
 
 func test_enemy_force_differs_between_missions() -> void:

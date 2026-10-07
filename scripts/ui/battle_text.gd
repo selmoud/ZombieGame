@@ -7,7 +7,7 @@ const KIND_SHORT: PackedStringArray = ["Стрелки", "Разведка", "Б
 const CONTACT_TITLES: PackedStringArray = ["пехота", "разведгруппа", "бронетехника"]
 const CONTACT_UNKNOWN := "не опознан"
 const TERRAIN_TITLES: PackedStringArray = [
-	"поле", "дорога", "лес", "высота", "застройка", "вода", "мост",
+	"открытое место", "дорога", "сады", "высота", "дворы", "вода", "мост", "здание",
 ]
 
 

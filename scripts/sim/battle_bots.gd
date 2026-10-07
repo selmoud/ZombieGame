@@ -92,7 +92,7 @@ func think(battle: Battle) -> void:
 func _is_refitting(battle: Battle, unit: BattleUnit) -> bool:
 	var share := float(unit.strength) / unit.max_strength()
 	var base := BattleMap.cell_centre(battle.map.player_base)
-	var at_base := unit.position.distance_to(base) <= battle.rules.refit_radius
+	var at_base := unit.position.distance_to(base) <= battle.rules.refit_radius * battle.map.unit
 	if at_base and share < 0.9:
 		return true
 	if share <= 0.5 and unit.target < 0:
@@ -113,17 +113,18 @@ func _next_objective(battle: Battle) -> int:
 func _scout(battle: Battle, unit: BattleUnit, goal: int) -> void:
 	if goal < 0:
 		return
+	var u := battle.map.unit
 	var spot := _stand_off(battle, goal, OBSERVE_DISTANCE)
 	var centre := BattleMap.cell_centre(battle.map.objectives[goal].cell)
 	# The scout is in place when it has arrived or has stopped because it sees the enemy.
 	var in_place := not unit.is_moving() and (
-		unit.position.distance_to(spot) <= 3.0 or unit.position.distance_to(centre) <= 11.0
+		unit.position.distance_to(spot) <= 3.0 * u or unit.position.distance_to(centre) <= 11.0 * u
 	)
 	if in_place and not _watched.has(goal):
 		_watched[goal] = battle.time
 	if unit.is_moving() or _fresh_contacts_near(battle, unit.position, 12.0) > 0:
 		return
-	if unit.position.distance_to(spot) > 2.5:
+	if unit.position.distance_to(spot) > 2.5 * u:
 		battle.order_move(unit.id, Vector2i(spot.floor()))
 
 
@@ -145,13 +146,13 @@ func _fight(battle: Battle, unit: BattleUnit, goal: int) -> void:
 		if _has_scout(battle):
 			wait = not _watched.has(objective) or battle.time - _watched[objective] < WATCH_TIME
 		for strike in battle.strikes:
-			if strike.target.distance_to(centre) <= 7.0:
+			if strike.target.distance_to(centre) <= 7.0 * battle.map.unit:
 				wait = true
 	if wait:
 		var spot := _stand_off(battle, objective, STAGING_DISTANCE)
 		if unit.order == BattleUnit.Order.CAPTURE:
 			battle.order_hold(unit.id)
-		if not unit.is_moving() and unit.position.distance_to(spot) > 2.5:
+		if not unit.is_moving() and unit.position.distance_to(spot) > 2.5 * battle.map.unit:
 			battle.order_move(unit.id, Vector2i(spot.floor()))
 	elif unit.order != BattleUnit.Order.CAPTURE or unit.objective != objective:
 		battle.order_capture(unit.id, objective)
@@ -161,9 +162,10 @@ func _shell(battle: Battle) -> void:
 	if not battle.can_strike() or battle.time - _last_strike < battle.rules.strike_delay + 2.0:
 		return
 
-	var danger := battle.rules.strike_radius + battle.rules.strike_scatter + SAFE_STRIKE_MARGIN
+	var u := battle.map.unit
+	var danger := (battle.rules.strike_radius + battle.rules.strike_scatter + SAFE_STRIKE_MARGIN) * u
 	for contact: Battle.Contact in battle.contacts.values():
-		if not contact.visible or contact.error > 1.8:
+		if not contact.visible or contact.error > 1.8 * u:
 			continue
 		var safe := true
 		for unit in battle.units:
@@ -175,7 +177,7 @@ func _shell(battle: Battle) -> void:
 			_last_strike = battle.time
 			for objective in battle.map.objectives:
 				var centre := BattleMap.cell_centre(objective.cell)
-				if centre.distance_to(contact.position) <= 6.0:
+				if centre.distance_to(contact.position) <= 6.0 * u:
 					_shelled[objective.index] = battle.time + battle.rules.strike_delay
 			return
 
@@ -192,7 +194,7 @@ func _fresh_contacts_near(battle: Battle, position: Vector2, distance: float) ->
 	for contact: Battle.Contact in battle.contacts.values():
 		if battle.time - contact.last_seen > FRESH_CONTACT:
 			continue
-		if contact.position.distance_to(position) <= distance:
+		if contact.position.distance_to(position) <= distance * battle.map.unit:
 			count += 1
 	return count
 
@@ -201,4 +203,4 @@ func _fresh_contacts_near(battle: Battle, position: Vector2, distance: float) ->
 func _stand_off(battle: Battle, objective: int, distance: float) -> Vector2:
 	var centre := BattleMap.cell_centre(battle.map.objectives[objective].cell)
 	var base := BattleMap.cell_centre(battle.map.player_base)
-	return centre + (base - centre).normalized() * distance
+	return centre + (base - centre).normalized() * distance * battle.map.unit
