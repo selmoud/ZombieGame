@@ -45,6 +45,8 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 	match event.kind:
 		&"contact":
 			return "%s: контакт, квадрат %s — %s." % [who, square, contact_title(event.contact_kind)]
+		&"ambushed":
+			return "%s: засада! Огонь с неразведанной позиции, квадрат %s!" % [who, square]
 		&"under_fire":
 			return "%s: под огнём, квадрат %s!" % [who, square]
 		&"casualties":
@@ -81,5 +83,5 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 ## Messages that deserve attention are shown in a warning colour.
 static func is_alarm(event: Dictionary) -> bool:
 	return event.kind in [
-		&"under_fire", &"casualties", &"retreating", &"unit_lost", &"objective_lost",
+		&"ambushed", &"under_fire", &"casualties", &"retreating", &"unit_lost", &"objective_lost",
 	]

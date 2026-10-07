@@ -15,7 +15,10 @@ enum Style {
 const THINK_INTERVAL := 1.0
 ## Combat units wait this far from an objective until it looks clear.
 const STAGING_DISTANCE := 9.0
-const OBSERVE_DISTANCE := 9.0
+## Close enough for a scout to see into buildings, far enough to stay unseen.
+const OBSERVE_DISTANCE := 6.5
+## Riflemen move in this long after the scout has started watching the objective.
+const WATCH_TIME := 5.0
 ## A contact older than this no longer holds the attack back.
 const FRESH_CONTACT := 25.0
 const SAFE_STRIKE_MARGIN := 1.5
@@ -24,6 +27,8 @@ var style: Style
 ## Objective each of our units is assigned to, by unit id.
 var _assigned: Dictionary[int, int] = {}
 var _last_strike := -100.0
+## When the scout started watching each objective.
+var _watched: Dictionary[int, float] = {}
 ## When each objective was last shelled.
 var _shelled: Dictionary[int, float] = {}
 
@@ -61,11 +66,14 @@ func deploy(battle: Battle) -> void:
 func think(battle: Battle) -> void:
 	if style == Style.IDLE:
 		return
-	# Shells come first: a squad is bought only with what is left after them.
-	if style == Style.RECON:
-		_shell(battle)
+	# The group is brought up to full size first; shells are paid for from what is
+	# left, or from everything once the group is full.
 	if battle.arrivals.is_empty() and battle.can_buy(UnitKind.Type.RIFLE):
 		battle.buy_unit(UnitKind.Type.RIFLE)
+	var group := battle.count_units(BattleUnit.Side.PLAYER) + battle.arrivals.size()
+	var spare := battle.funds - (0.0 if group >= battle.rules.max_units else float(UnitKind.COST[UnitKind.Type.RIFLE]))
+	if style == Style.RECON and spare >= battle.rules.strike_cost:
+		_shell(battle)
 
 	var goal := _next_objective(battle)
 	for unit in battle.units:
@@ -103,9 +111,18 @@ func _next_objective(battle: Battle) -> int:
 
 
 func _scout(battle: Battle, unit: BattleUnit, goal: int) -> void:
-	if goal < 0 or unit.is_moving() or _fresh_contacts_near(battle, unit.position, 12.0) > 0:
+	if goal < 0:
 		return
 	var spot := _stand_off(battle, goal, OBSERVE_DISTANCE)
+	var centre := BattleMap.cell_centre(battle.map.objectives[goal].cell)
+	# The scout is in place when it has arrived or has stopped because it sees the enemy.
+	var in_place := not unit.is_moving() and (
+		unit.position.distance_to(spot) <= 3.0 or unit.position.distance_to(centre) <= 11.0
+	)
+	if in_place and not _watched.has(goal):
+		_watched[goal] = battle.time
+	if unit.is_moving() or _fresh_contacts_near(battle, unit.position, 12.0) > 0:
+		return
 	if unit.position.distance_to(spot) > 2.5:
 		battle.order_move(unit.id, Vector2i(spot.floor()))
 
@@ -121,9 +138,12 @@ func _fight(battle: Battle, unit: BattleUnit, goal: int) -> void:
 		return
 	var centre := BattleMap.cell_centre(battle.map.objectives[objective].cell)
 	var ours := battle.owners[objective] == BattleUnit.Side.PLAYER
-	# Hold back only while shells are on their way to this objective.
+	# Hold back until the scout has had a look at the objective, and while shells
+	# are on their way to it.
 	var wait := false
 	if style == Style.RECON and not ours:
+		if _has_scout(battle):
+			wait = not _watched.has(objective) or battle.time - _watched[objective] < WATCH_TIME
 		for strike in battle.strikes:
 			if strike.target.distance_to(centre) <= 7.0:
 				wait = true
@@ -158,6 +178,13 @@ func _shell(battle: Battle) -> void:
 				if centre.distance_to(contact.position) <= 6.0:
 					_shelled[objective.index] = battle.time + battle.rules.strike_delay
 			return
+
+
+func _has_scout(battle: Battle) -> bool:
+	for unit in battle.units:
+		if unit.side == BattleUnit.Side.PLAYER and unit.is_on_map() and unit.kind == UnitKind.Type.SCOUT:
+			return true
+	return false
 
 
 func _fresh_contacts_near(battle: Battle, position: Vector2, distance: float) -> int:

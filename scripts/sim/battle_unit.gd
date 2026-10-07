@@ -34,6 +34,11 @@ var passenger := -1
 var target := -1
 var fired_at := -100.0
 var hit_at := -100.0
+## Since when the other side has been watching this unit, or -1 if it is not being watched.
+var known_since := -1.0
+var last_seen := -100.0
+## Until when the unit is caught off guard and takes extra damage.
+var surprised_until := -100.0
 ## Damage not yet turned into a loss of strength.
 var damage := 0.0
 ## Time spent resting at the base since the last man came back.

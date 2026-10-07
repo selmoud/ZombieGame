@@ -7,14 +7,19 @@ const BAR_HEIGHT := 48
 const SPEEDS: Array[float] = [1.0, 2.0, 4.0]
 const RADIO_LINES := 60
 
-const COLOR_BACKGROUND := Color("33382f")
-const COLOR_PANEL := Color("454c41")
-const COLOR_TEXT := Color("edebdf")
-const COLOR_MUTED := Color("b4b7a5")
-const COLOR_ALARM := Color("ff9b7d")
-const COLOR_BUTTON := Color("596153")
-const COLOR_BUTTON_HOVER := Color("6b7464")
-const COLOR_LINE := Color("272b24")
+const COLOR_BACKGROUND := Color("0a1626")
+const COLOR_PANEL := Color("0f2236")
+const COLOR_TEXT := Color("eaf2fb")
+const COLOR_MUTED := Color("8aa5bf")
+const COLOR_ALARM := Color("ff8f86")
+const COLOR_BUTTON := Color("173450")
+const COLOR_BUTTON_HOVER := Color("21486c")
+const COLOR_LINE := Color("2a5578")
+const MAP_SIZE := Vector2(960, 672)
+const PAN_KEYS: Dictionary[Key, Vector2] = {
+	KEY_LEFT: Vector2.LEFT, KEY_A: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_D: Vector2.RIGHT,
+	KEY_UP: Vector2.UP, KEY_W: Vector2.UP, KEY_DOWN: Vector2.DOWN, KEY_S: Vector2.DOWN,
+}
 
 var battle: Battle
 var paused := true
@@ -48,6 +53,12 @@ func _process(delta: float) -> void:
 		return
 	if not paused:
 		battle.advance(delta * speed)
+	var push := Vector2.ZERO
+	for key: Key in PAN_KEYS:
+		if Input.is_key_pressed(key):
+			push += PAN_KEYS[key]
+	if push != Vector2.ZERO:
+		_map.pan(push * BattleMapView.PAN_SPEED * delta)
 	_refresh()
 
 
@@ -194,6 +205,7 @@ func _build_layout() -> void:
 
 	_map = BattleMapView.new()
 	_map.position = Vector2(0, BAR_HEIGHT)
+	_map.size = MAP_SIZE
 	_map.map_clicked.connect(click_map)
 	add_child(_map)
 
@@ -289,7 +301,10 @@ func _refresh() -> void:
 	if unit == null:
 		_map.selected_unit = -1
 		_unit_title.text = "Отряд не выбран"
-		_unit_details.text = "ЛКМ — выбрать отряд.\nПКМ — идти; по объекту — занять; по БТР — погрузка."
+		_unit_details.text = (
+			"ЛКМ — выбрать отряд. ПКМ — идти; по объекту — занять; по БТР — погрузка.\n"
+			+ "Колесо — масштаб, средняя кнопка или WASD — сдвиг карты."
+		)
 	else:
 		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind].to_lower()]
 		var lines: PackedStringArray = [
@@ -402,13 +417,13 @@ func _make_theme() -> Theme:
 	result.set_color("font_color", "Label", COLOR_TEXT)
 	result.set_stylebox("normal", "Button", _framed(COLOR_BUTTON, 10, 5))
 	result.set_stylebox("hover", "Button", _framed(COLOR_BUTTON_HOVER, 10, 5, COLOR_TEXT))
-	result.set_stylebox("pressed", "Button", _framed(COLOR_TEXT, 10, 5))
+	result.set_stylebox("pressed", "Button", _framed(Color("4fb0ff"), 10, 5))
 	result.set_stylebox("disabled", "Button", _framed(Color(COLOR_BUTTON, 0.35), 10, 5))
 	result.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	result.set_color("font_color", "Button", COLOR_TEXT)
 	result.set_color("font_hover_color", "Button", Color.WHITE)
-	result.set_color("font_pressed_color", "Button", COLOR_LINE)
-	result.set_color("font_hover_pressed_color", "Button", COLOR_LINE)
+	result.set_color("font_pressed_color", "Button", COLOR_BACKGROUND)
+	result.set_color("font_hover_pressed_color", "Button", COLOR_BACKGROUND)
 	result.set_color("font_disabled_color", "Button", Color(COLOR_MUTED, 0.5))
 	var line := StyleBoxLine.new()
 	line.color = COLOR_LINE

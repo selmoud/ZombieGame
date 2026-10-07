@@ -27,6 +27,12 @@ extends Resource
 @export var strike_cover := 0.5
 ## Strength lost per second by a target of a full-strength unit with firepower 1.
 @export var damage_rate := 0.2
+## A unit fired on by an enemy its side did not know about is caught off guard:
+## for `surprise_time` it takes `surprise_factor` times the damage.
+@export var surprise_time := 8.0
+@export var surprise_factor := 2.0
+## The enemy counts as known when it has been watched for at least this long.
+@export var surprise_warning := 3.0
 ## A unit weaker than this share of full strength pulls back when hit.
 @export var retreat_threshold := 0.3
 ## A unit resting this close to its base gets one man back every `refit_interval`.
@@ -39,4 +45,4 @@ extends Resource
 ## The enemy starts to retake an objective this long after losing it.
 @export var counterattack_delay := 60.0
 @export var enemy_reinforce_interval := 120.0
-@export var enemy_unit_cap := 7
+@export var enemy_unit_cap := 11

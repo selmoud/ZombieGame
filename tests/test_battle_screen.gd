@@ -52,7 +52,7 @@ func test_clicks_select_and_order_units() -> void:
 	check_eq(screen.get_selected_unit(), carrier, "units standing together are shown side by side")
 	screen.click_map(squad.position, MOUSE_BUTTON_LEFT)
 	carrier.position = squad.position + Vector2(0.0, 6.0)
-	screen.click_map(Vector2(12.5, 21.5), MOUSE_BUTTON_RIGHT)
+	screen.click_map(squad.position + Vector2(4.0, 2.0), MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.MOVE)
 
 	var objective := BattleMap.cell_centre(battle.map.objectives[0].cell)
@@ -63,9 +63,9 @@ func test_clicks_select_and_order_units() -> void:
 	screen.click_map(carrier.position, MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.EMBARK, "right click on a carrier boards it")
 
-	screen.click_map(Vector2(20.5, 2.5), MOUSE_BUTTON_LEFT)
+	screen.click_map(Vector2(40.5, 2.5), MOUSE_BUTTON_LEFT)
 	check_eq(screen.get_selected_unit(), null, "a click on empty ground clears the selection")
-	screen.click_map(Vector2(12.5, 21.5), MOUSE_BUTTON_RIGHT)
+	screen.click_map(squad.position + Vector2(4.0, 2.0), MOUSE_BUTTON_RIGHT)
 	check_eq(squad.order, BattleUnit.Order.EMBARK, "no order without a selection")
 	await _close_screen(screen)
 
@@ -81,8 +81,25 @@ func test_orders_to_a_carried_squad_go_to_its_carrier() -> void:
 	battle.advance(15.0)
 	check_eq(squad.carrier, carrier.id)
 	screen.select_unit(squad.id)
-	screen.click_map(Vector2(12.5, 21.5), MOUSE_BUTTON_RIGHT)
+	screen.click_map(carrier.position + Vector2(6.0, 0.0), MOUSE_BUTTON_RIGHT)
 	check_eq(carrier.order, BattleUnit.Order.MOVE)
+	await _close_screen(screen)
+
+
+func test_map_view_zooms_and_stays_on_the_map() -> void:
+	var screen := await _open_screen()
+	var view: BattleMapView = screen.get_child(2)
+	var widest := view.get_scale_px()
+	var centre := view.size / 2.0
+	var under_cursor := view.to_map(centre)
+	view.zoom(4, centre)
+	check(view.get_scale_px() > widest, "zooms in")
+	check(view.to_map(centre).distance_to(under_cursor) < 0.01, "the point under the cursor stays put")
+	view.pan(Vector2(-100000.0, -100000.0))
+	check(view.to_map(Vector2.ZERO).distance_to(Vector2.ZERO) < 0.01, "cannot be dragged off the map")
+	view.zoom(-40, centre)
+	view.zoom(40, centre)
+	check(view.size.x / view.get_scale_px() >= BattleMapView.CLOSEST_CELLS - 0.01, "zoom has a limit")
 	await _close_screen(screen)
 
 
@@ -123,7 +140,7 @@ func test_every_event_has_a_radio_line() -> void:
 				kinds[event.kind] = true
 				check(not BattleText.describe_event(battle, event).is_empty(), "no text for %s" % event.kind)
 	for kind: StringName in [
-		&"contact", &"under_fire", &"casualties", &"retreating", &"unit_lost", &"halted",
+		&"contact", &"ambushed", &"under_fire", &"casualties", &"retreating", &"unit_lost", &"halted",
 		&"arrived_reinforcement", &"enemy_destroyed", &"objective_taken", &"objective_lost",
 		&"strike_called", &"strike_landed",
 	]:

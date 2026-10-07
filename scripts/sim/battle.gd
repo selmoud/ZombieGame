@@ -16,6 +16,8 @@ const SLOW_REPORTS: Dictionary[StringName, float] = {&"under_fire": 40.0}
 ## A unit that fired this recently is easier to spot.
 const MUZZLE_FLASH_TIME := 2.0
 const MUZZLE_FLASH_BONUS := 1.5
+## A unit lost from view for this long has to be found again to count as known.
+const FORGET_TIME := 10.0
 ## A contact is identified when seen closer than this share of the sight range.
 const IDENTIFY_RATIO := 0.75
 const EMBARK_DISTANCE := 1.3
@@ -84,8 +86,8 @@ func _init(seed_value: int, battle_rules: BattleRules = null, battle_map: Battle
 	if battle_map != null:
 		map = battle_map
 	else:
-		map = MapLibrary.create_valley()
-		MapLibrary.place_valley_enemy(self, _rng)
+		map = MapLibrary.create_city()
+		MapLibrary.place_city_enemy(self, _rng)
 	funds = rules.start_funds
 	var count := map.objectives.size()
 	owners.resize(count)
@@ -300,11 +302,11 @@ func _process_arrivals() -> void:
 
 
 func _spawn_player_unit(kind: UnitKind.Type) -> BattleUnit:
-	# Line arrivals up north and south of the base so their symbols and call signs
-	# do not sit on top of each other.
-	var index := count_units(BattleUnit.Side.PLAYER, false) % 7
-	var row := (index + 1) / 2 * (1 if index % 2 == 1 else -1)
-	return add_unit(BattleUnit.Side.PLAYER, kind, map.player_base + Vector2i(0, row * 3))
+	# Arrivals form up in two columns around the base, far enough apart for their
+	# symbols and call signs not to overlap even when the whole map is in view.
+	var index := count_units(BattleUnit.Side.PLAYER, false) % 8
+	var row := (index / 2 + 1) / 2 * (1 if (index / 2) % 2 == 1 else -1)
+	return add_unit(BattleUnit.Side.PLAYER, kind, map.player_base + Vector2i((index % 2) * 5, row * 6))
 
 
 # --- Observation ------------------------------------------------------------
@@ -333,6 +335,13 @@ func _update_sight() -> void:
 			var seen: Dictionary = _visible[observer.side]
 			if not seen.has(other.id) or ratio < seen[other.id].ratio:
 				seen[other.id] = {"ratio": ratio, "observer": observer.id}
+	for unit in units:
+		if _visible[1 - unit.side].has(unit.id):
+			if unit.known_since < 0.0:
+				unit.known_since = time
+			unit.last_seen = time
+		elif time - unit.last_seen > FORGET_TIME:
+			unit.known_since = -1.0
 	_update_contacts()
 
 
@@ -476,6 +485,7 @@ func _step(unit: BattleUnit) -> void:
 
 func _fight() -> void:
 	for unit in units:
+		var was_firing := unit.target >= 0
 		unit.target = -1
 		if not unit.is_on_map():
 			continue
@@ -491,9 +501,18 @@ func _fight() -> void:
 		var enemy := units[best]
 		unit.target = best
 		unit.fired_at = time
+		# Opening fire on a target one has been watching, while its side has not had
+		# time to find the shooter, catches the target off guard. Two units that run
+		# into each other at the same moment surprise nobody.
+		var unknown := unit.known_since < 0.0 or time - unit.known_since < rules.surprise_warning
+		var watched := enemy.known_since >= 0.0 and time - enemy.known_since >= 1.0
+		if not was_firing and unknown and watched and time > enemy.surprised_until:
+			enemy.surprised_until = time + rules.surprise_time
+			_report(&"ambushed", enemy, {"position": enemy.position})
 		var power := 0.4 + 0.6 * unit.strength / unit.max_strength()
+		var shock := rules.surprise_factor if time <= enemy.surprised_until else 1.0
 		enemy.damage += (
-			UnitKind.FIREPOWER[unit.kind] * power * rules.damage_rate * STEP
+			UnitKind.FIREPOWER[unit.kind] * power * rules.damage_rate * STEP * shock
 			* Terrain.COVER[map.terrain_at(enemy.position)] * UnitKind.ARMOUR[enemy.kind]
 		)
 		enemy.hit_at = time

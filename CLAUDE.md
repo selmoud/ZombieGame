@@ -22,14 +22,19 @@
   - `battle.gd` — состояние миссии и её ход: приказы, движение, видимость, контакты,
     бой, артиллерия, объекты, результат;
   - `battle_rules.gd`, `unit_kind.gd`, `terrain.gd` — все числа баланса;
-  - `battle_map.gd`, `map_library.gd` — сетка местности, маршруты, готовые карты;
+  - `battle_map.gd` — сетка местности и маршруты; `map_library.gd` — городская карта:
+    дороги, русло реки, объекты и силы противника;
   - `battle_enemy_ai.gd` — противник; `battle_bots.gd` — автоматические игроки.
 - `scripts/ui/` — экран: `battle_screen.gd` (панели, время, приказы мышью),
   `battle_map_view.gd` (карта, рисуется кодом), `battle_text.gd` (все тексты для игрока).
+- `assets/maps/city.png` — карта, нарисованная владельцем; `city_terrain.png` — маска
+  местности, одна точка на клетку. Маску строит `tools/make_terrain_mask.py`; после
+  замены картинки запустить его и проверить глазами предпросмотр, который он пишет.
 - `scenes/battle.tscn` — главная сцена; интерфейс собирается кодом.
 - `scripts/dev/screenshot_hook.gd` — автозагрузка: сохраняет кадр, если задан `SHOT_PATH`.
 - `tests/` — `test_case.gd` (базовый класс), `run_all.gd` (раннер), тесты `test_*.gd`.
-- `tools/` — `run_tests.sh`, `godot.sh` (headless-запуск), `balance.gd` (прогон миссий).
+- `tools/` — `run_tests.sh`, `godot.sh` (headless-запуск), `balance.gd` (прогон миссий),
+  `make_terrain_mask.py` (маска местности по картинке).
 - `.tools/` — локальные рабочие файлы, в git не попадают.
 - Файлы `*.gd.uid` коммитятся вместе со скриптами.
 
@@ -61,10 +66,10 @@
 нужное состояние игры, положить сценарий в `.tools/shot_setup.gd` (см. комментарий
 в `scripts/dev/screenshot_hook.gd`).
 
-Баланс после изменения правил или чисел (минута-две на 60 миссий):
+Баланс после изменения правил или чисел (минуты три на 24 миссии):
 
 ```bash
-tools/godot.sh --script res://tools/balance.gd -- 60
+tools/godot.sh --script res://tools/balance.gd -- 24
 ```
 
 Цели по долям побед автоматических игроков записаны в `docs/design.md`.

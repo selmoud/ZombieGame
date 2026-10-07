@@ -5,7 +5,7 @@ extends RefCounted
 
 ## One map square of the coordinate grid is this many cells wide and high.
 const SQUARE_CELLS := 6
-const SQUARE_LETTERS := "АБВГДЕЖЗИКЛМ"
+const SQUARE_LETTERS := "АБВГДЕЖЗИКЛМНОПР"
 
 
 class Objective:
@@ -16,8 +16,10 @@ class Objective:
 
 var size: Vector2i
 var objectives: Array[Objective] = []
-## Roads as the lines they were laid along, in cell units; the map view draws them.
+## Roads as the lines they were laid along, in cell units.
 var roads: Array[PackedVector2Array] = []
+## Painted picture of the map that the screen shows under the units; "" for none.
+var background := ""
 ## Where the player's units arrive.
 var player_base: Vector2i
 ## Where enemy reinforcements arrive.
@@ -31,6 +33,45 @@ func _init(map_size: Vector2i) -> void:
 	size = map_size
 	_cells.resize(size.x * size.y)
 	_cells.fill(Terrain.Type.FIELD)
+
+
+## Builds a map from a terrain mask: one pixel per cell, coloured as
+## tools/make_terrain_mask.py writes it. Black is open ground, blue water,
+## red buildings, green orchards and fields, yellow high ground.
+static func from_mask(mask: Image) -> BattleMap:
+	var map := BattleMap.new(mask.get_size())
+	for y in map.size.y:
+		for x in map.size.x:
+			var color := mask.get_pixel(x, y)
+			var red := color.r > 0.5
+			var green := color.g > 0.5
+			var type := Terrain.Type.FIELD
+			if red and green:
+				type = Terrain.Type.HILL
+			elif red:
+				type = Terrain.Type.TOWN
+			elif green:
+				type = Terrain.Type.FOREST
+			elif color.b > 0.5:
+				type = Terrain.Type.WATER
+			map._cells[y * map.size.x + x] = type
+	return map
+
+
+## Closest cell of the given terrain within the radius, or the cell itself if none.
+func nearest_terrain(cell: Vector2i, type: Terrain.Type, max_radius: int = 4) -> Vector2i:
+	var best := cell
+	var best_distance := INF
+	for y in range(cell.y - max_radius, cell.y + max_radius + 1):
+		for x in range(cell.x - max_radius, cell.x + max_radius + 1):
+			var candidate := Vector2i(x, y)
+			if not contains(candidate) or get_terrain(candidate) != type:
+				continue
+			var distance := Vector2(candidate - cell).length()
+			if distance < best_distance:
+				best_distance = distance
+				best = candidate
+	return best
 
 
 func contains(cell: Vector2i) -> bool:
@@ -143,8 +184,23 @@ func paint_blob(centre: Vector2, radius: Vector2, type: Terrain.Type) -> void:
 				set_terrain(Vector2i(x, y), type)
 
 
+## Paints a band of terrain along the line through the points, `radius` cells to each side.
+func paint_line(points: Array[Vector2i], type: Terrain.Type, radius: int) -> void:
+	for i in range(1, points.size()):
+		var from := points[i - 1]
+		var to := points[i]
+		var steps := maxi(absi(to.x - from.x), absi(to.y - from.y))
+		for step in steps + 1:
+			var cell := Vector2i((Vector2(from).lerp(Vector2(to), float(step) / maxf(steps, 1.0))).round())
+			for dy in range(-radius, radius + 1):
+				for dx in range(-radius, radius + 1):
+					set_terrain(cell + Vector2i(dx, dy), type)
+
+
 ## Paints a line of cells through the points. A road over water becomes a bridge.
-func paint_road(points: Array[Vector2i]) -> void:
+## `verge` clears buildings this many cells to each side, for a highway that the
+## terrain mask mistook for a row of roofs.
+func paint_road(points: Array[Vector2i], verge: int = 0) -> void:
 	var line := PackedVector2Array()
 	for point in points:
 		line.append(cell_centre(point))
@@ -160,6 +216,10 @@ func paint_road(points: Array[Vector2i]) -> void:
 			if cell.x != previous.x and cell.y != previous.y:
 				_paint_road_cell(Vector2i(cell.x, previous.y))
 			_paint_road_cell(cell)
+			for dy in range(-verge, verge + 1):
+				for dx in range(-verge, verge + 1):
+					if get_terrain(cell + Vector2i(dx, dy)) == Terrain.Type.TOWN:
+						set_terrain(cell + Vector2i(dx, dy), Terrain.Type.FIELD)
 			previous = cell
 
 
