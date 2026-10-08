@@ -41,11 +41,20 @@ CELL = 2
 REFERENCE = 1254.0  # the hand-made coordinates below are for a picture this wide
 
 HILLS = [
-    [(0, 0), (195, 0), (190, 60), (170, 110), (120, 100), (60, 115), (0, 110)],
-    [(1005, 0), (1254, 0), (1254, 140), (1190, 150), (1130, 110), (1050, 90), (1010, 40)],
-    [(0, 945), (110, 945), (200, 985), (250, 1060), (250, 1254), (0, 1254)],
-    [(1090, 1000), (1150, 960), (1254, 980), (1254, 1254), (950, 1254), (960, 1160),
-     (1010, 1130), (1090, 1120)],
+    # North-west.
+    [(0, 0), (202, 0), (203, 40), (188, 75), (190, 108), (172, 132), (148, 138), (120, 118),
+     (90, 105), (60, 92), (30, 80), (0, 78)],
+    # North-east, down to the road.
+    [(1008, 0), (1254, 0), (1254, 135), (1215, 150), (1180, 165), (1140, 160), (1110, 125),
+     (1085, 98), (1075, 62), (1040, 45), (1012, 30)],
+    # South-west.
+    [(0, 948), (60, 938), (105, 948), (150, 972), (180, 1005), (185, 1050), (175, 1085),
+     (215, 1100), (240, 1140), (248, 1200), (250, 1254), (0, 1254)],
+    # South-east: two hills with the road running between them.
+    [(1150, 985), (1185, 975), (1254, 985), (1254, 1185), (1215, 1150), (1170, 1110),
+     (1130, 1075), (1105, 1055), (1118, 1020)],
+    [(952, 1140), (975, 1110), (1010, 1100), (1055, 1095), (1090, 1085), (1112, 1097),
+     (1140, 1130), (1188, 1180), (1254, 1236), (1254, 1254), (958, 1254), (950, 1190)],
 ]
 
 COLORS = {
@@ -133,10 +142,13 @@ def main():
     drive = (painted[..., 0] - painted[..., 2]) > 40
     streets = drive & built
 
-    outline = Image.new("L", picture.size, 0)
+    outline = Image.new("L", picture.size, 0)  # the hand-drawn hills
     for hill in HILLS:
         ImageDraw.Draw(outline).polygon([(x * scale, y * scale) for x, y in hill], fill=255)
     high = (np.asarray(outline) > 0) & ~water & ~built
+    # The owner asked for the corner hills to be closed to vehicles, although the
+    # red picture covers them.
+    drive &= ~high
     grove = (blurred(grey, 1.5) < 128) & ~water & ~built & ~high
 
     cells = size // CELL

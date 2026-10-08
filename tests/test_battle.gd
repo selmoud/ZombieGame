@@ -511,6 +511,17 @@ func test_vehicle_layer_decides_where_vehicles_drive() -> void:
 	check(city.is_drivable(Vector2i((Vector2(900, 1150) * cell).floor())), "so is the open desert")
 	check(not city.is_drivable(Vector2i((Vector2(600, 480) * cell).floor())), "the citadel is not")
 	check(not city.is_drivable(Vector2i((Vector2(400, 300) * cell).floor())), "nor the river")
+	# The corner hills are closed to vehicles, but the roads past them stay open.
+	for hill: Vector2 in [Vector2(90, 50), Vector2(1150, 80), Vector2(90, 1120), Vector2(1190, 1060), Vector2(1050, 1190)]:
+		var at := Vector2i((hill * cell).floor())
+		check_eq(city.get_terrain(at), Terrain.Type.HILL, "high ground at %s" % hill)
+		check(not city.is_drivable(at), "no vehicles on the hill at %s" % hill)
+		check(city.is_passable(at, Terrain.Mover.INFANTRY), "infantry climbs the hill at %s" % hill)
+	var square := city.objectives[MapLibrary.SQUARE].cell
+	for edge: Vector2 in [Vector2(1245, 1196), Vector2(1245, 156), Vector2(8, 124), Vector2(8, 933)]:
+		var from := city.nearest_passable(Vector2i((edge * cell).floor()), Terrain.Mover.VEHICLE, 12)
+		check(from.x >= 0 and not city.find_path(from, square, Terrain.Mover.VEHICLE).is_empty(),
+				"the road from the map edge at %s still leads into the city" % edge)
 
 
 func test_enemy_force_differs_between_missions() -> void:
