@@ -242,6 +242,12 @@ func _build_layout() -> void:
 		var text := "%s\n%d" % [BattleText.KIND_SHORT[kind], UnitKind.COST[kind]]
 		var button := _button(shop, text, buy.bind(kind))
 		button.tooltip_text = BattleText.KIND_TITLES[kind]
+		# Icon on top, name and price under it, so three buttons fit side by side.
+		button.icon = BattleIcons.own(kind)
+		button.add_theme_constant_override("icon_max_width", 30)
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		button.clip_text = true
 		_buy_buttons.append(button)
 	_strike_button = Button.new()
 	_strike_button.toggle_mode = true

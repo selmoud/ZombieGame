@@ -1,7 +1,7 @@
 class_name BattleMapView
 extends Control
 ## Shows the mission over the painted map: the picture as the ground, a coordinate
-## grid, objectives, own units as NATO-style symbols and enemy contacts. The view
+## grid, objectives, own units and enemy contacts as round icons. The view
 ## can be zoomed and dragged. Enemy units themselves are never read here, only
 ## Battle.contacts.
 
@@ -19,12 +19,15 @@ const COLOR_FRIEND := Color("8fd0ff")
 const COLOR_FRIEND_LINE := Color("4fb0ff")
 const COLOR_HOSTILE := Color("ff8a80")
 const COLOR_HOSTILE_LINE := Color("ff5a52")
+## Multiplied into an enemy icon, turning its white disc pale red.
+const COLOR_HOSTILE_TINT := Color("ffc4bd")
 const COLOR_UNKNOWN := Color("fff27a")
 const COLOR_NEUTRAL := Color("c8d2dc")
 const COLOR_STRIKE := Color("ffc24a")
 
-const FRAME := Vector2(30, 20)
-const PICK_RADIUS := 18.0
+## Diameter of a unit icon on screen.
+const ICON := 36.0
+const PICK_RADIUS := 20.0
 const ZOOM_STEP := 1.15
 ## The closest view shows this many units of distance across the width.
 const CLOSEST_UNITS := 14.0
@@ -116,7 +119,7 @@ func shown_position(unit: BattleUnit) -> Vector2:
 			break
 		if other.side == unit.side and other.is_on_map() and other.position.distance_to(unit.position) < 1.2 * battle.map.unit:
 			shift += 1
-	return unit.position + Vector2(shift * (FRAME.x + 10.0) / _scale, 0.0)
+	return unit.position + Vector2(shift * (ICON + 8.0) / _scale, 0.0)
 
 
 ## Player unit under the point, or -1.
@@ -240,28 +243,25 @@ func _draw_objective(objective: BattleMap.Objective) -> void:
 
 func _draw_unit(unit: BattleUnit) -> void:
 	var centre := to_screen(shown_position(unit))
-	var frame := Rect2(centre - FRAME / 2.0, FRAME)
+	var radius := ICON / 2.0
 	if battle.time - unit.hit_at < 0.8:
 		var beat := 0.5 + 0.5 * sin(battle.time * 14.0)
-		draw_rect(frame.grow(5.0 + beat * 2.0), COLOR_HOSTILE_LINE, false, 2.5)
+		draw_arc(centre, radius + 6.0 + beat * 2.0, 0.0, TAU, 40, COLOR_HOSTILE_LINE, 3.0, true)
 	if unit.id == selected_unit:
-		draw_rect(frame.grow(4.0), COLOR_TEXT, false, 2.0)
+		draw_arc(centre, radius + 4.0, 0.0, TAU, 40, COLOR_TEXT, 2.5, true)
 
-	draw_rect(frame, COLOR_FRIEND)
-	draw_rect(frame, COLOR_INK, false, 2.0)
-	# A carrier with a squad aboard is shown as mechanised infantry.
-	_draw_branch(int(unit.kind), frame, COLOR_INK, unit.passenger >= 0)
+	_draw_icon(BattleIcons.own(unit.kind), centre, ICON, Color.WHITE)
+	# The ring says whose unit it is: blue for own, red for the enemy.
+	draw_arc(centre, radius - 1.0, 0.0, TAU, 40, COLOR_FRIEND_LINE, 2.5, true)
+	# A squad riding in a carrier is shown as a small icon on the carrier's edge.
+	if unit.passenger >= 0:
+		var seat := centre + Vector2(radius * 0.8, -radius * 0.8)
+		_draw_icon(BattleIcons.own(battle.units[unit.passenger].kind), seat, ICON * 0.55, Color.WHITE)
+		draw_arc(seat, ICON * 0.275 - 0.5, 0.0, TAU, 24, COLOR_FRIEND_LINE, 1.5, true)
 
-	# Size mark above the frame: one dot for a team, two for a section.
-	var dots := 2 if unit.kind == UnitKind.Type.RIFLE else 1
-	for i in dots:
-		var dot := Vector2(centre.x + (i - (dots - 1) / 2.0) * 7.0, frame.position.y - 6.0)
-		draw_circle(dot, 3.0, COLOR_HALO)
-		draw_circle(dot, 2.0, COLOR_TEXT)
-
-	# Strength bar under the frame.
+	# Strength bar under the icon.
 	var share := float(unit.strength) / unit.max_strength()
-	var bar := Rect2(Vector2(frame.position.x, frame.end.y + 3.0), Vector2(FRAME.x, 4.0))
+	var bar := Rect2(centre + Vector2(-radius, radius + 3.0), Vector2(ICON, 4.0))
 	var bar_color := Color("4fd06a")
 	if share <= 0.3:
 		bar_color = COLOR_HOSTILE_LINE
@@ -274,22 +274,12 @@ func _draw_unit(unit: BattleUnit) -> void:
 	var title := unit.call_sign
 	if unit.passenger >= 0:
 		title += " + " + battle.units[unit.passenger].call_sign
-	_text(centre + Vector2(0, FRAME.y / 2.0 + 21.0), title, 12, COLOR_TEXT)
+	_text(centre + Vector2(0, radius + 21.0), title, 12, COLOR_TEXT)
 
 
-## Branch mark inside a frame: crossed lines for infantry, one slash for
-## reconnaissance, an oval for armour.
-func _draw_branch(kind: int, frame: Rect2, color: Color, with_infantry: bool = false) -> void:
-	var centre := frame.get_center()
-	if kind == UnitKind.Type.RIFLE or with_infantry:
-		draw_line(frame.position, frame.end, color, 1.5, true)
-		draw_line(Vector2(frame.position.x, frame.end.y), Vector2(frame.end.x, frame.position.y), color, 1.5, true)
-	if kind == UnitKind.Type.SCOUT:
-		draw_line(Vector2(frame.position.x, frame.end.y), Vector2(frame.end.x, frame.position.y), color, 1.5, true)
-	if kind == UnitKind.Type.APC:
-		draw_set_transform(centre, 0.0, Vector2(1.0, 0.5))
-		draw_arc(Vector2.ZERO, frame.size.x * 0.33, 0.0, TAU, 28, color, 3.0, true)
-		draw_set_transform(Vector2.ZERO)
+func _draw_icon(texture: Texture2D, centre: Vector2, diameter: float, tint: Color) -> void:
+	var rect := Rect2(centre - Vector2(diameter, diameter) / 2.0, Vector2(diameter, diameter))
+	draw_texture_rect(texture, rect, false, tint)
 
 
 func _draw_fire(unit: BattleUnit) -> void:
@@ -327,36 +317,27 @@ func _draw_route(unit: BattleUnit) -> void:
 
 # --- Enemy contacts ---------------------------------------------------------
 
-## Identified contacts are red diamonds with a branch mark; unidentified ones are
-## yellow circles with a question mark. Old contacts fade.
+## An identified contact is the enemy unit's icon tinted red; an unidentified one is
+## a yellow disc with a question mark. Old contacts fade.
 func _draw_contact(contact: Battle.Contact) -> void:
 	var centre := to_screen(contact.position)
 	var age := battle.time - contact.last_seen
 	var alpha := 1.0
 	if not contact.visible:
 		alpha = lerpf(0.7, 0.25, clampf(age / battle.rules.contact_fade, 0.0, 1.0))
-	var ink := Color(COLOR_INK, alpha)
+	var radius := ICON / 2.0
 	if contact.error > 0.8 * battle.map.unit:
 		draw_arc(centre, contact.error * _scale, 0.0, TAU, 40, Color(COLOR_HOSTILE_LINE, 0.7 * alpha), 1.5, true)
 
 	if contact.kind < 0:
-		draw_circle(centre, 11.0, Color(COLOR_UNKNOWN, alpha), true, -1.0, true)
-		draw_arc(centre, 11.0, 0.0, TAU, 32, ink, 2.0, true)
-		draw_string(_font, centre + Vector2(-10, 5), "?", HORIZONTAL_ALIGNMENT_CENTER, 20, 14, ink)
+		draw_circle(centre, radius - 2.0, Color(COLOR_UNKNOWN, alpha), true, -1.0, true)
+		draw_arc(centre, radius - 2.0, 0.0, TAU, 32, Color(COLOR_INK, alpha), 2.0, true)
+		draw_string(_font, centre + Vector2(-10, 6), "?", HORIZONTAL_ALIGNMENT_CENTER, 20, 18, Color(COLOR_INK, alpha))
 	else:
-		var reach := 14.0
-		var diamond := PackedVector2Array([
-			centre + Vector2(0, -reach), centre + Vector2(reach, 0),
-			centre + Vector2(0, reach), centre + Vector2(-reach, 0),
-		])
-		draw_colored_polygon(diamond, Color(COLOR_HOSTILE, alpha))
-		diamond.append(diamond[0])
-		draw_polyline(diamond, ink, 2.0, true)
-		# The branch mark sits in the square inscribed in the diamond.
-		var inner := Rect2(centre - Vector2(7, 7), Vector2(14, 14))
-		_draw_branch(contact.kind, inner, ink)
+		_draw_icon(BattleIcons.hostile(contact.kind), centre, ICON, Color(COLOR_HOSTILE_TINT, alpha))
+		draw_arc(centre, radius - 1.0, 0.0, TAU, 40, Color(COLOR_HOSTILE_LINE, alpha), 2.5, true)
 	if not contact.visible:
-		_text(centre + Vector2(0, 27.0), BattleText.clock(age), 11, Color(COLOR_HOSTILE, alpha))
+		_text(centre + Vector2(0, radius + 15.0), BattleText.clock(age), 11, Color(COLOR_HOSTILE, alpha))
 
 
 # --- Artillery --------------------------------------------------------------
