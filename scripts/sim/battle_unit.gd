@@ -34,6 +34,19 @@ var passenger := -1
 var target := -1
 var fired_at := -100.0
 var hit_at := -100.0
+## Hex the unit is in. Scouting starts over whenever it changes.
+var hex := Vector2i(99999, 99999)
+## Direction the unit looks in; hexes on that side are scouted first.
+var facing := Vector2.RIGHT
+## Hexes the unit has scouted from where it stands.
+var scouted: Dictionary[Vector2i, bool] = {}
+## Hexes still to scout, nearest ring first.
+var scout_queue: Array[Vector2i] = []
+## Seconds spent on the hexes at the head of the queue.
+var scout_time := 0.0
+## A unit that fired is seen until this time by the unit it fired at.
+var revealed_until := -100.0
+var revealed_to := -1
 ## Since when the other side has been watching this unit, or -1 if it is not being watched.
 var known_since := -1.0
 var last_seen := -100.0

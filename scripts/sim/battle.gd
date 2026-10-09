@@ -13,9 +13,8 @@ const NO_OWNER := -1
 const REPORT_COOLDOWN := 12.0
 ## Reports that would otherwise flood the radio during a long firefight.
 const SLOW_REPORTS: Dictionary[StringName, float] = {&"under_fire": 40.0}
-## A unit that fired this recently is easier to spot.
-const MUZZLE_FLASH_TIME := 2.0
-const MUZZLE_FLASH_BONUS := 1.5
+## Contact error, as a share of the worst, added per ring between observer and target.
+const ERROR_PER_RING := 0.3
 ## A unit lost from view for this long has to be found again to count as known.
 const FORGET_TIME := 10.0
 ## A contact is identified when seen closer than this share of the sight range.
@@ -78,6 +77,11 @@ var _ai := BattleEnemyAI.new()
 ## For each side: enemy unit id -> {"ratio": float, "observer": int}.
 var _visible: Array[Dictionary] = [{}, {}]
 var _tick_count := 0
+## For each side: scouted hex -> {"ratio": float, "observer": int}. Rebuilt when
+## any unit's scouting changes.
+var _observed: Array[Dictionary] = [{}, {}]
+var _observed_stale := true
+var _bonus_paid := PackedByteArray()
 
 
 func _init(seed_value: int, battle_rules: BattleRules = null, battle_map: BattleMap = null) -> void:
@@ -96,6 +100,7 @@ func _init(seed_value: int, battle_rules: BattleRules = null, battle_map: Battle
 	capture_side.resize(count)
 	capture_side.fill(NO_OWNER)
 	taken_at.resize(count)
+	_bonus_paid.resize(count)
 
 
 func add_unit(side: BattleUnit.Side, kind: UnitKind.Type, cell: Vector2i) -> BattleUnit:
@@ -104,6 +109,7 @@ func add_unit(side: BattleUnit.Side, kind: UnitKind.Type, cell: Vector2i) -> Bat
 	unit.side = side
 	unit.kind = kind
 	unit.strength = UnitKind.STRENGTH[kind]
+	unit.facing = Vector2.RIGHT if side == BattleUnit.Side.PLAYER else Vector2.LEFT
 	var free := map.nearest_passable(cell, unit.mover(), ceili(8.0 * map.unit))
 	unit.position = BattleMap.cell_centre(free if free.x >= 0 else cell)
 	if side == BattleUnit.Side.PLAYER:
@@ -142,6 +148,42 @@ func is_seen_by(side: BattleUnit.Side, unit_id: int) -> bool:
 ## Random number from the mission's own generator, so a seed replays the same mission.
 func random_range(from: float, to: float) -> float:
 	return _rng.randf_range(from, to)
+
+
+## Size of a hex in cells of this map.
+func hex_size() -> float:
+	return rules.hex_size * map.unit
+
+
+func hex_at(position: Vector2) -> Vector2i:
+	return HexGrid.at(position, hex_size())
+
+
+func hex_title(position: Vector2) -> String:
+	return HexGrid.title(hex_at(position))
+
+
+## Hexes the side is watching right now, as a set.
+func observed_hexes(side: BattleUnit.Side) -> Dictionary:
+	_refresh_observed()
+	return _observed[side]
+
+
+## Share of the scouting done on the hexes the unit is working on, 0..1.
+func scout_progress(unit: BattleUnit) -> float:
+	if unit.scout_queue.is_empty():
+		return 1.0
+	return clampf(unit.scout_time / maxf(_scout_need(unit), 0.001), 0.0, 1.0)
+
+
+## Turns the unit to look at the point; hexes on that side are scouted first.
+func order_face(unit_id: int, point: Vector2) -> bool:
+	var unit := get_unit(unit_id)
+	if unit == null or not unit.is_on_map() or point.distance_to(unit.position) < 0.01:
+		return false
+	unit.facing = (point - unit.position).normalized()
+	_queue_scouting(unit)
+	return true
 
 
 func base_of(side: BattleUnit.Side) -> Vector2i:
@@ -284,6 +326,7 @@ func _tick() -> void:
 	time += STEP
 	_tick_count += 1
 	_process_arrivals()
+	_update_scouting()
 	_update_sight()
 	_ai.think(self)
 	_move_units()
@@ -313,32 +356,98 @@ func _spawn_player_unit(kind: UnitKind.Type) -> BattleUnit:
 
 # --- Observation ------------------------------------------------------------
 
+## A unit that stays in one hex scouts it, then the hexes around, ring by ring,
+## starting with the side it faces. Leaving the hex starts everything over.
+func _update_scouting() -> void:
+	for unit in units:
+		if not unit.is_on_map():
+			continue
+		var hex := hex_at(unit.position)
+		if hex != unit.hex:
+			unit.hex = hex
+			if not unit.scouted.is_empty():
+				unit.scouted.clear()
+				_observed_stale = true
+			_queue_scouting(unit)
+		if unit.scout_queue.is_empty():
+			continue
+		unit.scout_time += STEP
+		var need := _scout_need(unit)
+		while not unit.scout_queue.is_empty() and unit.scout_time >= need:
+			unit.scout_time -= need
+			for i in mini(UnitKind.SCOUT_BATCH[unit.kind], unit.scout_queue.size()):
+				unit.scouted[unit.scout_queue.pop_front()] = true
+			_observed_stale = true
+			need = _scout_need(unit)
+			if need <= 0.0:
+				unit.scout_time = 0.0
+		if unit.scout_queue.is_empty():
+			unit.scout_time = 0.0
+
+
+## Seconds the hexes at the head of the unit's queue take. High ground shortens it.
+func _scout_need(unit: BattleUnit) -> float:
+	if unit.scout_queue.is_empty():
+		return 0.0
+	var ring := mini(HexGrid.distance(unit.scout_queue[0], unit.hex), rules.scout_times.size() - 1)
+	return (
+		rules.scout_times[ring] * UnitKind.SCOUT_TIME[unit.kind]
+		/ Terrain.SIGHT[map.terrain_at(unit.position)]
+	)
+
+
+## Lists what the unit has still to scout: its own hex, then each ring, the hexes
+## nearest to where it faces first. What it has scouted already stays scouted.
+func _queue_scouting(unit: BattleUnit) -> void:
+	unit.scout_queue.clear()
+	unit.scout_time = 0.0
+	var size := hex_size()
+	var middle := HexGrid.centre(unit.hex, size)
+	var extent := Vector2(map.size)
+	for radius in UnitKind.SCOUT_RINGS[unit.kind] + 1:
+		var hexes := HexGrid.ring(unit.hex, radius)
+		var turns: Dictionary[Vector2i, float] = {}
+		for hex in hexes:
+			turns[hex] = absf(unit.facing.angle_to(HexGrid.centre(hex, size) - middle))
+		hexes.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return turns[a] < turns[b])
+		for hex in hexes:
+			var at := HexGrid.centre(hex, size)
+			var inside := at.x > -size and at.y > -size and at.x < extent.x + size and at.y < extent.y + size
+			if inside and not unit.scouted.has(hex):
+				unit.scout_queue.append(hex)
+
+
+func _refresh_observed() -> void:
+	if not _observed_stale:
+		return
+	_observed_stale = false
+	_observed[0].clear()
+	_observed[1].clear()
+	for unit in units:
+		if not unit.is_on_map():
+			continue
+		var seen: Dictionary = _observed[unit.side]
+		for hex: Vector2i in unit.scouted:
+			# A sniper's report counts as closer, so it wins over a rifleman's.
+			var ratio := HexGrid.distance(hex, unit.hex) * ERROR_PER_RING * UnitKind.REPORT_ERROR[unit.kind]
+			if not seen.has(hex) or ratio < seen[hex].ratio:
+				seen[hex] = {"ratio": ratio, "observer": unit.id}
+
+
+## A unit is seen when it stands in a hex the other side has scouted, or for a
+## moment after it has fired, by the unit it fired at.
 func _update_sight() -> void:
+	_refresh_observed()
 	_visible[0].clear()
 	_visible[1].clear()
-	for observer in units:
-		if not observer.is_on_map():
+	for unit in units:
+		if not unit.is_on_map():
 			continue
-		var sight := (
-			UnitKind.SIGHT[observer.kind] * map.unit * Terrain.SIGHT[map.terrain_at(observer.position)]
-		)
-		for other in units:
-			if other.side == observer.side or not other.is_on_map():
-				continue
-			var reach := (
-				sight * UnitKind.VISIBILITY[other.kind]
-				* Terrain.CONCEALMENT[map.terrain_at(other.position)]
-			)
-			if time - other.fired_at < MUZZLE_FLASH_TIME:
-				reach *= MUZZLE_FLASH_BONUS
-			var distance := observer.position.distance_to(other.position)
-			if distance > reach:
-				continue
-			# A scout's report counts as closer, so it wins over a rifleman at the same range.
-			var ratio := distance / reach * UnitKind.REPORT_ERROR[observer.kind]
-			var seen: Dictionary = _visible[observer.side]
-			if not seen.has(other.id) or ratio < seen[other.id].ratio:
-				seen[other.id] = {"ratio": ratio, "observer": observer.id}
+		var watchers: Dictionary = _observed[1 - unit.side]
+		if watchers.has(unit.hex):
+			_visible[1 - unit.side][unit.id] = watchers[unit.hex]
+		elif time < unit.revealed_until and get_unit(unit.revealed_to) != null and units[unit.revealed_to].alive:
+			_visible[1 - unit.side][unit.id] = {"ratio": 0.6, "observer": unit.revealed_to}
 	for unit in units:
 		if _visible[1 - unit.side].has(unit.id):
 			if unit.known_since < 0.0:
@@ -459,6 +568,11 @@ func _approach_carrier(unit: BattleUnit) -> bool:
 	if unit.position.distance_to(carrier.position) <= EMBARK_DISTANCE * map.unit:
 		_stop(unit)
 		unit.carrier = carrier.id
+		# What the squad had scouted is lost once it is aboard.
+		unit.hex = Vector2i(99999, 99999)
+		unit.scouted.clear()
+		unit.scout_queue.clear()
+		_observed_stale = true
 		unit.position = carrier.position
 		unit.target = -1
 		carrier.passenger = unit.id
@@ -477,10 +591,13 @@ func _step(unit: BattleUnit) -> void:
 		var to := unit.path[unit.path_index]
 		var distance := unit.position.distance_to(to)
 		if distance <= remaining:
+			if distance > 0.001:
+				unit.facing = (to - unit.position) / distance
 			unit.position = to
 			unit.path_index += 1
 			remaining -= distance
 		else:
+			unit.facing = (to - unit.position) / distance
 			unit.position += (to - unit.position) / distance * remaining
 			remaining = 0.0
 
@@ -505,6 +622,8 @@ func _fight() -> void:
 		var enemy := units[best]
 		unit.target = best
 		unit.fired_at = time
+		unit.revealed_until = time + rules.reveal_time
+		unit.revealed_to = best
 		# Opening fire on a target one has been watching, while its side has not had
 		# time to find the shooter, catches the target off guard. Two units that run
 		# into each other at the same moment surprise nobody.
@@ -545,6 +664,8 @@ func _hurt(unit: BattleUnit, losses: int) -> void:
 func _destroy(unit: BattleUnit) -> void:
 	unit.alive = false
 	unit.path = PackedVector2Array()
+	unit.scouted.clear()
+	_observed_stale = true
 	if unit.passenger >= 0:
 		# The squad bails out of the burning carrier and loses half of its men.
 		var passenger := units[unit.passenger]
@@ -626,6 +747,9 @@ func _update_objectives() -> void:
 			owners[i] = alone
 			capture_progress[i] = 0.0
 			taken_at[i] = time
+			if alone == BattleUnit.Side.PLAYER and _bonus_paid[i] == 0:
+				_bonus_paid[i] = 1
+				funds += rules.capture_bonus
 			var kind := &"objective_taken" if alone == BattleUnit.Side.PLAYER else &"objective_lost"
 			_report(kind, null, {"objective": i})
 

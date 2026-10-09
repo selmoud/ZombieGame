@@ -149,6 +149,9 @@ func click_map(position: Vector2, button: MouseButton) -> void:
 	# Orders to a squad riding in a carrier go to the carrier.
 	if unit.carrier >= 0:
 		unit = battle.units[unit.carrier]
+	if Input.is_key_pressed(KEY_SHIFT):
+		battle.order_face(unit.id, position)
+		return
 	var clicked := battle.get_unit(_map.unit_at(position))
 	if clicked != null and clicked.id != unit.id and battle.order_embark(unit.id, clicked.id):
 		return
@@ -226,7 +229,7 @@ func _build_layout() -> void:
 	_unit_details.add_theme_font_size_override("font_size", 13)
 	_unit_details.add_theme_color_override("font_color", COLOR_MUTED)
 	_unit_details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_unit_details.custom_minimum_size = Vector2(0, 76)
+	_unit_details.custom_minimum_size = Vector2(0, 96)
 	side.add_child(_unit_details)
 	var orders := HBoxContainer.new()
 	side.add_child(orders)
@@ -248,6 +251,7 @@ func _build_layout() -> void:
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		button.clip_text = true
+		button.add_theme_font_size_override("font_size", 11)
 		_buy_buttons.append(button)
 	_strike_button = Button.new()
 	_strike_button.toggle_mode = true
@@ -308,17 +312,27 @@ func _refresh() -> void:
 		_map.selected_unit = -1
 		_unit_title.text = "Отряд не выбран"
 		_unit_details.text = (
-			"ЛКМ — выбрать отряд. ПКМ — идти; по объекту — занять; по БТР — погрузка.\n"
-			+ "Колесо — масштаб, средняя кнопка или WASD — сдвиг карты."
+			"ЛКМ — выбрать. ПКМ — идти; по объекту — занять; по БТР — погрузка.\n"
+			+ "Shift+ПКМ — куда смотреть: туда разведка идёт первой.\n"
+			+ "Колесо — масштаб, средняя кнопка или WASD — сдвиг."
 		)
 	else:
 		_unit_title.text = "%s — %s" % [unit.call_sign, BattleText.KIND_TITLES[unit.kind].to_lower()]
+		var scouting := "вся округа разведана"
+		if unit.carrier >= 0:
+			scouting = "в десанте не ведётся"
+		elif not unit.scout_queue.is_empty():
+			scouting = "гекс %s, %d%%; осталось гексов: %d" % [
+				HexGrid.title(unit.scout_queue[0]), roundi(battle.scout_progress(unit) * 100.0),
+				unit.scout_queue.size(),
+			]
 		var lines: PackedStringArray = [
 			"Состав: %d из %d" % [unit.strength, unit.max_strength()],
+			"Разведка: %s" % scouting,
 			"Задача: %s" % BattleText.order_title(battle, unit),
-			"Местность: %s, квадрат %s" % [
+			"Местность: %s, гекс %s" % [
 				BattleText.TERRAIN_TITLES[battle.map.terrain_at(unit.position)],
-				battle.map.square_name(unit.position),
+				battle.hex_title(unit.position),
 			],
 		]
 		if unit.passenger >= 0:

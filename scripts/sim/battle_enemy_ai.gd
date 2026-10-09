@@ -55,7 +55,8 @@ func _patrol(battle: Battle, unit: BattleUnit) -> void:
 		return
 	unit.patrol_index = (unit.patrol_index + 1) % unit.patrol.size()
 	battle.order_move(unit.id, unit.patrol[unit.patrol_index])
-	unit.wait_until = battle.time + 10.0
+	# Long enough at each stop to scout the hex it has come to.
+	unit.wait_until = battle.time + 45.0
 
 
 ## Sends the unit to the nearest objective the player has held long enough.

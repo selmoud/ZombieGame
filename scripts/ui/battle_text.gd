@@ -2,9 +2,11 @@ class_name BattleText
 extends RefCounted
 ## Player-facing wording: unit names, orders and radio messages.
 
-const KIND_TITLES: PackedStringArray = ["Стрелковое отделение", "Разведгруппа", "Бронетранспортёр"]
-const KIND_SHORT: PackedStringArray = ["Стрелки", "Разведка", "БТР"]
-const CONTACT_TITLES: PackedStringArray = ["пехота", "разведгруппа", "бронетехника"]
+const KIND_TITLES: PackedStringArray = [
+	"Штурмовое отделение", "Снайперская пара", "Бронетранспортёр", "Пулемётный расчёт",
+]
+const KIND_SHORT: PackedStringArray = ["Штурм", "Снайпер", "БТР", "Пулемёт"]
+const CONTACT_TITLES: PackedStringArray = ["пехота", "снайпер", "бронетехника", "пулемёт"]
 const CONTACT_UNKNOWN := "не опознан"
 const TERRAIN_TITLES: PackedStringArray = [
 	"открытое место", "дорога", "сады", "высота", "дворы", "вода", "мост", "здание",
@@ -41,20 +43,20 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 		who = battle.units[event.unit].call_sign
 	var square := ""
 	if event.has("position"):
-		square = battle.map.square_name(event.position)
+		square = battle.hex_title(event.position)
 	match event.kind:
 		&"contact":
-			return "%s: контакт, квадрат %s — %s." % [who, square, contact_title(event.contact_kind)]
+			return "%s: контакт, гекс %s — %s." % [who, square, contact_title(event.contact_kind)]
 		&"ambushed":
-			return "%s: засада! Огонь с неразведанной позиции, квадрат %s!" % [who, square]
+			return "%s: засада! Огонь с неразведанной позиции, гекс %s!" % [who, square]
 		&"under_fire":
-			return "%s: под огнём, квадрат %s!" % [who, square]
+			return "%s: под огнём, гекс %s!" % [who, square]
 		&"casualties":
 			return "%s: несу потери, осталось %d." % [who, event.strength]
 		&"retreating":
 			return "%s: большие потери, отхожу." % who
 		&"unit_lost":
-			return "%s не отвечает. Отряд потерян, квадрат %s." % [who, square]
+			return "%s не отвечает. Отряд потерян, гекс %s." % [who, square]
 		&"halted":
 			return "%s: вижу противника, остановился." % who
 		&"arrived":
@@ -68,15 +70,15 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 		&"arrived_reinforcement":
 			return "%s: прибыл в район высадки." % who
 		&"enemy_destroyed":
-			return "Наблюдаю: противник в квадрате %s уничтожен." % square
+			return "Наблюдаю: противник в гексе %s уничтожен." % square
 		&"objective_taken":
 			return "Объект «%s» взят." % battle.map.objectives[event.objective].title
 		&"objective_lost":
 			return "Объект «%s» потерян!" % battle.map.objectives[event.objective].title
 		&"strike_called":
-			return "Артиллерия: задачу принял, квадрат %s." % square
+			return "Артиллерия: задачу принял, гекс %s." % square
 		&"strike_landed":
-			return "Артиллерия: разрывы в квадрате %s." % square
+			return "Артиллерия: разрывы в гексе %s." % square
 	return ""
 
 

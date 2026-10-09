@@ -5,10 +5,10 @@ extends RefCounted
 
 const FOLDER := "res://assets/icons/"
 ## Own units, by UnitKind.Type.
-const OWN: PackedStringArray = ["rifle", "sniper", "apc"]
+const OWN: PackedStringArray = ["rifle", "sniper", "apc", "machine_gun"]
 ## Identified enemy contacts, by UnitKind.Type. The eastern set has no scout of its
 ## own, so an enemy scout is shown with the same sight mark as ours, in enemy colour.
-const HOSTILE: PackedStringArray = ["east_rifle", "sniper", "east_jeep"]
+const HOSTILE: PackedStringArray = ["east_rifle", "sniper", "east_jeep", "east_machine_gun"]
 
 static var _cache: Dictionary[String, Texture2D] = {}
 

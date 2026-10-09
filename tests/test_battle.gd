@@ -17,10 +17,30 @@ func _field() -> BattleMap:
 	return map
 
 
+## Rules for tests that are not about scouting: every unit knows its two rings
+## of hexes at once, and the enemy gets no reinforcements.
+func _quick_rules() -> BattleRules:
+	var rules := BattleRules.new()
+	rules.scout_times = [0.0, 0.0, 0.0, 0.0, 0.0]
+	rules.enemy_reinforce_interval = 100000.0
+	return rules
+
+
+## Rules with scouting as in the game.
+func _timed_rules() -> BattleRules:
+	var rules := BattleRules.new()
+	rules.enemy_reinforce_interval = 100000.0
+	return rules
+
+
+func _has_event(battle: Battle, kind: StringName, unit_id: int = -2) -> bool:
+	return battle.events.any(func(event: Dictionary) -> bool:
+		return event.kind == kind and (unit_id == -2 or event.unit == unit_id))
+
+
 func _battle(map: BattleMap = null, rules: BattleRules = null) -> Battle:
 	if rules == null:
-		rules = BattleRules.new()
-		rules.enemy_reinforce_interval = 100000.0
+		rules = _quick_rules()
 	return Battle.new(1, rules, map if map != null else _field())
 
 
@@ -110,62 +130,105 @@ func test_infantry_rides_in_a_carrier() -> void:
 	check(not battle.order_disembark(carrier.id), "nobody left inside")
 
 
-func test_concealment_and_height_change_what_is_seen() -> void:
-	var map := _field()
-	map.paint_rect(Rect2i(20, 0, 4, 6), Terrain.Type.FOREST)
-	map.paint_rect(Rect2i(2, 14, 3, 3), Terrain.Type.HILL)
-	var battle := _battle(map)
-	var watcher := battle.add_unit(PLAYER, RIFLE, Vector2i(13, 3))
-	var in_open := battle.add_unit(ENEMY, RIFLE, Vector2i(20, 7))
-	var in_forest := battle.add_unit(ENEMY, RIFLE, Vector2i(21, 3))
-	battle.advance(0.2)
-	check(battle.is_seen_by(PLAYER, in_open.id), "8 cells away in the open")
-	check(not battle.is_seen_by(PLAYER, in_forest.id), "8 cells away in a forest")
-
-	var far := battle.add_unit(ENEMY, RIFLE, Vector2i(15, 15))
-	battle.advance(0.2)
-	check(not battle.is_seen_by(PLAYER, far.id), "12 cells is beyond a rifle squad")
-	var on_hill := battle.add_unit(PLAYER, RIFLE, Vector2i(3, 15))
-	battle.advance(0.2)
-	check(battle.is_seen_by(PLAYER, far.id), "the hill gives 13.5 cells of sight")
-	check(on_hill.is_on_map())
+func test_hexes_cover_the_map() -> void:
+	var size := 2.4
+	for hex: Vector2i in [Vector2i(0, 0), Vector2i(3, 2), Vector2i(-1, 5), Vector2i(7, -2)]:
+		check_eq(HexGrid.at(HexGrid.centre(hex, size), size), hex)
+		check_eq(HexGrid.at(HexGrid.centre(hex, size) + Vector2(0.9, -0.7), size), hex, "a point near the centre")
+	check_eq(HexGrid.distance(Vector2i(0, 0), Vector2i(2, -1)), 2)
+	check_eq(HexGrid.distance(Vector2i(3, 2), Vector2i(3, 2)), 0)
+	for radius in 5:
+		var ring := HexGrid.ring(Vector2i(4, 4), radius)
+		check_eq(ring.size(), maxi(radius * 6, 1))
+		for hex in ring:
+			check_eq(HexGrid.distance(hex, Vector2i(4, 4)), radius)
+	check_eq(HexGrid.title(Vector2i(0, 0)), "А1")
+	check_eq(HexGrid.title(Vector2i(2, 1)), "В2")
+	check(HexGrid.title(Vector2i(1, 2)) != HexGrid.title(Vector2i(2, 2)), "neighbours have different names")
 
 
-func test_scout_sees_further_and_is_seen_later() -> void:
-	var battle := _battle()
-	var scout := battle.add_unit(PLAYER, SCOUT, Vector2i(5, 10))
-	var enemy := battle.add_unit(ENEMY, RIFLE, Vector2i(16, 10))
+func test_unit_scouts_its_hex_then_the_rings_around() -> void:
+	var battle := _battle(null, _timed_rules())
+	var squad := battle.add_unit(PLAYER, RIFLE, Vector2i(20, 10))
+	var gunners := battle.add_unit(PLAYER, UnitKind.Type.MG, Vector2i(12, 10))
+	var sniper := battle.add_unit(PLAYER, SCOUT, Vector2i(20, 16))
+	var carrier := battle.add_unit(PLAYER, APC, Vector2i(5, 10))
+	battle.advance(19.0)
+	check(squad.scouted.is_empty(), "twenty seconds to scout the hex one stands in")
+	check(battle.scout_progress(squad) > 0.9)
+	battle.advance(1.5)
+	check_eq(squad.scouted.size(), 1)
+	check(squad.scouted.has(squad.hex), "the first hex is its own")
+	check_eq(sniper.scouted.size(), 3, "a sniper scouts three hexes at a time")
+	check(gunners.scouted.is_empty(), "machine-gunners take half as long again")
+	check_eq(carrier.scouted.size(), 1)
+
+	battle.advance(10.0)
+	check_eq(squad.scouted.size(), 2)
+	var size := battle.hex_size()
+	var ahead := false
+	for hex: Vector2i in squad.scouted:
+		if hex != squad.hex and HexGrid.centre(hex, size).x > squad.position.x + 1.0:
+			ahead = true
+	check(ahead, "the hex it faces is scouted before the others")
+	check_eq(gunners.scouted.size(), 1)
+
+	battle.advance(50.0)
+	check_eq(squad.scouted.size(), 7, "own hex and the first ring after 80 seconds")
+	battle.advance(180.0)
+	check_eq(squad.scouted.size(), 19, "two rings is all a squad can scout")
+	check(squad.scout_queue.is_empty())
+	check_eq(carrier.scouted.size(), 1, "a vehicle knows only the hex it stands in")
+	battle.advance(300.0)
+	check_eq(gunners.scouted.size(), 19)
+	check(sniper.scouted.size() > 40, "a sniper scouts four rings: %d hexes" % sniper.scouted.size())
+	check(battle.observed_hexes(PLAYER).size() >= sniper.scouted.size(), "the side watches what its units watch")
+
+	squad.position += Vector2(10.0, 0.0)
 	battle.advance(0.2)
-	check(battle.is_seen_by(PLAYER, enemy.id), "11 cells is inside the scout's 14")
-	check(not battle.is_seen_by(ENEMY, scout.id), "the scout is spotted only from 4.5 cells")
+	check(squad.scouted.is_empty(), "leaving the hex starts the scouting over")
 
 
-func test_contact_is_approximate_then_fades() -> void:
-	var battle := _battle()
-	var scout := battle.add_unit(PLAYER, RIFLE, Vector2i(5, 10))
-	var enemy := battle.add_unit(ENEMY, APC, Vector2i(16, 10))
+func test_facing_decides_which_hexes_are_scouted_first() -> void:
+	var battle := _battle(null, _timed_rules())
+	var squad := battle.add_unit(PLAYER, RIFLE, Vector2i(20, 10))
 	battle.advance(0.2)
-	check(battle.contacts.has(enemy.id), "an APC is seen from 12.6 cells")
+	check(battle.order_face(squad.id, squad.position + Vector2(-8.0, 0.0)))
+	var size := battle.hex_size()
+	check_eq(squad.scout_queue[0], squad.hex)
+	check(HexGrid.centre(squad.scout_queue[1], size).x < squad.position.x - 1.0, "ring one starts on the left")
+	check(HexGrid.centre(squad.scout_queue[7], size).x < squad.position.x - 1.0, "and so does ring two")
+	battle.order_move(squad.id, Vector2i(20, 3))
+	battle.advance(1.0)
+	check(squad.facing.y < -0.9, "a moving unit looks where it goes")
+
+
+func test_enemy_is_seen_only_in_a_scouted_hex() -> void:
+	var battle := _battle(null, _timed_rules())
+	var squad := battle.add_unit(PLAYER, RIFLE, Vector2i(10, 10))
+	var enemy := battle.add_unit(ENEMY, APC, Vector2i(14, 10))
+	battle.advance(0.2)
+	check_eq(HexGrid.distance(squad.hex, enemy.hex), 1, "the enemy stands in the next hex")
+	battle.advance(27.0)
+	check(battle.contacts.is_empty(), "the next hex is not scouted yet")
+	check(not battle.is_seen_by(ENEMY, squad.id), "a vehicle does not see beyond its own hex")
+	battle.advance(4.0)
+	check(battle.contacts.has(enemy.id), "seen once the hex it stands in is scouted")
 	var contact := battle.contacts[enemy.id]
 	check(contact.visible)
-	check_eq(contact.kind, -1, "too far to identify")
-	check(contact.error > 2.0, "far contact is imprecise: %.2f" % contact.error)
+	check_eq(contact.kind, int(APC), "identified from the next hex")
 	check(contact.position.distance_to(enemy.position) <= contact.error + 0.01)
-	check(battle.events.any(func(event: Dictionary) -> bool: return event.kind == &"contact"))
+	check(_has_event(battle, &"contact", squad.id))
 
-	enemy.position = Vector2(11.5, 10.5)
-	battle.advance(0.2)
-	check_eq(contact.kind, int(APC), "identified up close")
-	check(contact.error < 1.6, "close contact is precise: %.2f" % contact.error)
-
+	# Moved away by hand; forget that it has just fired, or it would be seen a moment longer.
 	enemy.position = Vector2(38.5, 2.5)
+	enemy.revealed_until = -100.0
 	battle.advance(1.0)
 	check(not contact.visible)
 	check(battle.contacts.has(enemy.id), "the mark stays where the enemy was last seen")
-	check(contact.position.distance_to(Vector2(11.5, 10.5)) < 2.0)
+	check(contact.position.distance_to(Vector2(14.5, 10.5)) < 2.0)
 	battle.advance(battle.rules.contact_fade + 1.0)
 	check(not battle.contacts.has(enemy.id), "an old mark disappears")
-	check(scout.alive)
 
 
 func test_firefight_costs_both_sides_and_cover_helps() -> void:
@@ -183,30 +246,28 @@ func test_firefight_costs_both_sides_and_cover_helps() -> void:
 	check(battle.events.any(func(event: Dictionary) -> bool: return event.kind == &"under_fire"))
 
 
-func test_fire_from_an_unknown_position_catches_the_target_off_guard() -> void:
-	var map := _field()
-	map.paint_rect(Rect2i(18, 0, 6, 20), Terrain.Type.FOREST)
-	var caught := _battle(map)
-	var walker := caught.add_unit(PLAYER, RIFLE, Vector2i(6, 5))
-	caught.add_unit(ENEMY, RIFLE, Vector2i(19, 5))
-	caught.order_move(walker.id, Vector2i(30, 5))
-	caught.advance(20.0)
-	check(caught.events.any(func(event: Dictionary) -> bool: return event.kind == &"ambushed"),
-			"riflemen hidden in a forest watch the squad come and open fire unseen")
+func test_walking_into_an_unscouted_hex_is_an_ambush() -> void:
+	var caught := _battle(null, _timed_rules())
+	var walker := caught.add_unit(PLAYER, RIFLE, Vector2i(2, 7))
+	var hidden := caught.add_unit(ENEMY, RIFLE, Vector2i(22, 7))
+	caught.advance(90.0)
+	check(hidden.scouted.size() >= 7, "the defender has scouted around itself")
+	caught.order_move(walker.id, Vector2i(34, 7))
+	caught.advance(40.0)
+	check(_has_event(caught, &"ambushed", walker.id), "a squad on the move does not see who waits for it")
+	check(caught.contacts.has(hidden.id), "the one who fires gives himself away")
 
-	var warned := _battle(map)
-	var watcher := warned.add_unit(PLAYER, SCOUT, Vector2i(13, 5))
-	var hidden := warned.add_unit(ENEMY, RIFLE, Vector2i(19, 5))
-	warned.advance(0.2)
-	check(warned.is_seen_by(PLAYER, hidden.id), "the scout sees into the forest")
+	var warned := _battle(null, _timed_rules())
+	var watcher := warned.add_unit(PLAYER, SCOUT, Vector2i(9, 7))
+	var seen := warned.add_unit(ENEMY, RIFLE, Vector2i(22, 7))
+	warned.advance(170.0)
+	check(warned.is_seen_by(PLAYER, seen.id), "the sniper has found the defender from afar")
+	check(not warned.is_seen_by(ENEMY, watcher.id), "and is too far to be found himself")
 	var second := warned.add_unit(PLAYER, RIFLE, Vector2i(2, 15))
-	warned.advance(warned.rules.surprise_warning + 1.0)
-	second.position = Vector2(14.5, 5.5)
-	warned.advance(6.0)
-	check(not warned.events.any(func(event: Dictionary) -> bool: return event.kind == &"ambushed" and event.unit == second.id),
-			"a squad that was told about the enemy is not surprised")
-	check(walker.strength < 10)
-	check(watcher.alive)
+	second.position = Vector2(17.5, 7.5)
+	warned.advance(8.0)
+	check(_has_event(warned, &"under_fire", second.id), "the squad is fired on all the same")
+	check(not _has_event(warned, &"ambushed", second.id), "but a squad told about the enemy is not surprised")
 
 
 func test_weak_unit_pulls_back_and_a_dead_one_is_reported() -> void:
@@ -233,7 +294,8 @@ func test_squad_bails_out_of_a_destroyed_carrier() -> void:
 	battle.advance(3.0)
 	check_eq(squad.carrier, carrier.id)
 	carrier.strength = 1
-	battle.add_unit(ENEMY, APC, Vector2i(10, 10))
+	battle.add_unit(ENEMY, RIFLE, Vector2i(10, 10))
+	battle.add_unit(ENEMY, RIFLE, Vector2i(10, 11))
 	battle.advance(15.0)
 	check(not carrier.alive)
 	check(squad.alive and squad.is_on_map(), "the squad survives outside")
@@ -265,6 +327,7 @@ func test_objective_is_taken_by_a_unit_left_alone_on_it() -> void:
 	battle.advance(battle.rules.capture_time + 6.0)
 	check_eq(battle.owners[0], int(PLAYER))
 	check(battle.events.any(func(event: Dictionary) -> bool: return event.kind == &"objective_taken"))
+	check(battle.funds >= battle.rules.start_funds + battle.rules.capture_bonus, "taking an objective pays at once")
 	var before := battle.funds
 	battle.advance(10.0)
 	check(absf(battle.funds - before - 10.0 * battle.rules.income) < 0.2, "a held objective pays")
@@ -277,7 +340,7 @@ func test_objective_is_taken_by_a_unit_left_alone_on_it() -> void:
 
 
 func test_strike_costs_funds_and_hits_everyone_in_the_area() -> void:
-	var rules := BattleRules.new()
+	var rules := _quick_rules()
 	rules.strike_scatter = 0.0
 	rules.enemy_reinforce_interval = 100000.0
 	var battle := _battle(null, rules)
@@ -316,7 +379,7 @@ func test_units_are_bought_at_once_before_the_start_and_with_a_delay_after() -> 
 
 
 func test_mission_is_won_by_holding_objectives_without_a_break() -> void:
-	var rules := BattleRules.new()
+	var rules := _quick_rules()
 	rules.hold_to_win = 30.0
 	rules.enemy_reinforce_interval = 100000.0
 	var battle := _battle(null, rules)
@@ -338,7 +401,7 @@ func test_mission_is_won_by_holding_objectives_without_a_break() -> void:
 
 
 func test_mission_is_lost_on_time_or_when_nothing_is_left() -> void:
-	var rules := BattleRules.new()
+	var rules := _quick_rules()
 	rules.mission_time = 20.0
 	rules.enemy_reinforce_interval = 100000.0
 	var timed := _battle(null, rules)
@@ -358,7 +421,7 @@ func test_mission_is_lost_on_time_or_when_nothing_is_left() -> void:
 
 
 func test_enemy_reserve_retakes_a_lost_objective_and_gets_reinforced() -> void:
-	var rules := BattleRules.new()
+	var rules := _quick_rules()
 	rules.enemy_reinforce_interval = 50.0
 	var battle := _battle(null, rules)
 	var reserve := battle.add_unit(ENEMY, RIFLE, Vector2i(37, 10))
@@ -402,7 +465,7 @@ func test_default_mission_is_set_up_and_reproducible() -> void:
 	for unit in battle.units:
 		if unit.role == BattleUnit.Role.GARRISON and unit.kind == RIFLE:
 			check_eq(map.terrain_at(unit.position), Terrain.Type.TOWN, "garrisons sit in the yards between houses")
-	check_eq(map.square_name(Vector2(0.5, 0.5)), "А1")
+	check_eq(battle.hex_title(Vector2(0.5, 0.5)), "А1")
 
 	var other := Battle.new(5)
 	for mission: Battle in [battle, other]:

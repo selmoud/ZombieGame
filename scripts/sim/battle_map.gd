@@ -3,9 +3,6 @@ extends RefCounted
 ## Terrain grid with objectives and start zones. Finds routes for each kind of mover.
 ## Positions are in cell units: the centre of cell (3, 5) is Vector2(3.5, 5.5).
 
-## One map square of the coordinate grid is this many cells wide and high.
-const SQUARE_CELLS := 6
-const SQUARE_LETTERS := "АБВГДЕЖЗИКЛМНОПР"
 ## Speed multiplier of a vehicle on open ground it is allowed to drive on.
 const OFF_ROAD_SPEED := 1.0
 
@@ -160,14 +157,6 @@ func set_drivable(layer: Image) -> void:
 
 static func cell_centre(cell: Vector2i) -> Vector2:
 	return Vector2(cell) + Vector2(0.5, 0.5)
-
-
-## Name of the map square, like "В4", used in radio reports.
-func square_name(position: Vector2) -> String:
-	var square := SQUARE_CELLS * unit
-	var column := clampi(int(position.x / square), 0, SQUARE_LETTERS.length() - 1)
-	var row := int(position.y / square) + 1
-	return "%s%d" % [SQUARE_LETTERS[column], row]
 
 
 ## Closest cell the mover can stand on, searching outwards in rings; (-1, -1) if none.

@@ -10,6 +10,15 @@ extends Resource
 @export var start_funds := 500.0
 ## The group cannot have more units than this, counting those on their way.
 @export var max_units := 6
+## Paid once for each objective, the first time the player takes it.
+@export var capture_bonus := 60.0
+## Distance from the centre of a hex to its corner, in units of distance.
+@export var hex_size := 2.4
+## Seconds a unit must stay in a hex to scout it, then seconds per hex of each
+## further ring: the first ring, the second, and so on.
+@export var scout_times: Array[float] = [20.0, 10.0, 15.0, 20.0, 25.0]
+## For how long a unit that has fired is seen by the unit it fired at.
+@export var reveal_time := 3.0
 ## Per held objective per second.
 @export var income := 1.2
 @export var capture_time := 20.0

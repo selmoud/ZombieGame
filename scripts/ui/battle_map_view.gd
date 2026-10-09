@@ -11,8 +11,10 @@ const COLOR_VOID := Color("0a1626")
 const COLOR_TEXT := Color("eaf2fb")
 const COLOR_HALO := Color("06101c")
 const COLOR_INK := Color("10161e")
-const COLOR_GRID := Color(0.85, 0.93, 1.0, 0.16)
-const COLOR_GRID_LABEL := Color(0.85, 0.93, 1.0, 0.6)
+const COLOR_GRID := Color(0.85, 0.93, 1.0, 0.13)
+const COLOR_GRID_LABEL := Color(0.85, 0.93, 1.0, 0.5)
+## Veil over the hexes nobody is watching.
+const COLOR_FOG := Color(0.02, 0.05, 0.1, 0.42)
 
 ## Frame fills as on a NATO situation map: friendly blue, hostile red, unknown yellow.
 const COLOR_FRIEND := Color("8fd0ff")
@@ -45,6 +47,8 @@ var _scale := 8.0
 ## Where the map's top left corner is, in view pixels.
 var _origin := Vector2.ZERO
 var _dragging := false
+## Every hex that lies on the map.
+var _hexes: Array[Vector2i] = []
 
 
 func _ready() -> void:
@@ -58,6 +62,16 @@ func set_battle(new_battle: Battle) -> void:
 	_background = null
 	if not battle.map.background.is_empty():
 		_background = load(battle.map.background)
+	_hexes.clear()
+	var hex_size := battle.hex_size()
+	var extent := Vector2(battle.map.size)
+	var far := battle.hex_at(extent)
+	for r in range(-1, far.y + 2):
+		for q in range(-far.y / 2 - 2, far.x + far.y / 2 + 3):
+			var middle := HexGrid.centre(Vector2i(q, r), hex_size)
+			if middle.x > -hex_size * 0.5 and middle.y > -hex_size * 0.5 \
+					and middle.x < extent.x + hex_size * 0.5 and middle.y < extent.y + hex_size * 0.5:
+				_hexes.append(Vector2i(q, r))
 	# Start with the map filling the view's width, centred on the middle of the map.
 	_scale = maxf(size.x / battle.map.size.x, _widest_scale())
 	_origin = (size - Vector2(battle.map.size) * _scale) / 2.0
@@ -175,7 +189,7 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), COLOR_VOID)
 	if _background != null:
 		draw_texture_rect(_background, Rect2(_origin, Vector2(battle.map.size) * _scale), false)
-	_draw_grid()
+	_draw_hexes()
 	for objective in battle.map.objectives:
 		_draw_objective(objective)
 	for unit in battle.units:
@@ -196,25 +210,40 @@ func _draw() -> void:
 		_draw_strike_cursor()
 
 
-## Map squares with their names in the corner, as on the maps of tactical shooters.
-func _draw_grid() -> void:
-	var square := BattleMap.SQUARE_CELLS * battle.map.unit * _scale
-	var columns := ceili(battle.map.size.x / (BattleMap.SQUARE_CELLS * battle.map.unit))
-	var rows := ceili(battle.map.size.y / (BattleMap.SQUARE_CELLS * battle.map.unit))
-	var extent := Vector2(battle.map.size) * _scale
-	for column in range(1, columns):
-		var x := _origin.x + column * square
-		draw_line(Vector2(x, _origin.y), Vector2(x, _origin.y + extent.y), COLOR_GRID, 1.0)
-	for row in range(1, rows):
-		var y := _origin.y + row * square
-		draw_line(Vector2(_origin.x, y), Vector2(_origin.x + extent.x, y), COLOR_GRID, 1.0)
-	for column in columns:
-		for row in rows:
-			var corner := _origin + Vector2(column, row) * square
-			if corner.x < -square or corner.y < -square or corner.x > size.x or corner.y > size.y:
-				continue
-			var label := "%s%d" % [BattleMap.SQUARE_LETTERS[column], row + 1]
-			draw_string(_font, corner + Vector2(4, 13), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COLOR_GRID_LABEL)
+## The hex grid is the picture of what the player knows: hexes his units are
+## watching are clear, the rest lie under a dark veil. A hex being scouted fills
+## with a ring as the work goes on.
+func _draw_hexes() -> void:
+	var size := battle.hex_size()
+	var observed := battle.observed_hexes(BattleUnit.Side.PLAYER)
+	var view := Rect2(Vector2.ZERO, self.size).grow(size * _scale)
+	var show_names := size * _scale >= 20.0
+	for hex in _hexes:
+		var middle := to_screen(HexGrid.centre(hex, size))
+		if not view.has_point(middle):
+			continue
+		var points := HexGrid.corners(hex, size)
+		for i in points.size():
+			points[i] = to_screen(points[i])
+		if not observed.has(hex):
+			draw_colored_polygon(points, COLOR_FOG)
+		points.append(points[0])
+		draw_polyline(points, COLOR_GRID, 1.0, true)
+		if show_names:
+			draw_string(_font, middle + Vector2(-20, -size * _scale * 0.55), HexGrid.title(hex),
+					HORIZONTAL_ALIGNMENT_CENTER, 40, 9, COLOR_GRID_LABEL)
+
+	for unit in battle.units:
+		if unit.side != BattleUnit.Side.PLAYER or not unit.is_on_map() or unit.scout_queue.is_empty():
+			continue
+		var progress := battle.scout_progress(unit)
+		var strong := unit.id == selected_unit
+		for i in mini(UnitKind.SCOUT_BATCH[unit.kind], unit.scout_queue.size()):
+			var middle := to_screen(HexGrid.centre(unit.scout_queue[i], size))
+			var radius := size * _scale * 0.5
+			draw_arc(middle, radius, 0.0, TAU, 32, Color(COLOR_FRIEND_LINE, 0.25), 2.0, true)
+			draw_arc(middle, radius, -PI / 2.0, -PI / 2.0 + TAU * progress, 32,
+					Color(COLOR_FRIEND_LINE, 1.0 if strong else 0.6), 3.0 if strong else 2.0, true)
 
 
 # --- Objectives -------------------------------------------------------------
@@ -250,6 +279,12 @@ func _draw_unit(unit: BattleUnit) -> void:
 	if unit.id == selected_unit:
 		draw_arc(centre, radius + 4.0, 0.0, TAU, 40, COLOR_TEXT, 2.5, true)
 
+	# A wedge on the rim shows where the unit looks: that side is scouted first.
+	var nose := centre + unit.facing * (radius + 7.0)
+	var across := unit.facing.orthogonal() * 5.0
+	draw_colored_polygon(PackedVector2Array([
+		nose, centre + unit.facing * (radius - 1.0) + across, centre + unit.facing * (radius - 1.0) - across,
+	]), COLOR_FRIEND_LINE)
 	_draw_icon(BattleIcons.own(unit.kind), centre, ICON, Color.WHITE)
 	# The ring says whose unit it is: blue for own, red for the enemy.
 	draw_arc(centre, radius - 1.0, 0.0, TAU, 40, COLOR_FRIEND_LINE, 2.5, true)
