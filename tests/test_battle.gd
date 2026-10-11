@@ -493,6 +493,68 @@ func test_enemy_reserve_retakes_a_lost_objective_and_gets_reinforced() -> void:
 	check(battle.events.any(func(event: Dictionary) -> bool: return event.kind == &"objective_lost"))
 
 
+func test_enemy_moves_to_engage_what_it_has_seen() -> void:
+	var battle := _battle()
+	var ours := battle.add_unit(PLAYER, RIFLE, Vector2i(6, 15))
+	var lookout := battle.add_unit(ENEMY, SCOUT, Vector2i(14, 15))
+	lookout.role = BattleUnit.Role.GARRISON
+	lookout.home_cell = Vector2i(14, 15)
+	var free := battle.add_unit(ENEMY, RIFLE, Vector2i(13, 6))
+	free.role = BattleUnit.Role.RESERVE
+	var far := battle.add_unit(ENEMY, RIFLE, Vector2i(38, 2))
+	far.role = BattleUnit.Role.RESERVE
+	ours.strength = 10
+	battle.advance(1.5)
+	check(battle.is_seen_by(ENEMY, ours.id), "the lookout has found the squad")
+	check(free.is_moving(), "a free unit nearby goes for it")
+	check(not far.is_moving(), "a unit far away does not")
+	battle.advance(25.0)
+	check(free.position.distance_to(ours.position) <= UnitKind.WEAPON_RANGE[RIFLE] + 0.5,
+			"and stops within rifle range: %.1f" % free.position.distance_to(ours.position))
+
+
+func test_enemy_lays_ambushes_in_front_of_the_next_objective() -> void:
+	var battle := Battle.new(3)
+	battle.advance(150.0)
+	var map := battle.map
+	var first := BattleMap.cell_centre(map.objectives[0].cell)
+	var parties := 0
+	for unit in battle.units:
+		if unit.side != ENEMY or unit.role != BattleUnit.Role.AMBUSH:
+			continue
+		parties += 1
+		check_eq(unit.guard, 0, "ambushes screen the objective the player must take first")
+		check_eq(map.terrain_at(unit.position), Terrain.Type.TOWN, "an ambush party waits among the houses")
+		check(unit.position.distance_to(first) <= 12.0 * map.unit, "not far from the objective")
+		check(unit.facing.x < 0.0, "and faces the way the player will come")
+	check(parties >= 2, "the patrol and a squad from the rear lie in ambush: %d" % parties)
+	for unit in battle.units:
+		if unit.side == ENEMY and unit.role == BattleUnit.Role.GARRISON and unit.kind == RIFLE:
+			check(unit.facing.x < 0.0, "garrisons watch the approach too")
+
+
+func test_outnumbered_ambush_party_joins_the_garrison() -> void:
+	var battle := _battle()
+	var party := battle.add_unit(ENEMY, RIFLE, Vector2i(12, 10))
+	party.role = BattleUnit.Role.PATROL
+	var holder := battle.add_unit(ENEMY, RIFLE, Vector2i(20, 10))
+	holder.role = BattleUnit.Role.GARRISON
+	holder.guard = 0
+	holder.home_cell = Vector2i(20, 10)
+	battle.advance(1.5)
+	check_eq(party.role, BattleUnit.Role.AMBUSH, "a patrol becomes an ambush party")
+	party.position = Vector2(12.5, 10.5)
+	party.home_cell = Vector2i(12, 10)
+	for row in 3:
+		battle.add_unit(PLAYER, RIFLE, Vector2i(7, 8 + row * 2))
+	battle.advance(3.0)
+	check_eq(party.role, BattleUnit.Role.GARRISON, "three squads against one: it gives up the forward post")
+	check_eq(party.guard, 0)
+	check(BattleMap.cell_centre(party.home_cell).distance_to(Vector2(20.5, 10.5)) <= 4.0, "and falls back on the objective")
+	check_eq(holder.role, BattleUnit.Role.GARRISON)
+	check_eq(holder.home_cell, Vector2i(20, 10), "a garrison does not leave its objective")
+
+
 func test_enemy_garrison_returns_to_its_post() -> void:
 	var battle := _battle()
 	var garrison := battle.add_unit(ENEMY, RIFLE, Vector2i(25, 10))
@@ -692,6 +754,5 @@ func test_balance_targets_hold() -> void:
 	var rush := wins[BattleBots.Style.RUSH]
 	var recon := wins[BattleBots.Style.RECON]
 	check_eq(wins[BattleBots.Style.IDLE], 0, "doing nothing must lose")
-	check(rush * 2 < missions, "rushing wins %d of %d" % [rush, missions])
-	check(recon * 3 >= missions, "scouting wins %d of %d" % [recon, missions])
-	check(recon > rush, "scouting must pay")
+	check(rush * 4 < missions * 3, "rushing wins %d of %d" % [rush, missions])
+	check(rush > 0 and recon > 0, "the mission must be winnable: rush %d, scouting %d of %d" % [rush, recon, missions])

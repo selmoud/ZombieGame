@@ -115,17 +115,17 @@ static func place_city_enemy(battle: Battle, rng: RandomNumberGenerator) -> void
 	for objective in map.objectives:
 		# Two squads hold each objective from the yards on opposite sides of it.
 		var post := map.nearest_terrain(objective.cell + Vector2i(-step, -step), Terrain.Type.TOWN, reach)
-		_add_garrison(battle, UnitKind.Type.RIFLE, post)
+		_add_garrison(battle, UnitKind.Type.RIFLE, post, objective.index)
 		var second := map.nearest_terrain(objective.cell + Vector2i(step, step), Terrain.Type.TOWN, reach)
-		_add_garrison(battle, UnitKind.Type.RIFLE, second)
+		_add_garrison(battle, UnitKind.Type.RIFLE, second, objective.index)
 		if objective.index != strongpoint:
 			continue
 		if rng.randf() < 0.5:
 			# A vehicle cannot stand among the houses; it holds the road.
-			_add_garrison(battle, UnitKind.Type.APC, objective.cell)
+			_add_garrison(battle, UnitKind.Type.APC, objective.cell, objective.index)
 		else:
 			var third := map.nearest_terrain(objective.cell + Vector2i(-step, step), Terrain.Type.TOWN, reach)
-			_add_garrison(battle, UnitKind.Type.RIFLE, third)
+			_add_garrison(battle, UnitKind.Type.RIFLE, third, objective.index)
 
 	var routes: Array[Array] = [
 		[Vector2(560, 330), Vector2(655, 620), Vector2(800, 800)],
@@ -145,9 +145,10 @@ static func place_city_enemy(battle: Battle, rng: RandomNumberGenerator) -> void
 	reserve.role = BattleUnit.Role.RESERVE
 
 
-static func _add_garrison(battle: Battle, kind: UnitKind.Type, post: Vector2i) -> void:
+static func _add_garrison(battle: Battle, kind: UnitKind.Type, post: Vector2i, objective: int) -> void:
 	var garrison := battle.add_unit(BattleUnit.Side.ENEMY, kind, post)
 	garrison.role = BattleUnit.Role.GARRISON
+	garrison.guard = objective
 	garrison.home_cell = post
 
 

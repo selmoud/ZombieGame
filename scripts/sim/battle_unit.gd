@@ -5,7 +5,7 @@ extends RefCounted
 enum Side { PLAYER, ENEMY }
 enum Order { HOLD, MOVE, CAPTURE, RETREAT, EMBARK }
 ## What an enemy unit does when left to itself.
-enum Role { NONE, GARRISON, PATROL, RESERVE }
+enum Role { NONE, GARRISON, PATROL, RESERVE, AMBUSH }
 
 var id: int
 var side: BattleUnit.Side
@@ -60,6 +60,8 @@ var refit := 0.0
 var reported: Dictionary[StringName, float] = {}
 
 var role: BattleUnit.Role = BattleUnit.Role.NONE
+## Objective the unit defends, or -1.
+var guard := -1
 ## Cell a garrison holds; it lies in cover within the capture radius of the objective.
 var home_cell := Vector2i(-1, -1)
 var patrol: Array[Vector2i] = []

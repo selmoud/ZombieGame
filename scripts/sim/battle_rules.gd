@@ -6,7 +6,7 @@ extends Resource
 ## Each side has a reserve. It shrinks with every man lost and every objective
 ## lost, and the side whose reserve runs out loses the mission.
 @export var reserve := 100.0
-@export var enemy_reserve := 150.0
+@export var enemy_reserve := 110.0
 @export var reserve_per_man := 1.0
 ## Taken from the reserve of the side that loses an objective it held.
 @export var reserve_per_objective := 15.0

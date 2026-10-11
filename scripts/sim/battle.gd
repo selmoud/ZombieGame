@@ -191,6 +191,11 @@ func order_face(unit_id: int, point: Vector2) -> bool:
 	return true
 
 
+## Ids of the other side's units that the side sees right now.
+func seen_by(side: BattleUnit.Side) -> Array:
+	return _visible[side].keys()
+
+
 func base_of(side: BattleUnit.Side) -> Vector2i:
 	return map.player_base if side == BattleUnit.Side.PLAYER else map.enemy_base
 
