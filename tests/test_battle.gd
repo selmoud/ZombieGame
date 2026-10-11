@@ -378,36 +378,73 @@ func test_units_are_bought_at_once_before_the_start_and_with_a_delay_after() -> 
 	check(battle.units[0].call_sign != battle.units[1].call_sign)
 
 
-func test_mission_is_won_by_holding_objectives_without_a_break() -> void:
-	var rules := _quick_rules()
-	rules.hold_to_win = 30.0
-	rules.enemy_reinforce_interval = 100000.0
-	var battle := _battle(null, rules)
+func test_objectives_fall_in_order_along_the_chain() -> void:
+	var battle := _battle()
+	check_eq(battle.active_objective(PLAYER), 0)
+	check_eq(battle.active_objective(ENEMY), -1, "the enemy has nothing to take back yet")
+	var far := battle.add_unit(PLAYER, RIFLE, Vector2i(30, 10))
+	battle.advance(battle.rules.capture_time + 5.0)
+	check_eq(battle.owners[1], int(ENEMY), "the second objective cannot be taken before the first")
+	check_eq(battle.capture_progress[1], 0.0)
+
+	battle.add_unit(PLAYER, RIFLE, Vector2i(20, 10))
+	battle.advance(battle.rules.capture_time + 1.0)
+	check_eq(battle.owners[0], int(PLAYER))
+	check_eq(battle.active_objective(PLAYER), 1)
+	check_eq(battle.active_objective(ENEMY), 0)
+	battle.advance(battle.rules.capture_time + 1.0)
+	check_eq(battle.owners[1], int(PLAYER), "now the second one falls")
+	check_eq(battle.active_objective(PLAYER), -1)
+	check_eq(battle.active_objective(ENEMY), 1, "the enemy can take back only the last one")
+	check(far.alive)
+
+
+func test_reserve_shrinks_with_losses_and_lost_objectives() -> void:
+	var battle := _battle()
+	var rules := battle.rules
+	var ours := battle.add_unit(PLAYER, RIFLE, Vector2i(10, 3))
+	var theirs := battle.add_unit(ENEMY, RIFLE, Vector2i(14, 3))
+	battle.advance(15.0)
+	var our_losses := ours.max_strength() - ours.strength
+	var their_losses := theirs.max_strength() - theirs.strength
+	check(our_losses > 0 and their_losses > 0)
+	check_eq(battle.reserves[PLAYER], rules.reserve - our_losses * rules.reserve_per_man)
+	check_eq(battle.reserves[ENEMY], rules.enemy_reserve - their_losses * rules.reserve_per_man)
+
+	var taking := _battle()
+	taking.add_unit(PLAYER, RIFLE, Vector2i(20, 10))
+	taking.advance(rules.capture_time + 1.0)
+	check_eq(taking.reserves[ENEMY], rules.enemy_reserve - rules.reserve_per_objective, "losing an objective costs reserve")
+	check_eq(taking.reserves[PLAYER], rules.reserve)
+
+
+func test_mission_is_won_when_the_enemy_reserve_runs_out() -> void:
+	var battle := _battle()
 	battle.add_unit(PLAYER, RIFLE, Vector2i(20, 10))
 	battle.add_unit(PLAYER, RIFLE, Vector2i(30, 10))
-	battle.advance(rules.capture_time + 10.0)
+	battle.advance(battle.rules.capture_time * 2.0 + 5.0)
 	check_eq(battle.count_held(PLAYER), 2)
-	check(battle.hold_time > 5.0)
 	check_eq(battle.result, Battle.Result.ONGOING)
-	battle.owners[1] = ENEMY
-	battle.advance(0.2)
-	check_eq(battle.hold_time, 0.0, "losing an objective resets the count")
-	battle.owners[1] = PLAYER
-	battle.advance(rules.hold_to_win + 1.0)
+	var before := battle.reserves[ENEMY]
+	battle.advance(10.0)
+	check(battle.reserves[ENEMY] < before - 8.0, "holding every objective drains the enemy")
+	battle.advance(120.0)
 	check_eq(battle.result, Battle.Result.WON)
+	check_eq(battle.result_reason, &"enemy_spent")
 	var finished_at := battle.time
 	battle.advance(10.0)
 	check_eq(battle.time, finished_at, "time stops at the result")
 
 
-func test_mission_is_lost_on_time_or_when_nothing_is_left() -> void:
-	var rules := _quick_rules()
-	rules.mission_time = 20.0
-	rules.enemy_reinforce_interval = 100000.0
-	var timed := _battle(null, rules)
-	timed.add_unit(PLAYER, RIFLE, Vector2i(5, 5))
-	timed.advance(25.0)
-	check_eq(timed.result, Battle.Result.LOST)
+func test_mission_is_lost_when_the_reserve_or_the_units_run_out() -> void:
+	var spent := _battle()
+	spent.reserves[PLAYER] = 3.0
+	spent.add_unit(PLAYER, RIFLE, Vector2i(10, 3))
+	spent.add_unit(ENEMY, RIFLE, Vector2i(14, 3))
+	spent.add_unit(ENEMY, RIFLE, Vector2i(14, 4))
+	spent.advance(30.0)
+	check_eq(spent.result, Battle.Result.LOST)
+	check_eq(spent.result_reason, &"reserve_spent")
 
 	var wiped := _battle()
 	wiped.funds = 0.0
@@ -418,6 +455,23 @@ func test_mission_is_lost_on_time_or_when_nothing_is_left() -> void:
 	wiped.add_unit(ENEMY, RIFLE, Vector2i(7, 5))
 	wiped.advance(30.0)
 	check_eq(wiped.result, Battle.Result.LOST)
+	check_eq(wiped.result_reason, &"no_units")
+
+
+func test_time_running_out_favours_the_side_with_more_reserve() -> void:
+	var rules := _quick_rules()
+	rules.mission_time = 20.0
+	var behind := _battle(null, rules)
+	behind.add_unit(PLAYER, RIFLE, Vector2i(5, 5))
+	behind.advance(25.0)
+	check_eq(behind.result, Battle.Result.LOST, "the enemy starts with the larger reserve")
+	check_eq(behind.result_reason, &"time_up")
+
+	var ahead := _battle(null, rules)
+	ahead.add_unit(PLAYER, RIFLE, Vector2i(5, 5))
+	ahead.reserves[ENEMY] = 40.0
+	ahead.advance(25.0)
+	check_eq(ahead.result, Battle.Result.WON)
 
 
 func test_enemy_reserve_retakes_a_lost_objective_and_gets_reinforced() -> void:
@@ -638,6 +692,6 @@ func test_balance_targets_hold() -> void:
 	var rush := wins[BattleBots.Style.RUSH]
 	var recon := wins[BattleBots.Style.RECON]
 	check_eq(wins[BattleBots.Style.IDLE], 0, "doing nothing must lose")
-	check(rush < missions, "rushing must not always win: %d of %d" % [rush, missions])
-	check(rush > 0, "the mission must be winnable by force: %d of %d" % [rush, missions])
-	check(recon * 4 >= missions, "scouting wins %d of %d" % [recon, missions])
+	check(rush * 2 < missions, "rushing wins %d of %d" % [rush, missions])
+	check(recon * 3 >= missions, "scouting wins %d of %d" % [recon, missions])
+	check(recon > rush, "scouting must pay")

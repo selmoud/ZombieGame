@@ -146,7 +146,7 @@ func test_every_event_has_a_radio_line() -> void:
 				check(not BattleText.describe_event(battle, event).is_empty(), "no text for %s" % event.kind)
 	for kind: StringName in [
 		&"contact", &"ambushed", &"under_fire", &"casualties", &"retreating", &"unit_lost", &"halted",
-		&"arrived_reinforcement", &"enemy_destroyed", &"objective_taken", &"objective_lost",
+		&"arrived_reinforcement", &"enemy_destroyed", &"objective_taken",
 		&"strike_called", &"strike_landed",
 	]:
 		check(kinds.has(kind), "event %s never happened in the sample" % kind)

@@ -190,6 +190,7 @@ func _draw() -> void:
 	if _background != null:
 		draw_texture_rect(_background, Rect2(_origin, Vector2(battle.map.size) * _scale), false)
 	_draw_hexes()
+	_draw_chain()
 	for objective in battle.map.objectives:
 		_draw_objective(objective)
 	for unit in battle.units:
@@ -249,23 +250,44 @@ func _draw_hexes() -> void:
 # --- Objectives -------------------------------------------------------------
 
 ## An objective as a tactical graphic: a closed line in the colour of whoever holds it.
+## The chain the objectives fall in, drawn under them.
+func _draw_chain() -> void:
+	var objectives := battle.map.objectives
+	for i in range(1, objectives.size()):
+		var from := to_screen(BattleMap.cell_centre(objectives[i - 1].cell))
+		var to := to_screen(BattleMap.cell_centre(objectives[i].cell))
+		var reach := battle.rules.capture_radius * battle.map.unit * _scale
+		var along := (to - from).normalized()
+		var taken := battle.owners[i - 1] == BattleUnit.Side.PLAYER
+		draw_dashed_line(from + along * reach, to - along * reach,
+				Color(COLOR_FRIEND_LINE if taken else COLOR_NEUTRAL, 0.7), 2.0, 8.0)
+
+
 func _draw_objective(objective: BattleMap.Objective) -> void:
 	var centre := to_screen(BattleMap.cell_centre(objective.cell))
 	var radius := battle.rules.capture_radius * battle.map.unit * _scale
 	var owner := battle.owners[objective.index]
+	var target := battle.active_objective(BattleUnit.Side.PLAYER) == objective.index
 	var color := COLOR_NEUTRAL
 	if owner == BattleUnit.Side.PLAYER:
 		color = COLOR_FRIEND_LINE
 	elif owner == BattleUnit.Side.ENEMY:
 		color = COLOR_HOSTILE_LINE
-	draw_circle(centre, radius, Color(color, 0.14), true, -1.0, true)
-	draw_arc(centre, radius, 0.0, TAU, 64, color, 2.5, true)
+	# An objective further down the chain cannot be taken yet and is drawn faint.
+	var strength := 1.0 if target or owner == BattleUnit.Side.PLAYER else 0.45
+	draw_circle(centre, radius, Color(color, 0.14 * strength), true, -1.0, true)
+	draw_arc(centre, radius, 0.0, TAU, 64, Color(color, strength), 2.5, true)
+	if target:
+		draw_arc(centre, radius + 9.0, 0.0, TAU, 64, Color(COLOR_TEXT, 0.8), 1.5, true)
 
 	var progress := battle.capture_progress[objective.index]
 	if progress > 0.0:
 		var taker := COLOR_FRIEND_LINE if battle.capture_side[objective.index] == BattleUnit.Side.PLAYER else COLOR_HOSTILE_LINE
 		draw_arc(centre, radius + 5.0, -PI / 2.0, -PI / 2.0 + TAU * progress, 64, taker, 4.0, true)
-	_text(centre + Vector2(0, -radius - 7.0), "ОБ. " + objective.title.to_upper(), 13, color)
+	var title := "ОБ. " + objective.title.to_upper()
+	if target:
+		title = "ЦЕЛЬ: " + objective.title.to_upper()
+	_text(centre + Vector2(0, -radius - 13.0), title, 13, Color(color, maxf(strength, 0.7)))
 
 
 # --- Units ------------------------------------------------------------------

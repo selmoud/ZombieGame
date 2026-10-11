@@ -3,10 +3,15 @@ extends Resource
 ## Tunable numbers of a mission. Times are in seconds, distances in cells.
 
 @export var mission_time := 1200.0
-## Hold this many objectives...
-@export var objectives_to_win := 2
-## ...for this long without a break to win.
-@export var hold_to_win := 120.0
+## Each side has a reserve. It shrinks with every man lost and every objective
+## lost, and the side whose reserve runs out loses the mission.
+@export var reserve := 100.0
+@export var enemy_reserve := 150.0
+@export var reserve_per_man := 1.0
+## Taken from the reserve of the side that loses an objective it held.
+@export var reserve_per_objective := 15.0
+## While the player holds every objective the enemy's reserve drains this fast.
+@export var reserve_drain := 1.0
 @export var start_funds := 500.0
 ## The group cannot have more units than this, counting those on their way.
 @export var max_units := 6

@@ -67,9 +67,12 @@ var strikes: Array[Strike] = []
 var arrivals: Array[Arrival] = []
 ## Radio log: dictionaries with `time`, `kind` and details. Only grows.
 var events: Array[Dictionary] = []
-## How long the player has been holding enough objectives without a break.
-var hold_time := 0.0
+## What is left of each side's reserve, indexed by BattleUnit.Side. The player's
+## side does not know the enemy's figure until the mission is over.
+var reserves := PackedFloat32Array([0.0, 0.0])
 var result := Result.ONGOING
+## Why the mission ended: enemy_spent, reserve_spent, time_up or no_units.
+var result_reason := &""
 
 var _rng := RandomNumberGenerator.new()
 var _accumulator := 0.0
@@ -93,6 +96,8 @@ func _init(seed_value: int, battle_rules: BattleRules = null, battle_map: Battle
 		map = MapLibrary.create_city()
 		MapLibrary.place_city_enemy(self, _rng)
 	funds = rules.start_funds
+	reserves[BattleUnit.Side.PLAYER] = rules.reserve
+	reserves[BattleUnit.Side.ENEMY] = rules.enemy_reserve
 	var count := map.objectives.size()
 	owners.resize(count)
 	owners.fill(BattleUnit.Side.ENEMY)
@@ -650,6 +655,7 @@ func _fight() -> void:
 
 func _hurt(unit: BattleUnit, losses: int) -> void:
 	var was_above_half := unit.strength * 2 > unit.max_strength()
+	reserves[unit.side] -= mini(losses, unit.strength) * rules.reserve_per_man
 	unit.strength = maxi(unit.strength - losses, 0)
 	if unit.strength == 0:
 		_destroy(unit)
@@ -725,6 +731,18 @@ func _refit_units() -> void:
 
 # --- Objectives and the result ----------------------------------------------
 
+## Objectives fall in order along the chain. The player can take only the first
+## one he does not hold; the enemy can take back only the last one the player holds.
+## Returns -1 when the side has nothing to take.
+func active_objective(side: BattleUnit.Side) -> int:
+	var front := 0
+	while front < owners.size() and owners[front] == BattleUnit.Side.PLAYER:
+		front += 1
+	if side == BattleUnit.Side.PLAYER:
+		return front if front < owners.size() else -1
+	return front - 1
+
+
 func _update_objectives() -> void:
 	for objective in map.objectives:
 		var i := objective.index
@@ -736,7 +754,7 @@ func _update_objectives() -> void:
 		var alone := -1
 		if present[0] != present[1]:
 			alone = 0 if present[0] else 1
-		if alone < 0 or owners[i] == alone:
+		if alone < 0 or owners[i] == alone or active_objective(alone) != i:
 			capture_progress[i] = maxf(capture_progress[i] - STEP / rules.capture_time, 0.0)
 			continue
 		if capture_side[i] != alone:
@@ -744,6 +762,7 @@ func _update_objectives() -> void:
 			capture_progress[i] = 0.0
 		capture_progress[i] += STEP / rules.capture_time
 		if capture_progress[i] >= 1.0:
+			reserves[owners[i]] -= rules.reserve_per_objective
 			owners[i] = alone
 			capture_progress[i] = 0.0
 			taken_at[i] = time
@@ -753,22 +772,32 @@ func _update_objectives() -> void:
 			var kind := &"objective_taken" if alone == BattleUnit.Side.PLAYER else &"objective_lost"
 			_report(kind, null, {"objective": i})
 
-	funds += rules.income * count_held(BattleUnit.Side.PLAYER) * STEP
+	var held := count_held(BattleUnit.Side.PLAYER)
+	funds += rules.income * held * STEP
+	if held == owners.size():
+		reserves[BattleUnit.Side.ENEMY] -= rules.reserve_drain * STEP
 
 
 func _check_result() -> void:
-	if count_held(BattleUnit.Side.PLAYER) >= rules.objectives_to_win:
-		hold_time += STEP
-	else:
-		hold_time = 0.0
-	if hold_time >= rules.hold_to_win:
-		result = Result.WON
+	if reserves[BattleUnit.Side.ENEMY] <= 0.0:
+		_finish(Result.WON, &"enemy_spent")
+	elif reserves[BattleUnit.Side.PLAYER] <= 0.0:
+		_finish(Result.LOST, &"reserve_spent")
 	elif time >= rules.mission_time:
-		result = Result.LOST
+		# Out of time: whoever has kept more of his reserve has the better of it.
+		var ahead := reserves[BattleUnit.Side.PLAYER] > reserves[BattleUnit.Side.ENEMY]
+		_finish(Result.WON if ahead else Result.LOST, &"time_up")
 	elif count_units(BattleUnit.Side.PLAYER) == 0 and arrivals.is_empty():
 		var cheapest: int = UnitKind.COST.min()
 		if funds < cheapest:
-			result = Result.LOST
+			_finish(Result.LOST, &"no_units")
+
+
+func _finish(outcome: Result, reason: StringName) -> void:
+	result = outcome
+	result_reason = reason
+	reserves[0] = maxf(reserves[0], 0.0)
+	reserves[1] = maxf(reserves[1], 0.0)
 
 
 # --- Radio ------------------------------------------------------------------

@@ -94,7 +94,7 @@ func start_mission(seed_value: int) -> void:
 	_map.selected_unit = -1
 	_map.strike_mode = false
 	_overlay.hide()
-	_add_radio_line("Штаб: наберите группу и снимите паузу (пробел).", false)
+	_add_radio_line("Штаб: наберите группу и снимите паузу (пробел). Объекты берутся по порядку, с запада на восток. Берегите запас: он тает с каждой потерей.", false)
 	_refresh()
 
 
@@ -298,10 +298,10 @@ func _ordered_unit() -> int:
 func _refresh() -> void:
 	var rules := battle.rules
 	var held := battle.count_held(BattleUnit.Side.PLAYER)
-	_status.text = "%s / %s    Ресурсы: %d    Объекты: %d из %d    Удержание: %s / %s" % [
+	_status.text = "%s / %s    Очки: %d    Запас: %d    Объекты: %d из %d" % [
 		BattleText.clock(battle.time), BattleText.clock(rules.mission_time),
-		int(battle.funds), held, battle.map.objectives.size(),
-		BattleText.clock(battle.hold_time), BattleText.clock(rules.hold_to_win),
+		int(battle.funds), ceili(battle.reserves[BattleUnit.Side.PLAYER]),
+		held, battle.map.objectives.size(),
 	]
 	_pause_button.text = "Продолжить" if paused else "Пауза"
 	for i in SPEEDS.size():
@@ -384,11 +384,12 @@ func _scroll_radio() -> void:
 
 func _show_result() -> void:
 	paused = true
-	_overlay_text.text = "%s\n\nВремя: %s\nОбъектов удержано: %d из %d\nОтрядов в строю: %d" % [
+	_overlay_text.text = "%s\n%s\n\nВремя: %s\nОбъектов взято: %d из %d\nВаш запас: %d\nЗапас противника: %d" % [
 		"Задача выполнена" if battle.result == Battle.Result.WON else "Задача провалена",
+		BattleText.result_reason(battle),
 		BattleText.clock(battle.time),
 		battle.count_held(BattleUnit.Side.PLAYER), battle.map.objectives.size(),
-		battle.count_units(BattleUnit.Side.PLAYER),
+		ceili(battle.reserves[BattleUnit.Side.PLAYER]), ceili(battle.reserves[BattleUnit.Side.ENEMY]),
 	]
 	_overlay.show()
 

@@ -82,6 +82,21 @@ static func describe_event(battle: Battle, event: Dictionary) -> String:
 	return ""
 
 
+static func result_reason(battle: Battle) -> String:
+	match battle.result_reason:
+		&"enemy_spent":
+			return "Противник исчерпал запас и отходит."
+		&"reserve_spent":
+			return "Ваш запас исчерпан."
+		&"no_units":
+			return "Отрядов не осталось, и нанять их не на что."
+		&"time_up":
+			if battle.result == Battle.Result.WON:
+				return "Время вышло. Вы сохранили больше сил, чем противник."
+			return "Время вышло. Противник сохранил больше сил."
+	return ""
+
+
 ## Messages that deserve attention are shown in a warning colour.
 static func is_alarm(event: Dictionary) -> bool:
 	return event.kind in [

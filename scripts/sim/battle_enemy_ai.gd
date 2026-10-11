@@ -59,21 +59,11 @@ func _patrol(battle: Battle, unit: BattleUnit) -> void:
 	unit.wait_until = battle.time + 45.0
 
 
-## Sends the unit to the nearest objective the player has held long enough.
+## Sends the unit to take back the last objective the player holds, once the
+## player has held it long enough.
 func _counterattack(battle: Battle, unit: BattleUnit) -> bool:
-	var best := -1
-	var best_distance := INF
-	for objective in battle.map.objectives:
-		var i := objective.index
-		if battle.owners[i] != BattleUnit.Side.PLAYER:
-			continue
-		if battle.time - battle.taken_at[i] < battle.rules.counterattack_delay:
-			continue
-		var distance := unit.position.distance_to(BattleMap.cell_centre(objective.cell))
-		if distance < best_distance:
-			best_distance = distance
-			best = i
-	if best < 0:
+	var best := battle.active_objective(BattleUnit.Side.ENEMY)
+	if best < 0 or battle.time - battle.taken_at[best] < battle.rules.counterattack_delay:
 		return false
 	if unit.order != BattleUnit.Order.CAPTURE or unit.objective != best:
 		battle.order_capture(unit.id, best)
